@@ -71,7 +71,7 @@ case "${1:-help}" in
         --machine-type "$MACHINE" --tags "$NAME" \
         --image-family ubuntu-2404-lts-amd64 --image-project ubuntu-os-cloud \
         --boot-disk-size "${DISK_GB}GB" --boot-disk-type "$DISK_TYPE" \
-        --metadata-from-file startup-script=boot.sh "${ADDR[@]}"
+        --metadata-from-file startup-script=boot.sh ${ADDR[@]+"${ADDR[@]}"}
       echo "waiting for ssh..."
       for _ in $(seq 1 30); do ssh_ true 2>/dev/null && break; sleep 5; done
     fi
