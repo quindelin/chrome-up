@@ -1,0 +1,34 @@
+# Rendered to mediamtx.yml by setup.sh. Only one path exists, live/<STREAM_KEY>,
+# so anything else is refused; reading is allowed from this host only (OBS,
+# HUD), publishing from anywhere that knows the key.
+logLevel: info
+api: no
+metrics: no
+playback: no
+rtsp: no
+hls: no
+webrtc: no
+
+rtmp: yes
+rtmpAddress: :1935
+srt: yes
+srtAddress: :8890
+
+authMethod: internal
+authInternalUsers:
+  - user: any
+    pass:
+    ips: []
+    permissions:
+      - action: publish
+  - user: any
+    pass:
+    ips: ["127.0.0.1", "::1"]
+    permissions:
+      - action: read
+
+paths:
+  live/__STREAM_KEY__:
+    source: publisher
+    # SRT is the one to use on cellular: it is encrypted with this passphrase
+    srtPublishPassphrase: __SRT_PASSPHRASE__

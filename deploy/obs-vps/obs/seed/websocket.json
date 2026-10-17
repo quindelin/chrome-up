@@ -1,0 +1,1 @@
+{"first_load": false, "server_enabled": true, "server_port": 4455, "alerts_enabled": false, "auth_required": true, "server_password": "${OBS_WS_PASSWORD}"}

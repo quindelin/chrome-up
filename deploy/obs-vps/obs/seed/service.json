@@ -1,0 +1,1 @@
+{"type": "rtmp_custom", "settings": {"server": "${OUT_SERVER}", "key": "${OUT_KEY}", "use_auth": false}}

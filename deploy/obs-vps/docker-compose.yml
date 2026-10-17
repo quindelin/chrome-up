@@ -1,0 +1,47 @@
+# The IRL streaming box: phone/glasses -> MediaMTX -> OBS (+ Skyrim HUD) -> Twitch/YouTube.
+# Brought up by setup.sh on the VM; everything uses host networking and the
+# GCP firewall decides what is reachable (80/443, 1935/tcp, 8890/udp only).
+
+services:
+  mediamtx:
+    image: bluenviron/mediamtx:1.10.0
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+
+  hud:
+    build:
+      context: ../..
+      dockerfile: deploy/obs-vps/hud/Dockerfile
+    restart: unless-stopped
+    network_mode: host
+    volumes:
+      - ./hud.yaml:/app/config.vps.yaml:ro
+      - hud-data:/app/data
+    # no mic on a VPS: audio-driven skills run on the simulated source;
+    # vision reads the glasses feed back out of MediaMTX
+    command: ["python", "-m", "server.main", "--config", "config.vps.yaml", "--host", "127.0.0.1", "--no-audio"]
+
+  obs:
+    build: ./obs
+    restart: unless-stopped
+    network_mode: host
+    shm_size: 1gb                    # Chromium (browser source) needs it
+    env_file: .env
+    volumes:
+      - obs-config:/home/obs/.config/obs-studio
+
+  caddy:
+    image: caddy:2.8
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+
+volumes:
+  hud-data:
+  obs-config:
+  caddy-data:

@@ -1,0 +1,6 @@
+# Real TLS (Let's Encrypt) for the phone page, so iOS/Android hand over the
+# compass and motion sensors. DOMAIN defaults to <ip>.sslip.io (setup.sh).
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy 127.0.0.1:8787
+}
