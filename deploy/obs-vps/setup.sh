@@ -45,8 +45,13 @@ s = re.sub(r"(?m)^(\s*source:) 0\b.*$", rf'\1 "rtmp://127.0.0.1:1935/live/{key}"
 open("hud.yaml", "w").write(s)
 PY
 
-sudo docker compose up -d --build
-# the disk is small on purpose: drop build cache and replaced images
-sudo docker builder prune -af >/dev/null 2>&1 || true
-sudo docker image prune -f >/dev/null 2>&1 || true
+if [ "${SETUP_BUILD:-0}" = "1" ] || ! sudo docker image inspect obs-vps-obs >/dev/null 2>&1; then
+  # deploy: (re)build, then drop build cache - the disk is small on purpose
+  sudo docker compose up -d --build
+  sudo docker builder prune -af >/dev/null 2>&1 || true
+  sudo docker image prune -f >/dev/null 2>&1 || true
+else
+  # boot: no rebuild, just recreate whatever changed (Caddy's DOMAIN)
+  sudo docker compose up -d
+fi
 sudo docker compose ps

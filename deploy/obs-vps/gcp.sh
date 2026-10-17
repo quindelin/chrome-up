@@ -45,7 +45,7 @@ upload() {
   # setup runs detached on the VM, so a dropped SSH session cannot kill it
   ssh_ "mkdir -p $REMOTE && tar -xzf chrome_up.tgz -C $REMOTE && \
         (mv -f ~/*.wav ~/*.ogg ~/*.mp3 $REMOTE/overlay/assets/sfx/ 2>/dev/null || true) && \
-        (nohup bash $REMOTE/deploy/obs-vps/setup.sh > ~/setup.log 2>&1 < /dev/null &)"
+        (SETUP_BUILD=1 nohup bash $REMOTE/deploy/obs-vps/setup.sh > ~/setup.log 2>&1 < /dev/null &)"
   echo "setup running on the VM (log: ~/setup.log)..."
   for _ in $(seq 1 60); do
     sleep 20
