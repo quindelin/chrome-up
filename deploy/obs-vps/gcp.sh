@@ -49,7 +49,7 @@ upload() {
   echo "setup running on the VM (log: ~/setup.log)..."
   for _ in $(seq 1 60); do
     sleep 20
-    state="$(ssh_ "pgrep -f 'deploy/obs-vps/setup.sh' >/dev/null && echo running || echo done" 2>/dev/null || true)"
+    state="$(ssh_ "pgrep -f '[d]eploy/obs-vps/setup.sh' >/dev/null && echo running || echo done" 2>/dev/null || true)"
     [ "${state##*$'\n'}" = "done" ] && break
   done
   ssh_ "tail -n 8 ~/setup.log"

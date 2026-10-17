@@ -46,4 +46,7 @@ open("hud.yaml", "w").write(s)
 PY
 
 sudo docker compose up -d --build
+# the disk is small on purpose: drop build cache and replaced images
+sudo docker builder prune -af >/dev/null 2>&1 || true
+sudo docker image prune -f >/dev/null 2>&1 || true
 sudo docker compose ps
