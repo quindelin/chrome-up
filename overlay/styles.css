@@ -1,15 +1,33 @@
-/* HUDstream — Skyrim-flavoured OBS browser source
-   Designed for a 1920x1080 transparent browser source. */
+/* HUDstream — Skyrim HUD for a 1920x1080 transparent OBS browser source.
+
+   Matches the vanilla layout: compass top-centre, Magicka / Health / Stamina
+   along the bottom (bars hide once full), notifications top-left, skill and
+   level messages under the compass, "Discovered" title mid-screen. */
+
+@font-face {
+  font-family: "Skyrim HUD";
+  src: local("Futura Condensed Medium"), local("Futura-CondensedMedium"),
+       local("Futura PT Cond Medium"), local("FuturaPTCond-Medium"),
+       local("Futura Std Condensed"), local("FuturaStd-Condensed");
+  font-weight: 400 600;
+}
 
 :root {
-  --gold: #e8c88a;
-  --gold-dim: #b9975b;
-  --gold-soft: rgba(232, 200, 138, 0.55);
-  --ink: #0b0a08;
-  --health: #c0392b;
-  --magicka: #2f6fb5;
-  --stamina: #4f9e4a;
-  --font: "Cinzel", "Palatino Linotype", "Trajan Pro", Georgia, serif;
+  --gold: #ececec;            /* kept as the name the other modules use */
+  --gold-dim: #a9a9a9;
+  --gold-soft: rgba(236, 236, 236, 0.5);
+  --text: #f4f4f4;
+  --ink: #000;
+  --health: #a3201c;
+  --health-hi: #d2443a;
+  --magicka: #2a59a8;
+  --magicka-hi: #4c86d6;
+  --stamina: #2e8a35;
+  --stamina-hi: #55b55a;
+  --frame-hi: #b9b9b9;
+  --frame-lo: #3a3a3a;
+  --font: "Skyrim HUD", "Barlow Condensed", "Futura", "Arial Narrow", sans-serif;
+  --shadow: 0 0 3px rgba(0, 0, 0, 0.95), 0 1px 6px rgba(0, 0, 0, 0.85);
 }
 
 * { box-sizing: border-box; }
@@ -22,9 +40,10 @@ html, body {
   overflow: hidden;
   background: transparent;
   font-family: var(--font);
-  color: var(--gold);
+  font-weight: 500;
+  color: var(--text);
   -webkit-font-smoothing: antialiased;
-  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.9);
+  text-shadow: var(--shadow);
 }
 
 .hidden { display: none !important; }
@@ -32,179 +51,245 @@ html, body {
 /* ------------------------------------------------------------ compass */
 #compass-wrap {
   position: absolute;
-  top: 18px;
+  top: 34px;
   left: 50%;
   transform: translateX(-50%);
-  width: 1200px;
-  height: 96px;
-  -webkit-mask-image: linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%);
-  mask-image: linear-gradient(to right, transparent 0%, #000 12%, #000 88%, transparent 100%);
+  width: 900px;
+  height: 84px;
 }
-#compass { display: block; width: 1200px; height: 96px; }
+#compass { display: block; width: 900px; height: 84px; }
 
-/* ---------------------------------------------------------- crosshair */
+#objective {
+  position: absolute;
+  left: 50%;
+  top: 112px;
+  transform: translateX(-50%);
+  font-size: 22px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  opacity: 0.92;
+}
+#objective .dist { margin-left: 12px; opacity: 0.75; }
+
+/* ------------------------------------------------- crosshair + sneak eye */
 #crosshair {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 10px;
-  height: 10px;
-  margin: -5px 0 0 -5px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(232, 200, 138, 0.75);
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
-  opacity: 0.85;
-}
-
-/* ------------------------------------------------------ vitals + skills */
-#left-stack {
-  position: absolute;
-  left: 54px;
-  bottom: 48px;
-  width: 330px;
-  display: flex;
-  flex-direction: column;
-  gap: 18px;
-}
-
-#vitals { position: relative; display: flex; flex-direction: column; gap: 10px; }
-
-.vital { position: relative; }
-.vital .bar {
-  position: relative;
+  width: 40px;
   height: 20px;
-  width: 100%;
-  background: rgba(10, 9, 7, 0.62);
-  border: 2px solid rgba(232, 200, 138, 0.5);
-  border-radius: 3px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7), inset 0 0 12px rgba(0, 0, 0, 0.8);
+  margin: -10px 0 0 -20px;
+  opacity: 0.8;
+  filter: drop-shadow(0 0 2px #000);
+}
+#crosshair path { fill: none; stroke: #fff; stroke-width: 1.6; stroke-linejoin: round; }
+
+#stealth {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 80px;
+  height: 40px;
+  margin: -64px 0 0 -40px;
+  filter: drop-shadow(0 0 3px #000);
+}
+#stealth .lid { fill: rgba(0, 0, 0, 0.25); stroke: #fff; stroke-width: 2; }
+#stealth .iris { fill: #fff; opacity: 0.85; }
+#stealth .shut { fill: none; stroke: #fff; stroke-width: 2; opacity: 0; }
+/* hidden = eye nearly closed, detected = wide open */
+#stealth.hidden-state .lid { transform: scaleY(0.35); transition: transform 300ms; }
+#stealth.hidden-state .iris { transform: scaleY(0.3); transition: transform 300ms; }
+
+/* ---------------------------------------------------------------- vitals */
+#vitals { position: absolute; left: 0; right: 0; bottom: 56px; height: 18px; }
+
+.vital {
+  position: absolute;
+  bottom: 0;
+  width: 352px;
+  height: 18px;
+  opacity: 1;
+  transition: opacity 700ms ease;
+}
+.vital.idle { opacity: 0; }
+.vital[data-vital="magicka"] { left: 150px; }
+.vital[data-vital="health"]  { left: 50%; margin-left: -176px; }
+.vital[data-vital="stamina"] { right: 150px; }
+
+/* metal frame with pointed ends */
+.vital .bar {
+  position: absolute;
+  inset: 0;
+  padding: 3px 13px;
+  clip-path: polygon(0 50%, 12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%);
+  background: linear-gradient(180deg, var(--frame-hi), #707070 45%, var(--frame-lo) 55%, #8a8a8a);
+  filter: drop-shadow(0 1px 3px #000);
+}
+.vital .track {
+  position: relative;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.78);
   overflow: hidden;
 }
 .vital .fill {
   position: absolute;
-  inset: 2px auto 2px 2px;
-  width: 0%;
-  border-radius: 2px;
-  transition: width 140ms linear;
-  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.35), rgba(0, 0, 0, 0.25));
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  transition: width 160ms linear;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -2px 3px rgba(0, 0, 0, 0.45);
 }
-.vital .gloss {
-  position: absolute;
-  inset: 2px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 55%);
-  pointer-events: none;
-}
-.vital[data-vital="health"] .fill { background-color: var(--health); }
-.vital[data-vital="magicka"] .fill { background-color: var(--magicka); }
-.vital[data-vital="stamina"] .fill { background-color: var(--stamina); }
-.vital .label {
-  position: absolute;
-  right: 6px;
-  top: 1px;
-  font-size: 13px;
-  letter-spacing: 0.12em;
-  color: rgba(245, 232, 205, 0.85);
-}
-#levelbadge {
-  position: absolute;
-  left: -6px;
-  top: -46px;
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: 26px;
-  color: var(--gold);
-}
-#levelbadge .lv { font-size: 15px; opacity: 0.75; letter-spacing: 0.1em; }
+/* drains toward the centre of the screen; health from both ends */
+.vital[data-vital="magicka"] .fill { right: 0; background: linear-gradient(180deg, var(--magicka-hi), var(--magicka)); }
+.vital[data-vital="stamina"] .fill { left: 0; background: linear-gradient(180deg, var(--stamina-hi), var(--stamina)); }
+.vital[data-vital="health"] .fill { left: 50%; transform: translateX(-50%); background: linear-gradient(180deg, var(--health-hi), var(--health)); }
+.vital.low .fill { animation: vital-low 0.9s ease-in-out infinite; }
+@keyframes vital-low { 50% { filter: brightness(1.6); } }
 
-/* --------------------------------------------------------------- skills */
-#skills { display: flex; flex-direction: column; gap: 4px; }
+/* ------------------------------------------------- skill list (opt-in) */
+#left-stack { display: none; }
+body.show-skills #left-stack {
+  display: flex;
+  position: absolute;
+  left: 60px;
+  bottom: 120px;
+  width: 300px;
+  flex-direction: column;
+}
+#skills { display: flex; flex-direction: column; gap: 3px; }
 .skill {
   display: grid;
-  grid-template-columns: 132px 54px 1fr;
+  grid-template-columns: 130px 40px 1fr;
   align-items: center;
   gap: 8px;
-  padding: 3px 8px;
-  border-radius: 3px;
-  background: linear-gradient(90deg, rgba(12, 10, 8, 0.55), rgba(12, 10, 8, 0));
-  border-left: 3px solid transparent;
-  transition: background 220ms ease, border-color 220ms ease;
-  opacity: 0.78;
+  font-size: 19px;
+  opacity: 0.7;
+  transition: opacity 220ms ease;
 }
-.skill.active {
-  opacity: 1;
-  border-left-color: var(--gold);
-  background: linear-gradient(90deg, rgba(70, 52, 22, 0.85), rgba(12, 10, 8, 0));
-}
-.skill .name { font-size: 16px; letter-spacing: 0.06em; }
-.skill .lvl { font-size: 15px; text-align: right; opacity: 0.9; }
-.skill .xpbar {
-  height: 7px;
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(232, 200, 138, 0.35);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.skill .xpfill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #8c6a2f, var(--gold));
-  transition: width 160ms linear;
-}
-.skill.flash .name { color: #fff6df; text-shadow: 0 0 12px rgba(232, 200, 138, 0.9); }
+.skill.active { opacity: 1; }
+.skill .lvl { text-align: right; }
+.skill .xpbar { height: 5px; background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.35); }
+.skill .xpfill { height: 100%; width: 0%; background: #e6e6e6; transition: width 160ms linear; }
+.skill.flash .name { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), var(--shadow); }
 
-/* --------------------------------------------------------------- toasts */
-#toasts {
+/* ------------------------------------------------ notifications top-left */
+#notices {
+  position: absolute;
+  left: 64px;
+  top: 52px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 560px;
+}
+.notice {
+  font-size: 24px;
+  letter-spacing: 0.02em;
+  animation: notice-in 250ms ease-out, notice-out 600ms ease-in forwards;
+  animation-delay: 0ms, 4200ms;
+}
+@keyframes notice-in { from { opacity: 0; transform: translateX(-8px); } }
+@keyframes notice-out { to { opacity: 0; } }
+
+/* ------------------------------------------ skill increase + level meter */
+#skillup {
   position: absolute;
   left: 50%;
-  bottom: 190px;
+  top: 150px;
   transform: translateX(-50%);
   display: flex;
-  flex-direction: column-reverse;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  width: 700px;
+  gap: 10px;
+  animation: fade-show 4.5s ease forwards;
 }
-.toast {
-  padding: 8px 26px;
-  font-size: 26px;
-  letter-spacing: 0.06em;
-  color: #f4e6c4;
-  background: linear-gradient(180deg, rgba(24, 18, 10, 0.85), rgba(12, 9, 6, 0.75));
-  border: 2px solid rgba(232, 200, 138, 0.65);
-  border-radius: 2px;
-  box-shadow: 0 4px 22px rgba(0, 0, 0, 0.75);
-  animation: toast-in 300ms ease-out, toast-out 700ms ease-in forwards;
-  animation-delay: 0ms, 3600ms;
+.su-text { font-size: 34px; letter-spacing: 0.03em; white-space: nowrap; }
+.su-meter { display: flex; align-items: center; gap: 14px; }
+.su-lvl { font-size: 20px; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.9; }
+.su-lvl b { font-weight: 600; }
+.meter {
+  position: relative;
+  width: 300px;
+  height: 12px;
+  padding: 3px 10px;
+  clip-path: polygon(0 50%, 9px 0, calc(100% - 9px) 0, 100% 50%, calc(100% - 9px) 100%, 9px 100%);
+  background: linear-gradient(180deg, var(--frame-hi), #707070 45%, var(--frame-lo) 55%, #8a8a8a);
 }
-.toast .icon { color: var(--gold); margin-right: 10px; }
-@keyframes toast-in { from { opacity: 0; transform: translateY(18px) scale(0.96); } to { opacity: 1; } }
-@keyframes toast-out { to { opacity: 0; transform: translateY(-10px); } }
+.meter::before { content: ""; position: absolute; inset: 3px 10px; background: rgba(0, 0, 0, 0.8); }
+.meter i {
+  position: relative;
+  display: block;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(180deg, #ffffff, #b8b8b8);
+  transition: width 1.2s cubic-bezier(.2, .7, .2, 1);
+}
+@keyframes fade-show {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { opacity: 0; }
+}
 
-/* ----------------------------------------------------------- level up */
+/* ------------------------------------------------------------- level up */
 #levelup {
   position: absolute;
   left: 50%;
   top: 150px;
   transform: translateX(-50%);
-  font-size: 62px;
-  letter-spacing: 0.14em;
-  color: #fff3d6;
-  text-shadow: 0 0 30px rgba(232, 200, 138, 0.85), 0 4px 12px #000;
-  animation: levelup 4s ease-out forwards;
+  font-size: 46px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  text-shadow: 0 0 18px rgba(255, 255, 255, 0.45), var(--shadow);
+  animation: fade-show 5s ease forwards;
 }
-@keyframes levelup {
-  0% { opacity: 0; transform: translateX(-50%) scale(0.9); letter-spacing: 0.4em; }
-  15% { opacity: 1; transform: translateX(-50%) scale(1); letter-spacing: 0.14em; }
-  75% { opacity: 1; }
-  100% { opacity: 0; transform: translateX(-50%) scale(1.03); }
+
+/* ------------------------------------------------------------ discovered */
+#discover {
+  position: absolute;
+  left: 50%;
+  top: 300px;
+  transform: translateX(-50%);
+  text-align: center;
+  animation: fade-show 5.5s ease forwards;
 }
+.dc-name { font-size: 64px; letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap; }
+.dc-sub {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 4px;
+  font-size: 22px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  opacity: 0.9;
+}
+.dc-sub .rule { width: 120px; height: 1px; background: linear-gradient(90deg, transparent, #fff, transparent); box-shadow: 0 0 3px #000; }
+
+/* ----------------------------------------------------------- thu'um meter */
+/* Sits just above the health bar and fades when the shout is ready. */
+#thuum {
+  position: absolute;
+  left: 50%;
+  bottom: 86px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 600ms ease;
+}
+#thuum.ready { opacity: 0; }
+.th-name { font-size: 17px; letter-spacing: 0.14em; text-transform: uppercase; opacity: 0.85; }
+.th-bar { display: block; width: 160px; height: 4px; background: rgba(0, 0, 0, 0.7); box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.35); }
+.th-bar i { display: block; height: 100%; width: 100%; background: #f0f0f0; transition: width 120ms linear; }
 
 /* -------------------------------------------------------------- avatar */
 #avatar-wrap {
   position: absolute;
   right: 40px;
-  bottom: 36px;
+  bottom: 104px;               /* clear of the stamina bar */
   width: 360px;
   height: 380px;
 }
@@ -223,29 +308,12 @@ html, body {
   padding: 4px 16px;
   font-size: 18px;
   letter-spacing: 0.1em;
-  background: rgba(10, 9, 7, 0.72);
-  border: 1px solid rgba(232, 200, 138, 0.45);
+  background: rgba(8, 8, 8, 0.72);
+  border: 1px solid rgba(236, 236, 236, 0.45);
   border-radius: 3px;
   white-space: nowrap;
 }
 #statetext { font-size: 13px; opacity: 0.7; letter-spacing: 0.08em; }
-
-/* ---------------------------------------------------------- objective line */
-#objective {
-  position: absolute;
-  left: 50%;
-  top: 116px;
-  transform: translateX(-50%);
-  padding: 5px 20px;
-  font-size: 19px;
-  letter-spacing: 0.08em;
-  color: #fff2d2;
-  background: rgba(10, 9, 7, 0.7);
-  border: 1px solid rgba(232, 200, 138, 0.4);
-  border-radius: 3px;
-  white-space: nowrap;
-}
-#objective .dist { color: var(--gold); margin-left: 10px; }
 
 /* -------------------------------------------------------------- gesture menu */
 #menu {
@@ -254,15 +322,15 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(ellipse at center, rgba(6, 5, 4, 0.55), rgba(6, 5, 4, 0.82));
+  background: radial-gradient(ellipse at center, rgba(4, 4, 4, 0.55), rgba(4, 4, 4, 0.82));
   z-index: 10;
 }
 .menu-frame {
   width: 940px;
   max-height: 720px;
   padding: 22px 30px 18px;
-  background: linear-gradient(180deg, rgba(26, 21, 14, 0.96), rgba(14, 12, 9, 0.96));
-  border: 2px solid rgba(232, 200, 138, 0.55);
+  background: linear-gradient(180deg, rgba(22, 22, 22, 0.96), rgba(10, 10, 10, 0.96));
+  border: 2px solid rgba(236, 236, 236, 0.55);
   border-radius: 4px;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.8), inset 0 0 60px rgba(0, 0, 0, 0.6);
   animation: menu-in 180ms ease-out;
@@ -274,7 +342,7 @@ html, body {
   text-align: center;
   color: var(--gold);
   padding-bottom: 10px;
-  border-bottom: 1px solid rgba(232, 200, 138, 0.3);
+  border-bottom: 1px solid rgba(236, 236, 236, 0.3);
 }
 .menu-tabs {
   display: flex;
@@ -283,7 +351,7 @@ html, body {
   padding: 12px 0 14px;
 }
 .menu-tab { font-size: 17px; letter-spacing: 0.14em; opacity: 0.5; }
-.menu-tab.active { opacity: 1; color: #fff2d2; text-shadow: 0 0 14px rgba(232,200,138,.7); }
+.menu-tab.active { opacity: 1; color: #ffffff; text-shadow: 0 0 14px rgba(236,236,236,.7); }
 .menu-body { max-height: 520px; overflow: hidden; }
 .menu-level {
   text-align: center; font-size: 17px; letter-spacing: 0.16em;
@@ -300,7 +368,7 @@ html, body {
 }
 .menu-row.active {
   border-left-color: var(--gold);
-  background: linear-gradient(90deg, rgba(70, 52, 22, 0.7), rgba(0, 0, 0, 0));
+  background: linear-gradient(90deg, rgba(90, 90, 90, 0.7), rgba(0, 0, 0, 0));
 }
 .mr-name { letter-spacing: 0.06em; }
 .mr-lvl { text-align: right; color: var(--gold); }
@@ -308,11 +376,11 @@ html, body {
 .mr-bar {
   height: 10px;
   background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(232, 200, 138, 0.35);
+  border: 1px solid rgba(236, 236, 236, 0.35);
   border-radius: 2px;
   overflow: hidden;
 }
-.mr-bar i { display: block; height: 100%; background: linear-gradient(90deg, #8c6a2f, var(--gold)); }
+.mr-bar i { display: block; height: 100%; background: linear-gradient(90deg, #6d6d6d, var(--gold)); }
 .mr-bar.h i { background: linear-gradient(90deg, #7d241a, var(--health)); }
 .mr-bar.m i { background: linear-gradient(90deg, #1e4472, var(--magicka)); }
 .mr-bar.s i { background: linear-gradient(90deg, #2f6b2b, var(--stamina)); }
@@ -337,7 +405,7 @@ html, body {
 .menu-step {
   padding: 10px 14px 4px;
   font-size: 17px;
-  color: #f0e2c2;
+  color: #e8e8e8;
   opacity: 0.9;
 }
 .menu-sub {
@@ -357,62 +425,12 @@ html, body {
 .menu-foot {
   margin-top: 14px;
   padding-top: 10px;
-  border-top: 1px solid rgba(232, 200, 138, 0.25);
+  border-top: 1px solid rgba(236, 236, 236, 0.25);
   text-align: center;
   font-size: 13px;
   letter-spacing: 0.1em;
   opacity: 0.55;
 }
-
-/* ----------------------------------------------------------- stealth eye */
-#stealth {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, 28px);
-  padding: 3px 14px;
-  font-size: 13px;
-  letter-spacing: 0.18em;
-  color: #7be3a4;
-  border: 1px solid rgba(123, 227, 164, 0.5);
-  border-radius: 12px;
-  background: rgba(8, 12, 9, 0.6);
-  text-transform: uppercase;
-}
-
-/* ----------------------------------------------------------- thu'um meter */
-#thuum {
-  position: absolute;
-  left: 50%;
-  bottom: 80px;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 4px 14px;
-  background: rgba(8, 8, 6, 0.72);
-  border: 1px solid rgba(232, 200, 138, 0.4);
-  border-radius: 4px;
-}
-.th-name {
-  font-size: 16px;
-  letter-spacing: 0.18em;
-  color: #e8c88a;
-  min-width: 110px;
-  text-align: center;
-}
-.th-bar {
-  display: block;
-  width: 180px;
-  height: 6px;
-  background: rgba(0, 0, 0, 0.6);
-  border: 1px solid rgba(232, 200, 138, 0.35);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.th-bar i { display: block; height: 100%; width: 100%;
-  background: linear-gradient(90deg, #4a3618, var(--gold));
-  transition: width 120ms linear; }
 
 /* -------------------------------------------------------- privacy badge */
 #privacy {
@@ -427,8 +445,8 @@ html, body {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--gold);
-  background: rgba(10, 9, 7, 0.78);
-  border: 1px solid rgba(232, 200, 138, 0.45);
+  background: rgba(8, 8, 8, 0.78);
+  border: 1px solid rgba(236, 236, 236, 0.45);
   border-radius: 3px;
   box-shadow: 0 0 12px rgba(0, 0, 0, 0.45);
 }
@@ -440,7 +458,7 @@ html, body {
   box-shadow: 0 0 8px var(--gold-soft);
   animation: pv-pulse 2.4s ease-in-out infinite;
 }
-#privacy.pv-off { color: var(--gold-dim); border-color: rgba(185, 151, 91, 0.3); }
+#privacy.pv-off { color: var(--gold-dim); border-color: rgba(170, 170, 170, 0.3); }
 #privacy.pv-off .pv-dot { background: var(--gold-dim); animation: none; }
 @keyframes pv-pulse {
   0%, 100% { opacity: 1; }
@@ -455,8 +473,8 @@ html, body {
   transform: translate(-50%, -50%);
   padding: 14px 28px;
   font-size: 22px;
-  background: rgba(10, 9, 7, 0.8);
-  border: 2px solid rgba(232, 200, 138, 0.5);
+  background: rgba(8, 8, 8, 0.8);
+  border: 2px solid rgba(236, 236, 236, 0.5);
   border-radius: 4px;
 }
 
@@ -471,7 +489,7 @@ html, body {
   flex-direction: column;
   gap: 8px;
   padding: 14px 16px;
-  background: rgba(11, 10, 8, 0.62);
+  background: rgba(8, 8, 8, 0.62);
   border-left: 3px solid var(--gold-soft);
   border-radius: 3px;
   backdrop-filter: blur(2px);
@@ -486,7 +504,7 @@ html, body {
 .vc-nearby { font-size: 13px; color: var(--gold-dim); }
 
 .vc-lines { display: flex; flex-direction: column; gap: 7px; }
-.vc-line { border-left: 2px solid rgba(232, 200, 138, 0.22); padding-left: 9px; }
+.vc-line { border-left: 2px solid rgba(236, 236, 236, 0.22); padding-left: 9px; }
 .vc-line.vc-mine { border-left-color: var(--gold); }
 .vc-meta {
   display: flex;

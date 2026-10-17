@@ -7,7 +7,11 @@ const CARDINALS = [
   { deg: 270, label: "W" },
 ];
 
-/** Skyrim-style compass bar: cardinals, ticks, quest markers, live objective. */
+const FONT = '"Skyrim HUD", "Barlow Condensed", "Futura", "Arial Narrow", sans-serif';
+const CAP = 46;                  // width of each ornamental end cap
+
+/** Skyrim compass: a thin dark band between two filigree caps, white
+ *  cardinal letters, location icons, and the quest marker. */
 export class Compass {
   constructor(canvas, markers = []) {
     this.canvas = canvas;
@@ -15,131 +19,162 @@ export class Compass {
     this.markers = markers;
     this.w = canvas.width;
     this.h = canvas.height;
-    this.span = 220;             // degrees visible across the bar
+    this.span = 180;             // degrees visible across the band
     this.heading = 0;
     this.objective = null;       // {name, bearing, distance, step, icon}
+    this.top = 22;               // band geometry
+    this.bandH = 34;
   }
 
   setHeading(deg) { this.heading = deg; }
   setObjective(obj) { this.objective = obj; }
 
-  get ppd() { return this.w / this.span; }
+  get inner() { return this.w - CAP * 2; }
+  get ppd() { return this.inner / this.span; }
 
   xFor(bearing) {
     return this.w / 2 + delta(this.heading, bearing) * this.ppd;
   }
 
+  /** fade toward the caps, like the vanilla band */
+  _alpha(x) {
+    const edge = Math.min(x - CAP, this.w - CAP - x);
+    return Math.max(0, Math.min(1, edge / 90));
+  }
+
   draw() {
     const ctx = this.ctx;
-    const { w, h } = this;
-    ctx.clearRect(0, 0, w, h);
+    const { w } = this;
+    const top = this.top, bh = this.bandH, mid = top + bh / 2;
+    ctx.clearRect(0, 0, w, this.h);
 
-    ctx.fillStyle = "rgba(10, 9, 7, 0.42)";
-    ctx.fillRect(0, 44, w, 48);
-
-    // --- ticks every 15 degrees
-    ctx.strokeStyle = "rgba(232, 200, 138, 0.75)";
-    ctx.lineWidth = 2;
+    // --- band
+    const g = ctx.createLinearGradient(0, top, 0, top + bh);
+    g.addColorStop(0, "rgba(0,0,0,0.28)");
+    g.addColorStop(0.5, "rgba(0,0,0,0.5)");
+    g.addColorStop(1, "rgba(0,0,0,0.28)");
+    ctx.fillStyle = g;
+    ctx.fillRect(CAP - 4, top, w - (CAP - 4) * 2, bh);
+    ctx.strokeStyle = "rgba(230,230,230,0.55)";
+    ctx.lineWidth = 1;
     ctx.beginPath();
-    for (let d = 0; d < 360; d += 15) {
-      const x = this.xFor(d);
-      if (x < -20 || x > w + 20) continue;
-      const major = d % 45 === 0;
-      ctx.moveTo(x, h - 30);
-      ctx.lineTo(x, h - (major ? 12 : 22));
-    }
+    ctx.moveTo(CAP - 4, top + 0.5); ctx.lineTo(w - CAP + 4, top + 0.5);
+    ctx.moveTo(CAP - 4, top + bh - 0.5); ctx.lineTo(w - CAP + 4, top + bh - 0.5);
     ctx.stroke();
 
-    // --- cardinal letters
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(CAP, 0, w - CAP * 2, this.h);
+    ctx.clip();
+
+    // --- cardinal letters (no ticks in vanilla)
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = '700 30px "Cinzel", Georgia, serif';
+    ctx.font = `500 28px ${FONT}`;
+    ctx.shadowColor = "rgba(0,0,0,0.9)";
+    ctx.shadowBlur = 4;
     for (const c of CARDINALS) {
       const x = this.xFor(c.deg);
-      if (x < -40 || x > w + 40) continue;
-      const dist = Math.abs(delta(this.heading, c.deg));
-      ctx.globalAlpha = Math.max(0, 1 - dist / (this.span * 0.62));
-      ctx.fillStyle = "#f0dcae";
-      ctx.fillText(c.label, x, h - 48);
+      ctx.globalAlpha = this._alpha(x);
+      ctx.fillStyle = "#f2f2f2";
+      ctx.fillText(c.label, x, mid + 1);
     }
-    ctx.globalAlpha = 1;
 
-    // --- static quest markers
+    // --- location markers, inside the band
     for (const m of this.markers) {
       const x = this.xFor(m.bearing);
-      if (x < -60 || x > w + 60) continue;
-      const dist = Math.abs(delta(this.heading, m.bearing));
-      ctx.globalAlpha = Math.max(0, 1 - dist / (this.span * 0.55));
-      this._icon(m.icon || "diamond", x, 26, 0.75);
-      ctx.font = '500 14px "Cinzel", Georgia, serif';
-      ctx.fillStyle = "rgba(245, 232, 205, 0.85)";
-      ctx.fillText(m.name, x, 44);
+      ctx.globalAlpha = this._alpha(x) * 0.9;
+      this._icon(m.icon || "diamond", x, mid, 0.8);
     }
     ctx.globalAlpha = 1;
+    ctx.restore();
 
-    // --- live navigation objective
     if (this.objective) this._objective(this.objective);
+    this._caps();
+  }
 
-    // --- centre player marker
-    ctx.fillStyle = "#e8c88a";
-    ctx.beginPath();
-    ctx.moveTo(w / 2, 60);
-    ctx.lineTo(w / 2 - 7, 48);
-    ctx.lineTo(w / 2 + 7, 48);
-    ctx.closePath();
-    ctx.fill();
+  /** the filigree end pieces: a spear tip with two hooked flourishes */
+  _caps() {
+    const ctx = this.ctx;
+    const mid = this.top + this.bandH / 2;
+    for (const side of [-1, 1]) {
+      const x0 = side < 0 ? CAP : this.w - CAP;
+      ctx.save();
+      ctx.translate(x0, mid);
+      ctx.scale(-side, 1);         // draw pointing outward
+      ctx.shadowColor = "rgba(0,0,0,0.9)";
+      ctx.shadowBlur = 3;
+      const metal = ctx.createLinearGradient(0, -20, 0, 20);
+      metal.addColorStop(0, "#d9d9d9");
+      metal.addColorStop(0.5, "#8d8d8d");
+      metal.addColorStop(1, "#cfcfcf");
+      ctx.fillStyle = metal;
+      ctx.strokeStyle = "#eeeeee";
+      ctx.lineWidth = 1.4;
+      // spear tip
+      ctx.beginPath();
+      ctx.moveTo(2, -this.bandH / 2);
+      ctx.lineTo(10, -this.bandH / 2);
+      ctx.lineTo(CAP - 4, 0);
+      ctx.lineTo(10, this.bandH / 2);
+      ctx.lineTo(2, this.bandH / 2);
+      ctx.lineTo(16, 0);
+      ctx.closePath();
+      ctx.fill();
+      // hooks curling back over the band edge
+      ctx.beginPath();
+      ctx.moveTo(8, -this.bandH / 2);
+      ctx.bezierCurveTo(-4, -this.bandH / 2 - 10, -16, -this.bandH / 2 - 2, -10, -this.bandH / 2 + 4);
+      ctx.moveTo(8, this.bandH / 2);
+      ctx.bezierCurveTo(-4, this.bandH / 2 + 10, -16, this.bandH / 2 + 2, -10, this.bandH / 2 - 4);
+      ctx.stroke();
+      // inner bead
+      ctx.beginPath();
+      ctx.arc(22, 0, 2.6, 0, Math.PI * 2);
+      ctx.fillStyle = "#f4f4f4";
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   _objective(o) {
     const ctx = this.ctx;
     const { w } = this;
+    const mid = this.top + this.bandH / 2;
     const rel = delta(this.heading, o.bearing);
-    const off = Math.abs(rel) > this.span / 2;
-    const x = off ? (rel > 0 ? w - 42 : 42) : this.xFor(o.bearing);
-    const pulse = 0.65 + 0.35 * Math.sin(performance.now() / 260);
+    const half = this.span / 2;
+    const off = Math.abs(rel) > half;
+    // off the band: park at the edge, as Skyrim does
+    const x = off ? (rel > 0 ? w - CAP - 12 : CAP + 12) : this.xFor(o.bearing);
 
-    // quest marker
+    // quest marker: a down-pointing arrowhead with a notched top
     ctx.save();
-    ctx.translate(x, 24);
-    ctx.scale(1.35, 1.35);
-    ctx.shadowColor = `rgba(255, 226, 150, ${pulse})`;
-    ctx.shadowBlur = 16;
-    this._icon(o.icon || "diamond", 0, 0, 1);
+    ctx.translate(x, mid - 2);
+    ctx.shadowColor = "rgba(0,0,0,0.95)";
+    ctx.shadowBlur = 4;
+    ctx.fillStyle = "#f3e3b5";
+    ctx.strokeStyle = "rgba(0,0,0,0.6)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(-9, -10);
+    ctx.lineTo(0, -5);
+    ctx.lineTo(9, -10);
+    ctx.lineTo(0, 11);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
     ctx.restore();
 
-    // distance under the marker
-    ctx.font = '700 15px "Cinzel", Georgia, serif';
-    ctx.fillStyle = "#fff2d2";
-    ctx.fillText(fmtDistance(o.distance), x, 46);
-
-    // off-screen: big chevron at the edge
-    if (off) {
-      const dir = rel > 0 ? 1 : -1;
-      ctx.save();
-      ctx.translate(x, 24);
-      ctx.fillStyle = `rgba(255, 236, 190, ${0.55 + pulse * 0.45})`;
-      ctx.beginPath();
-      ctx.moveTo(dir * 16, 0);
-      ctx.lineTo(dir * 2, -13);
-      ctx.lineTo(dir * 2, 13);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-    }
-
-    // "you are facing it" chevron under the compass centre
-    if (Math.abs(rel) < 12) {
-      ctx.save();
-      ctx.translate(w / 2, 84);
-      ctx.fillStyle = `rgba(255, 236, 190, ${pulse})`;
-      ctx.beginPath();
-      ctx.moveTo(0, 8);
-      ctx.lineTo(-11, -6);
-      ctx.lineTo(11, -6);
-      ctx.closePath();
-      ctx.fill();
-      ctx.restore();
-    }
+    // distance under the band (IRL navigation needs it; vanilla has none)
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.font = `500 16px ${FONT}`;
+    ctx.shadowColor = "rgba(0,0,0,0.9)";
+    ctx.shadowBlur = 3;
+    ctx.fillStyle = "rgba(242,242,242,0.85)";
+    ctx.fillText(fmtDistance(o.distance), x, this.top + this.bandH + 3);
+    ctx.restore();
   }
 
   _icon(kind, x, y, scale = 1) {
@@ -147,8 +182,8 @@ export class Compass {
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(scale, scale);
-    ctx.strokeStyle = "rgba(232, 200, 138, 0.95)";
-    ctx.fillStyle = "rgba(232, 200, 138, 0.9)";
+    ctx.strokeStyle = "rgba(240, 240, 240, 0.95)";
+    ctx.fillStyle = "rgba(240, 240, 240, 0.9)";
     ctx.lineWidth = 2;
     if (kind === "home") {
       ctx.beginPath();

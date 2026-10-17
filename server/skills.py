@@ -153,6 +153,11 @@ class SkillEngine:
     def _rate(self, key: str) -> float:
         return float(self.rules.get(key, {}).get("rate", 10))
 
+    def level_progress(self) -> float:
+        """0..1 progress toward the next character level (10 skill-ups each)."""
+        gained = sum(s["level"] - 1 for s in self.skills.values())
+        return (gained % 10) / 10.0
+
     def _update_player_level(self, world: World) -> None:
         gained = sum(s["level"] - 1 for s in self.skills.values())
         level = 1 + gained // 10

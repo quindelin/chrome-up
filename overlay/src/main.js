@@ -8,8 +8,10 @@ import { resolve as resolveTheme } from "./themes.js";
 import { tryLoadLive2D, drawLive2D } from "./live2d.js";
 import { PrivacyBadge } from "./privacy.js";
 import { VicinityFeed } from "./vicinity.js";
+import { loadSfx } from "./sfx.js";
 
 const cfg = await fetchConfig();
+loadSfx();
 
 const compass = new Compass(document.getElementById("compass"), cfg.markers || []);
 const hud = new Hud();
@@ -101,8 +103,15 @@ function frame(now) {
     if (thuumFill) {
       const ratio = sh.cooldown_max > 0 ? 1 - (sh.cooldown / sh.cooldown_max) : 1;
       thuumFill.style.width = `${Math.max(0, Math.min(1, ratio)) * 100}%`;
+      // like the vanilla shout meter: only on screen while recharging
+      thuumFill.closest("#thuum")?.classList.toggle("ready", ratio >= 1);
     }
-    if (stealthEl) stealthEl.classList.toggle("hidden", !(latest.skills?.sneak?.active));
+    if (stealthEl) {
+      // the sneak eye replaces nothing else; half-closed means unseen
+      const sneaking = !!latest.skills?.sneak?.active;
+      stealthEl.classList.toggle("hidden", !sneaking);
+      stealthEl.classList.toggle("hidden-state", sneaking);
+    }
   } else {
     compass.draw();
   }

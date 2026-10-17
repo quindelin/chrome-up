@@ -1,30 +1,58 @@
+import { play } from "./sfx.js";
+
 const ORDER = ["speech", "speechcraft", "rizz", "agility", "sneak", "exploration",
                "bard", "strength", "combat", "intelligence", "enchanting"];
 
-/** Bottom-left vitals + skill list, centre toasts and level-up banner. */
+// a bar that has sat at 100% this long fades out, as in Skyrim
+const IDLE_AFTER_MS = 2500;
+const LOW_AT = 25;
+
+/** Vitals, skill-increase + level meter, discovery title, notifications. */
 export class Hud {
   constructor() {
     this.levelNum = document.getElementById("levelnum");
     this.levelup = document.getElementById("levelup");
-    this.toasts = document.getElementById("toasts");
+    this.notices = document.getElementById("notices");
     this.skillsEl = document.getElementById("skills");
+    this.skillup = document.getElementById("skillup");
+    this.suText = this.skillup.querySelector(".su-text");
+    this.suLvl = document.getElementById("su-lvlnum");
+    this.suFill = document.getElementById("su-fill");
+    this.discover = document.getElementById("discover");
+    this.dcName = this.discover.querySelector(".dc-name");
     this.vitals = {};
     for (const el of document.querySelectorAll(".vital")) {
-      this.vitals[el.dataset.vital] = el.querySelector(".fill");
+      this.vitals[el.dataset.vital] = { el, fill: el.querySelector(".fill"), last: null, fullSince: 0 };
     }
     this.rows = new Map();
+    this.playerLevel = 1;
+    this.levelProgress = 0;
+    this._timers = {};
+    if (new URLSearchParams(location.search).get("skills") === "1") {
+      document.body.classList.add("show-skills");
+    }
   }
 
   update(payload) {
     const v = payload.vitals || {};
+    const now = performance.now();
     for (const key of ["health", "magicka", "stamina"]) {
-      const fill = this.vitals[key];
-      if (fill) fill.style.width = `${Math.max(0, Math.min(100, v[key] ?? 0))}%`;
+      const bar = this.vitals[key];
+      if (!bar) continue;
+      const val = Math.max(0, Math.min(100, v[key] ?? 100));
+      bar.fill.style.width = `${val}%`;
+      if (val < 99.5) bar.fullSince = 0;
+      else if (!bar.fullSince) bar.fullSince = now;
+      bar.el.classList.toggle("idle", !!bar.fullSince && now - bar.fullSince > IDLE_AFTER_MS);
+      bar.el.classList.toggle("low", val < LOW_AT);
+      bar.last = val;
     }
 
-    if (this.levelNum && payload.player_level !== undefined) {
-      this.levelNum.textContent = payload.player_level;
+    if (payload.player_level !== undefined) {
+      this.playerLevel = payload.player_level;
+      if (this.levelNum) this.levelNum.textContent = payload.player_level;
     }
+    if (payload.level_progress !== undefined) this.levelProgress = payload.level_progress;
 
     this._ensureSkills(payload.skills || {});
     for (const [key, row] of this.rows) {
@@ -58,35 +86,74 @@ export class Hud {
   }
 
   handleEvents(events = []) {
+    // A level-up outranks the skill increase that caused it in the same frame.
+    const levelEv = events.find((e) => e.type === "level");
     for (const ev of events) {
       if (ev.type === "skill_level") {
-        this.toast(`<span class="icon">&#9650;</span>${ev.text}`);
-      } else if (ev.type === "shout") {
-        this.banner(`Thu'um: ${ev.text}`);
+        this.notice(ev.text);
+        if (!levelEv) this.skillIncrease(ev);
+      } else if (ev.type === "level") {
+        this.levelUp(ev);
       } else if (ev.type === "discovery") {
-        this.toast(`<span class="icon">&#9737;</span>${ev.text}`);
-      } else if (ev.type === "level" || ev.type === "arrival") {
-        this.banner(ev.text);
+        this.discovered(ev.place || String(ev.text || "").replace(/^Discovered:\s*/i, ""));
+      } else if (ev.type === "shout") {
+        this.notice(ev.text);
+      } else if (ev.type === "arrival") {
+        this.notice(ev.text);
       }
     }
   }
 
-  toast(html) {
-    const el = document.createElement("div");
-    el.className = "toast";
-    el.innerHTML = html;
-    this.toasts.appendChild(el);
-    setTimeout(() => el.remove(), 4400);
+  /** "Speech increased to 26" under the compass, with the level meter. */
+  skillIncrease(ev) {
+    // a level-up owns the slot under the compass until it fades
+    if (!this.levelup.classList.contains("hidden")) { play("skillup"); return; }
+    this.suText.textContent = ev.text;
+    this.suLvl.textContent = this.playerLevel;
+    this._show(this.skillup, 4500);
+    // the meter animates from where it was to where it is now
+    this.suFill.style.transition = "none";
+    this.suFill.style.width = `${Math.max(0, this.levelProgress - 0.1) * 100}%`;
+    void this.suFill.offsetWidth;
+    this.suFill.style.transition = "";
+    this.suFill.style.width = `${this.levelProgress * 100}%`;
+    play("skillup");
   }
 
-  banner(text) {
-    this.levelup.textContent = text;
-    this.levelup.classList.remove("hidden");
-    // restart the animation
-    this.levelup.style.animation = "none";
-    void this.levelup.offsetWidth;
-    this.levelup.style.animation = "";
-    clearTimeout(this._bannerT);
-    this._bannerT = setTimeout(() => this.levelup.classList.add("hidden"), 4000);
+  levelUp(ev) {
+    this.skillup.classList.add("hidden");
+    this.levelup.textContent = ev.text || `You are now level ${ev.level}`;
+    this._show(this.levelup, 5000);
+    play("levelup");
   }
+
+  discovered(place) {
+    if (!place) return;
+    this.dcName.textContent = place;
+    this._show(this.discover, 5500);
+    play("discover");
+  }
+
+  notice(text) {
+    if (!text) return;
+    const el = document.createElement("div");
+    el.className = "notice";
+    el.textContent = text;
+    this.notices.appendChild(el);
+    while (this.notices.children.length > 4) this.notices.firstElementChild.remove();
+    setTimeout(() => el.remove(), 4800);
+  }
+
+  _show(el, ms) {
+    el.classList.remove("hidden");
+    el.style.animation = "none";        // restart the fade
+    void el.offsetWidth;
+    el.style.animation = "";
+    clearTimeout(this._timers[el.id]);
+    this._timers[el.id] = setTimeout(() => el.classList.add("hidden"), ms);
+  }
+
+  // kept for callers that still use the old names
+  toast(text) { this.notice(text); }
+  banner(text) { this.levelUp({ text }); }
 }

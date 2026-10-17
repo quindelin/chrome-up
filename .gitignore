@@ -21,3 +21,7 @@ build/
 *.aab
 .idea/
 *.iml
+
+# game audio you extract yourself (Bethesda's, not ours to redistribute)
+overlay/assets/sfx/*
+!overlay/assets/sfx/README.md

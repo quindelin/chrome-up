@@ -225,6 +225,7 @@ class Runtime:
             },
             "skills": self.engine.to_dict(),
             "player_level": self.engine.player_level,
+            "level_progress": round(self.engine.level_progress(), 3),
             "nav": self.nav_state,
             "ui": self.gestures.ui(),
             "attributes": self.attributes.snapshot(),

@@ -1,0 +1,60 @@
+{
+  "player_level": 6,
+  "skills": {
+    "speech": {
+      "level": 14,
+      "xp": 53.776,
+      "total": 1353.776
+    },
+    "speechcraft": {
+      "level": 5,
+      "xp": 36.159,
+      "total": 436.159
+    },
+    "rizz": {
+      "level": 7,
+      "xp": 6.591,
+      "total": 606.591
+    },
+    "agility": {
+      "level": 7,
+      "xp": 5.933,
+      "total": 605.933
+    },
+    "sneak": {
+      "level": 4,
+      "xp": 8.628,
+      "total": 308.628
+    },
+    "exploration": {
+      "level": 10,
+      "xp": 90.0,
+      "total": 990.0
+    },
+    "bard": {
+      "level": 9,
+      "xp": 32.673,
+      "total": 832.673
+    },
+    "strength": {
+      "level": 4,
+      "xp": 70.288,
+      "total": 370.288
+    },
+    "combat": {
+      "level": 7,
+      "xp": 15.287,
+      "total": 615.287
+    },
+    "intelligence": {
+      "level": 1,
+      "xp": 0.0,
+      "total": 0.0
+    },
+    "enchanting": {
+      "level": 1,
+      "xp": 0.0,
+      "total": 0.0
+    }
+  }
+}

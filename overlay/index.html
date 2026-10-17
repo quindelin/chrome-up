@@ -4,48 +4,78 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>HUDstream — Skyrim HUD overlay</title>
+<!-- Skyrim's HUD face is Futura Condensed. macOS ships it (Futura → Condensed
+     Medium); Barlow Condensed is the closest free fallback elsewhere. -->
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
   <!-- ============================ compass ============================ -->
   <div id="compass-wrap">
-    <canvas id="compass" width="1200" height="96"></canvas>
+    <canvas id="compass" width="900" height="84"></canvas>
   </div>
 
   <!-- ============================ objective line ====================== -->
   <div id="objective" class="hidden"></div>
 
-  <!-- ============================ level banner ======================== -->
-  <div id="levelup" class="hidden"></div>
+  <!-- ============================ notifications (top-left) ============ -->
+  <div id="notices"></div>
 
-  <!-- ============================ crosshair =========================== -->
-  <div id="crosshair"></div>
-
-  <!-- ============================ vitals + skills ===================== -->
-  <div id="left-stack">
-    <div id="skills"></div>
-    <div id="vitals">
-      <div class="vital" data-vital="health">
-        <div class="bar"><div class="fill"></div><div class="gloss"></div></div>
-        <span class="label">Health</span>
-      </div>
-      <div class="vital" data-vital="magicka">
-        <div class="bar"><div class="fill"></div><div class="gloss"></div></div>
-        <span class="label">Magicka</span>
-      </div>
-      <div class="vital" data-vital="stamina">
-        <div class="bar"><div class="fill"></div><div class="gloss"></div></div>
-        <span class="label">Stamina</span>
-      </div>
-      <div id="levelbadge"><span class="lv">Lv</span><span id="levelnum">1</span></div>
+  <!-- ============================ skill increase + level meter ======== -->
+  <div id="skillup" class="hidden">
+    <div class="su-text"></div>
+    <div class="su-meter">
+      <span class="su-lvl">Level <b id="su-lvlnum">1</b></span>
+      <div class="meter"><i id="su-fill"></i></div>
     </div>
   </div>
 
-  <!-- ============================ toasts ============================== -->
-  <div id="toasts"></div>
+  <!-- ============================ level up ============================ -->
+  <div id="levelup" class="hidden"></div>
+
+  <!-- ============================ location discovered ================= -->
+  <div id="discover" class="hidden">
+    <div class="dc-name"></div>
+    <div class="dc-sub"><span class="rule"></span>Discovered<span class="rule"></span></div>
+  </div>
+
+  <!-- ============================ crosshair + sneak eye ================ -->
+  <div id="crosshair">
+    <svg viewBox="-20 -10 40 20" width="40" height="20" aria-hidden="true">
+      <path d="M-14 -5 L-7 0 L-14 5" />
+      <path d="M14 -5 L7 0 L14 5" />
+    </svg>
+  </div>
+  <div id="stealth" class="hidden" aria-label="hidden">
+    <svg viewBox="-40 -20 80 40" width="80" height="40" aria-hidden="true">
+      <path class="lid" d="M-34 0 Q0 -26 34 0 Q0 26 -34 0 Z" />
+      <circle class="iris" r="9" />
+      <path class="shut" d="M-34 0 Q0 -26 34 0" />
+    </svg>
+  </div>
+
+  <!-- ============================ skill list (opt-in: ?skills=1) ====== -->
+  <div id="left-stack">
+    <div id="skills"></div>
+  </div>
+
+  <!-- ============================ vitals ============================== -->
+  <!-- Magicka left, Health centre, Stamina right, as in Skyrim. Each one
+       fades out once it has been full for a moment. -->
+  <div id="vitals">
+    <div class="vital" data-vital="magicka">
+      <div class="bar"><div class="track"><div class="fill"></div></div></div>
+    </div>
+    <div class="vital" data-vital="health">
+      <div class="bar"><div class="track"><div class="fill"></div></div></div>
+    </div>
+    <div class="vital" data-vital="stamina">
+      <div class="bar"><div class="track"><div class="fill"></div></div></div>
+    </div>
+  </div>
+  <span id="levelnum" class="hidden">1</span>
 
   <!-- ============================ vtube avatar ======================== -->
   <div id="avatar-wrap">
@@ -53,9 +83,6 @@
     <canvas id="avatar" width="300" height="380"></canvas>
     <div id="nameplate"><span id="avatarname">Vtuber</span><span id="statetext">idle</span></div>
   </div>
-
-  <!-- ============================ stealth eye ======================= -->
-  <div id="stealth" class="hidden">hidden</div>
 
   <!-- ============================ thu'um meter ====================== -->
   <div id="thuum">
