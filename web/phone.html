@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0d0c0a" />
+<title>HUDstream — phone compass</title>
+<style>
+  body {
+    margin: 0; min-height: 100vh; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 18px;
+    background: #0d0c0a; color: #efe3cb;
+    font: 16px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 24px; text-align: center;
+  }
+  h1 { font-family: Georgia, serif; letter-spacing: .16em; color: #e8c88a; font-size: 22px; margin: 0; }
+  #dial {
+    width: 220px; height: 220px; border-radius: 50%;
+    border: 2px solid rgba(232,200,138,.35); position: relative;
+    background: radial-gradient(circle, #1a1712, #0b0a08);
+  }
+  #needle {
+    position: absolute; left: 50%; top: 12px; width: 4px; height: 92px;
+    margin-left: -2px; transform-origin: 50% 98px;
+    background: linear-gradient(#ff5f4d, #e8c88a); border-radius: 2px;
+    transition: transform 90ms linear;
+  }
+  .card { font-size: 46px; font-family: ui-monospace, Menlo, monospace; color: #ffe9bd; }
+  .lbl { opacity: .55; font-size: 13px; letter-spacing: .1em; }
+  button {
+    padding: 14px 26px; font-size: 16px; border-radius: 8px; cursor: pointer;
+    background: #e8c88a; color: #16140f; border: 0; font-weight: 600;
+  }
+  #state { font-size: 13px; opacity: .7; }
+  .pad { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+  button.ghost {
+    padding: 10px 16px; font-size: 14px; background: #221d14; color: #f0e2c2;
+    border: 1px solid rgba(232,200,138,.35);
+  }
+</style>
+</head>
+<body>
+  <h1>HUDSTREAM COMPASS</h1>
+  <div id="dial"><div id="needle"></div></div>
+  <div class="card"><span id="deg">—</span>°</div>
+  <div class="lbl" id="src">waiting for sensors…</div>
+  <button id="enable">Enable sensors</button>
+  <div class="pad">
+    <button class="ghost" id="gps">Share GPS</button>
+    <button class="ghost" id="motion">Share motion</button>
+  </div>
+  <div class="pad">
+    <button class="ghost" data-g="tap">tap</button>
+    <button class="ghost" data-g="swipe_left">swipe &#9664;</button>
+    <button class="ghost" data-g="swipe_right">swipe &#9654;</button>
+    <button class="ghost" data-g="spread">spread</button>
+  </div>
+  <div class="lbl" id="gps-state"></div>
+  <div id="state"></div>
+
+<script>
+  const wsUrl = `${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/ws/phone`;
+  const degEl = document.getElementById("deg");
+  const srcEl = document.getElementById("src");
+  const needle = document.getElementById("needle");
+  const stateEl = document.getElementById("state");
+  let ws = null, lastSend = 0, mode = "none";
+
+  function connect() {
+    ws = new WebSocket(wsUrl);
+    ws.onopen = () => { stateEl.textContent = "connected to HUDstream"; };
+    ws.onclose = () => { stateEl.textContent = "reconnecting…"; setTimeout(connect, 1500); };
+  }
+  connect();
+
+  function send(heading, accuracy) {
+    const now = Date.now();
+    if (now - lastSend < 100) return;
+    lastSend = now;
+    if (ws && ws.readyState === 1) {
+      ws.send(JSON.stringify({ heading, accuracy, source: mode }));
+    }
+  }
+
+  function onOrient(e) {
+    let heading = null, acc = 0;
+    if (e.webkitCompassHeading !== undefined && e.webkitCompassHeading !== null) {
+      heading = e.webkitCompassHeading; acc = e.webkitCompassAccuracy || 0; mode = "compass";
+    } else if (e.alpha !== null && (e.absolute === true || e.absolute === undefined)) {
+      heading = (360 - e.alpha) % 360; mode = "absolute-alpha";
+    }
+    if (heading === null) return;
+    degEl.textContent = Math.round(heading);
+    needle.style.transform = `rotate(${heading}deg)`;
+    srcEl.textContent = `${mode}${acc ? " ±" + Math.round(acc) + "°" : ""}`;
+    send(heading, acc);
+  }
+
+  async function enable() {
+    const D = window.DeviceOrientationEvent;
+    if (!D) { srcEl.textContent = "no orientation sensor on this device"; return; }
+    if (typeof D.requestPermission === "function") {
+      const res = await D.requestPermission().catch(() => "denied");
+      if (res !== "granted") { srcEl.textContent = "permission denied"; return; }
+    }
+    window.addEventListener("deviceorientationabsolute", onOrient);
+    window.addEventListener("deviceorientation", onOrient);
+    srcEl.textContent = "listening…";
+    document.getElementById("enable").style.display = "none";
+  }
+
+  document.getElementById("enable").addEventListener("click", enable);
+  if (!window.DeviceOrientationEvent) document.getElementById("enable").style.display = "none";
+
+  // --- gesture buttons (stand-in until the Neural Band exposes an API)
+  document.querySelectorAll("[data-g]").forEach((b) => {
+    b.addEventListener("click", () => {
+      if (ws && ws.readyState === 1) ws.send(JSON.stringify({ gesture: b.dataset.g }));
+    });
+  });
+
+  // --- GPS feeds the navigation objective
+  const gpsState = document.getElementById("gps-state");
+  document.getElementById("gps").addEventListener("click", () => {
+    if (!navigator.geolocation) { gpsState.textContent = "no geolocation"; return; }
+    navigator.geolocation.watchPosition(
+      (pos) => {
+        gpsState.textContent = `gps ${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+        if (ws && ws.readyState === 1) {
+          ws.send(JSON.stringify({ lat: pos.coords.latitude, lon: pos.coords.longitude }));
+        }
+      },
+      () => { gpsState.textContent = "gps denied"; },
+      { enableHighAccuracy: true, maximumAge: 2000 }
+    );
+    gpsState.textContent = "waiting for gps…";
+  });
+
+  // --- IMU (devicemotion) augments the activity classifier so the HUD can
+  //     recognise running / lifting / boxing on a treadmill or shadowboxing
+  let motionActive = false, lastMotion = 0;
+  const motionState = document.createElement("div");
+  motionState.className = "lbl";
+  motionState.id = "motion-state";
+  document.body.appendChild(motionState);
+  function onMotion(e) {
+    const now = performance.now();
+    if (now - lastMotion < 40) return;          // ~25 Hz cap
+    lastMotion = now;
+    const a = e.accelerationIncludingGravity || e.acceleration || {x:0,y:0,z:0};
+    const r = e.rotationRate || {alpha:0,beta:0,gamma:0};
+    const sample = {
+      t: Date.now(),
+      ax: +a.x.toFixed(3), ay: +a.y.toFixed(3), az: +a.z.toFixed(3),
+      gx: +r.alpha.toFixed(4), gy: +r.beta.toFixed(4), gz: +r.gamma.toFixed(4),
+    };
+    if (ws && ws.readyState === 1) ws.send(JSON.stringify({ imu: sample }));
+  }
+  async function enableMotion() {
+    const D = window.DeviceMotionEvent;
+    if (!D) { motionState.textContent = "no motion sensor"; return; }
+    if (typeof D.requestPermission === "function") {
+      const res = await D.requestPermission().catch(() => "denied");
+      if (res !== "granted") { motionState.textContent = "motion permission denied"; return; }
+    }
+    window.addEventListener("devicemotion", onMotion, { passive: true });
+    motionActive = true;
+    motionState.textContent = "motion: streaming";
+    document.getElementById("motion").style.display = "none";
+  }
+  document.getElementById("motion").addEventListener("click", enableMotion);
+  if (!window.DeviceMotionEvent) document.getElementById("motion").style.display = "none";
+</script>
+</body>
+</html>

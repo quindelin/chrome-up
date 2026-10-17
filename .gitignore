@@ -1,0 +1,23 @@
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
+logs/
+
+# autoclip working data (buffer segments, windows, rendered clips, outbox)
+var/
+
+# secrets / local machine config
+.env
+*.env.local
+certs/
+local.properties
+.codebuddy/
+
+# Android / Gradle build output
+.gradle/
+build/
+*.apk
+*.aab
+.idea/
+*.iml

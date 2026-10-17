@@ -1,0 +1,301 @@
+# ---------------------------------------------------------------------------
+# HUDstream - Skyrim HUD overlay for Meta Ray-Ban Display glasses / POV streams
+# Every module degrades to a simulated source if hardware or deps are missing,
+# so the overlay is always runnable.
+# ---------------------------------------------------------------------------
+
+server:
+  host: 0.0.0.0
+  port: 8787          # overlay URL: http://127.0.0.1:8787/overlay/index.html
+  tick_hz: 20         # websocket broadcast rate to the overlay
+
+audio:
+  enabled: true
+  device: null        # null = system default input. Or an index / name substring.
+  sample_rate: 16000
+  gain: 1.8           # loudness multiplier before gating (tune to your mic)
+  gate: 0.015         # RMS noise floor; below this you are "not speaking"
+  bars: 12            # number of spectrum bars sent to the overlay
+
+video:
+  enabled: true
+  # 0 = default camera. Also accepts a file path, or an RTSP/HTTP URL from a
+  # phone camera app (that is how the glasses POV reaches this box today).
+  source: 0
+  width: 640
+  height: 360
+  fps: 15
+  people_detect: true     # HOG person detector (costs CPU, runs every ~0.5s)
+  motion_threshold: 0.35  # normalized motion energy counted as "running"
+  activity: true          # classify boxing / lifting / walking from motion shape
+
+heading:
+  # phone -> /phone page on the paired phone (DeviceOrientation compass)
+  # udp   -> JSON/CSV UDP packets (HyperIMU, Sensor Stream IMU+, custom app)
+  # ble   -> BLE IMU beacon over Nordic UART service (needs: pip install bleak)
+  # serial-> USB/serial IMU (needs: pip install pyserial)
+  # sim   -> slow simulated drift
+  # auto  -> first source that has produced data in the last 5 seconds
+  mode: auto
+  udp_port: 5555
+  offset: 0           # degrees added to raw heading (calibration)
+  smoothing: 0.15     # 0..1, higher = snappier compass
+  ble:
+    enabled: false
+    address: null     # e.g. "AA:BB:CC:DD:EE:FF" or null for first match
+    name_hint: null   # e.g. "IMU", "Meta", "Nordic"
+    service_uuid: "6e400001-b5a3-f393-e0a9-e50e24dcca9e"
+    char_uuid: "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
+  serial:
+    enabled: false
+    port: "/dev/cu.usbmodem1101"
+    baud: 115200
+
+# Gestures: the Meta Neural Band has no public API yet, so anything that can
+# POST/WS a gesture name can drive the HUD menu (band bridge app, Stream Deck,
+# the dashboard pad, or a hotkey).
+gestures:
+  enabled: true
+  repeat_ms: 220      # debounce
+  mapping:
+    tap: toggle_menu        # thumb+index tap
+    pinch: toggle_menu
+    double_tap: toggle_menu
+    swipe_left: prev_tab
+    swipe_right: next_tab
+    swipe_up: scroll_up
+    swipe_down: scroll_down
+    rotate_cw: scroll_down
+    rotate_ccw: scroll_up
+    spread: close_menu      # thumb+index spread = close
+
+navigation:
+  enabled: false
+  # Where you are. Leave null to use GPS from the /phone page.
+  origin: { lat: null, lon: null }
+  # Destination: either coordinates, or a place name (geocoded via Nominatim).
+  destination: { lat: null, lon: null, query: null }
+  provider: osrm           # osrm (free, no key) | manual (you POST the steps)
+  profile: driving         # driving | walking | cycling
+  refresh_s: 30
+  arrive_m: 15             # within this distance the objective completes
+
+# Opt-in only. Off by default and requires BOTH this flag and
+# --optin-attributes on the command line. Face-attribute inference is
+# imperfect and you should know it is running before you stream it.
+attributes:
+  enabled: false
+  backend: null        # onnx | deepface
+  model: null          # path to an ONNX classifier when backend: onnx
+  labels: ["female", "male"]
+  input_size: 224
+  every_s: 1.0
+
+skills:
+  enabled: true
+  # XP per second while a rule is active. Skill level rises every 100 XP.
+  xp_per_level: 100
+  rizz:
+    mode: conversation   # conversation (1-on-1) | gender (needs attributes opt-in)
+    target: female       # used when mode: gender
+  rules:
+    speech:      { rate: 12 }
+    speechcraft: { rate: 26 }
+    rizz:        { rate: 22 }
+    agility:     { rate: 18 }
+    sneak:       { rate: 10 }
+    exploration: { rate: 30, per_sector: true }
+    bard:        { rate: 16 }
+    strength:    { rate: 20 }   # weight lifting
+    combat:      { rate: 24 }   # boxing / sparring
+    intelligence: { rate: 14 }   # reading / studying
+    enchanting:   { rate: 20 }   # coding (the crafting school)
+
+avatar:
+  # Procedural canvas vtuber palette. These are original recolorings of the
+  # HUD's built-in anime base — NOT copies of any licensed character. To use
+  # a real Kirito / Eren / custom Live2D model, load it in VTube Studio (see
+  # `vtube_studio.enabled`) or drop a CC0 .moc3 into overlay/assets/live2d/.
+  theme: default            # default | dark_swordsman | green_scout |
+                            # silver_knight | blonde_prince | hacker
+  themes: [default, dark_swordsman, green_scout, silver_knight, blonde_prince, hacker]
+  engine: procedural        # procedural | live2d
+
+# VTube Studio Plugin API — the practical way to use a real anime model.
+# Turn it on in VTube Studio: Settings -> Plugins -> "Start API Server".
+# Fill the hotkey IDs below with the IDs shown in VTube Studio's UI.
+vtube_studio:
+  enabled: false
+  host: 127.0.0.1
+  port: 8001
+  token: ""                 # cached at ~/.cache/hudstream/vts_token.json
+  hotkeys:
+    speech: ""              # while talking
+    speechcraft: ""
+    rizz: ""
+    agility: ""             # while running
+    sneak: ""
+    exploration: ""
+    bard: ""
+    strength: ""
+    combat: ""
+    intelligence: ""
+    enchanting: ""
+    shout_fus: ""           # Fus Ro Dah
+    shout_yol: ""           # Yol Toor Shul
+    shout_wuld: ""          # Wuld Nah Kest
+    shout_generic: ""
+    level_up: ""
+  expressions: {}           # e.g. agility: exp_sweat.json
+  reconnect_s: 5.0
+  hotkey_cooldown_s: 0.6
+
+# Camera-only focus detection. Decides whether the wearer is looking at
+# a book (Intelligence) or a code editor (Enchanting) purely from the
+# POV image — no OS / desktop sniffing required.
+focus:
+  enabled: true
+  min_text_rows: 6
+  dark_brightness: 95      # mean V below this counts as a dark editor
+  bright_brightness: 145   # mean V above this counts as a bright page
+  syntax_blob_ratio: 0.0025  # fraction of saturated coloured pixels for syntax
+
+# Phone IMU (devicemotion) — augments the camera-based activity classifier
+# so Agility / Strength / Combat work on a treadmill, stationary bike or
+# shadowboxing where the lens view barely moves.
+imu:
+  enabled: true
+  window_s: 4.0
+  stale_s: 2.0
+  thresholds:
+    running_z_var: 1.5
+    running_cadence_lo: 2.4
+    running_cadence_hi: 4.0
+    lifting_cadence_lo: 0.2
+    lifting_cadence_hi: 0.8
+    lifting_z_var: 1.2
+    boxing_cadence_lo: 1.4
+    boxing_cadence_hi: 3.4
+    boxing_gyro: 0.6
+    walking_cadence_lo: 1.5
+    walking_cadence_hi: 2.6
+
+# Where you are and what you're doing on the desktop. Used by the
+# Intelligence (reading) and Enchanting (coding) skills.
+desktop:
+  enabled: true
+  poll_s: 2.0
+  # macOS uses osascript + System Events (works out of the box). Linux needs
+  # `xdotool` (apt install xdotool). Windows: install nothing here, push the
+  # frontmost app from another tool via `POST /api/desktop`.
+  coding_apps:
+    - code
+    - code - insiders
+    - cursor
+    - zed
+    - xcode
+    - intellij
+    - pycharm
+    - webstorm
+    - goland
+    - rider
+    - android studio
+    - visual studio
+    - vim
+    - neovim
+    - nvim
+    - emacs
+    - sublime
+    - atom
+    - terminal
+    - iterm
+    - warp
+    - nova
+    - bbedit
+    - fleet
+    - clion
+    - phpstorm
+    - rubymine
+  reading_apps:
+    - books
+    - kindle
+    - preview
+    - zotero
+    - mendeley
+    - pdf expert
+    - acrobat
+    - skim
+    - safari
+    - chrome
+    - chromium
+    - firefox
+    - arc
+    - brave
+    - edge
+    - opera
+    - vivaldi
+    - notion
+    - obsidian
+    - evernote
+    - papers
+    - goodnotes
+  # browsers count as reading only if the window title looks like a document
+  browser_doc_hints:
+    - pdf
+    - arxiv
+    - wiki
+    - docs
+    - doc
+    - read
+    - reader
+    - paper
+    - manual
+    - book
+    - medium
+    - substack
+    - article
+    - documentation
+    - spec
+    - rfc
+
+# Shout on a loud onset (Skyrim Thu'um). Includes a cooldown meter on the HUD.
+shouts:
+  enabled: true
+  threshold: 0.82     # mic level above this counts as a shout
+  cooldown_s: 60
+  words:
+    - "Fus Ro Dah"
+    - "Yol Toor Shul"
+    - "Feim Zii Gron"
+    - "Wuld Nah Kest"
+    - "Strun Bah Qo"
+
+# Discover nearby OSM POIs as you walk around the world.
+discovery:
+  enabled: true
+  radius_m: 80
+  min_move_m: 40
+  every_s: 60
+  endpoint: "https://overpass-api.de/api/interpreter"
+
+# Persist your skill progress to disk between streams.
+progress:
+  enabled: true
+  path: data/progress.json
+  autosave_s: 30
+
+# Skyrim-style quest markers pinned to world bearings (degrees, 0 = North)
+markers:
+  - { name: "Stream Goal", bearing: 0,    icon: "diamond" }
+  - { name: "Fridge",      bearing: 90,   icon: "home" }
+  - { name: "Exit",        bearing: 180,  icon: "door" }
+  - { name: "Charger",     bearing: 270,  icon: "diamond" }
+
+vitals:
+  # Health / Magicka / Stamina drain & regen per second (0..100 pool)
+  stamina_drain: 6.0
+  stamina_regen: 3.5
+  magicka_drain: 4.5
+  magicka_regen: 3.0
+  health_drain: 1.2     # only drains when you are out of stamina and still moving
+  health_regen: 2.0

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="#000000"
+    android:padding="8dp">
+
+    <!-- debug view: what the glasses HUD is showing, drawn with a real canvas -->
+    <com.lingualens.glasses.rf.RadarView
+        android:id="@+id/radar"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1" />
+
+    <TextView
+        android:id="@+id/list"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:paddingTop="8dp"
+        android:typeface="monospace"
+        android:textSize="11sp"
+        android:textColor="#D8FFE0"
+        android:text="starting scan…" />
+
+</LinearLayout>

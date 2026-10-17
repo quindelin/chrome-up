@@ -1,0 +1,147 @@
+# ---------------------------------------------------------------------------
+# LinguaLens - Pimsleur-style Mandarin coach for Meta Ray-Ban Display glasses.
+# The gate is real: you do not move to the next line until you pass.
+#
+# Same file layout for both courses. This one is `language: zh`;
+# config.ja.yaml is the Japanese one. Start with: ./run.sh zh | ./run.sh ja
+# ---------------------------------------------------------------------------
+
+language: zh              # zh = Mandarin (HSK 1-6) | ja = Japanese (JLPT N5-N1)
+
+server:
+  host: 0.0.0.0
+  port: 8899          # glasses/phone UI: http://<your-ip>:8899/
+
+pronunciation:
+  # auto    -> picks the first configured engine (see `prefer`)
+  # iflytek -> iFlytek ISE: TONE AWARE (tone_score 调型 + phone_score 声韵,
+  #            per syllable). This is the one you want for Mandarin.
+  # azure   -> Azure AI Speech zh-CN: accuracy/fluency/completeness, no tone
+  # mock    -> offline scorer for development (no key needed)
+  provider: auto
+  prefer: iflytek        # auto tries iflytek first, then azure, then mock
+  language: zh-CN
+  region: null           # e.g. eastasia / eastus. Or set AZURE_SPEECH_REGION.
+  key_env: AZURE_SPEECH_KEY
+  region_env: AZURE_SPEECH_REGION
+  enable_miscue: true    # azure: detects omitted / mispronounced words
+  granularity: phoneme   # azure: phoneme needs a locale that supports it
+  phoneme_nbest: 0       # azure: >0 asks for candidate phonemes (en-US only)
+
+  iflytek:
+    # 语音评测 (ISE). Keys: console.xfyun.cn -> 我的应用 -> 语音评测
+    endpoint: https://ise-api.xfyun.cn/v2/ise
+    iat_endpoint: https://iat-api.xfyun.cn/v2/iat
+    appid_env: IFLYTEK_APPID
+    apikey_env: IFLYTEK_API_KEY        # the "APIKey" used in the MD5 signature
+    apisecret_env: IFLYTEK_API_SECRET  # kept for SDK-style auth; unused by WebAPI
+    language: zh_cn
+    category: auto           # auto | read_syllable | read_word | read_sentence
+    result_level: entirety   # entirety = per-syllable detail
+    extra_ability: multi_dimension   # REQUIRED for tone_score / phone_score
+    timeout: 20
+
+gate:
+  # These are the HSK 1 floor. Every HSK band tightens them (62 -> 80).
+  min_pron_score: 60.0        # overall pronunciation score needed to pass
+  min_accuracy: 60.0          # per-utterance accuracy (azure) / phone_score (ise)
+  min_completeness: 75.0      # did you say the whole line
+  min_tone_score: 58.0        # MANDARIN TONES - enforced when reported
+  min_phone_score: 0.0        # initials+finals (声韵); 0 = off
+  require_recognized_match: true
+  min_reference_coverage: 0.75  # % of reference characters actually spoken
+  max_attempts: 0             # 0 = never auto-advance. Retry until correct.
+  reveal_after_attempts: 2    # after N failures, show pinyin/English help
+  slow_replay_after_attempts: 2
+
+think:
+  # English thought -> Mandarin. auto = LLM if OPENAI_API_KEY is set.
+  provider: auto
+  base_url: https://api.openai.com/v1
+  model: gpt-4o-mini
+  api_key_env: OPENAI_API_KEY
+  timeout: 12
+
+audio:
+  target_sample_rate: 16000
+  min_seconds: 0.4
+  max_seconds: 15.0
+  noise_gate_rms: 0.005
+  seconds_per_char: 0.32    # mock scorer: expected seconds per character
+
+recall:
+  # Pimsleur "graduated interval recall": same item comes back at growing gaps.
+  intervals: [10, 30, 75]
+  rounds: 3
+  # Pimsleur's other half, the "principle of anticipation": the silent pause
+  # at the top of a recall item BEFORE the English cue is printed. You try to
+  # retrieve against a blank screen; the English only rescues a blank.
+  # 5 s is Pimsleur's shortest interval. 0 prints the cue at once.
+  anticipation_seconds: 5
+
+drills:
+  # Substitution drills: one pattern x N slot values = extra gated repetitions.
+  # This is what turns ~70 scripted lessons into many more hours of speaking.
+  enabled: true
+  per_pattern: 3
+  rounds: 1
+
+vocab:
+  # The word bank (server/course/zh/vocab_hsk*.py): ~1,200 HSK-graded words in
+  # themed topics. This is what lets you build a sentence instead of only
+  # repeating ours. Topics are on the menu: HSK n -> 词汇 -> topic.
+  enabled: true
+  inject_per_lesson: 4    # new words folded into every lesson's recall pool
+  recall_rounds: 2        # rounds inside a dedicated 词汇 session
+
+free:
+  # Free response: the model asks, you answer in your own words. This is the
+  # only step where nothing is scripted, and it is what turns practice into
+  # conversation.
+  enabled: true
+  per_lesson: 2           # free questions per lesson
+  asr: auto               # auto | client | iflytek | azure | mock
+  require_relevance: true # reject answers that are off-topic
+  min_chars: 0            # 0 = derive from the sample answer
+  gate_relief: 6.0        # composing is harder than repeating: ease the gate
+
+storage:
+  path: state.json
+
+ui:
+  show_english_default: false
+  display_size: 600
+  vocab_label: 词汇
+  # The reading line is a crutch: if it is always on, you never learn to read
+  # the characters. For Mandarin that reading line is pinyin.
+  # auto   -> the ladder below
+  # always -> reading on every line
+  # fade   -> reading when a line is taught, hidden when you must retrieve it
+  # reveal -> hidden until you have failed twice
+  # never  -> characters only
+  reading_mode: auto
+  reading_by_level:
+    1: always
+    2: always
+    3: fade
+    4: fade
+    5: reveal
+    6: reveal
+  # The English scene printed before a conversation starts. It names who you
+  # are talking to and where you are standing, and nothing else - it never
+  # translates a word. It fades like the reading line does, because by HSK 5
+  # you can work out the setting from the first spoken line.
+  # auto   -> the ladder below
+  # always -> every lesson opens with it
+  # first  -> only the first lesson of each unit
+  # tip    -> never printed; ↓ reveals it
+  # never  -> no scene
+  scene_mode: auto
+  scene_by_level:
+    1: always
+    2: always
+    3: first
+    4: first
+    5: tip
+    6: tip
+  scene_seconds: 6      # how long it stays up; a tap skips it

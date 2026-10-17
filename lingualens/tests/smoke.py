@@ -1,0 +1,298 @@
+"""Smoke test for the language course.  Run:  python tests/smoke.py
+
+This exists because two classes of bug reached the app with nothing catching
+them:
+
+* a `NameError` in `Session.state()` that broke every Japanese session. It
+  survived because the repo's only smoke test covers **autoclip**, a
+  different project in the parent directory, and never imports this code.
+* a content part file with a syntax error. The merge swallowed the
+  exception, several hundred rows vanished, and every check still reported
+  clean.
+
+So the two jobs here are: exercise the runtime path, not just the data
+tables; and fail loudly when a table is smaller than it should be.
+
+Everything runs against real course data with no network and no audio.
+"""
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from server.config import load_config  # noqa: E402
+from server.curriculum import Course  # noqa: E402
+from server.engine import Session  # noqa: E402
+from server.models import Score  # noqa: E402
+from server.course.ja import kana_check, kanji, readings, grammar  # noqa: E402
+
+PASS, FAIL = [], []
+
+
+def check(name: str, fn):
+    try:
+        fn()
+        PASS.append(name)
+        print(f"  ok   {name}")
+    except Exception as exc:  # noqa: BLE001
+        FAIL.append((name, exc))
+        print(f"  FAIL {name}: {exc}")
+
+
+def _session(lang: str, lesson_id: int) -> Session:
+    course = Course(lang)
+    return Session(course, load_config(lang),
+                   {"lesson_id": lesson_id, "completed": [], "mastery": {},
+                    "words": {}, "stats": {}})
+
+
+def _score(text: str) -> Score:
+    """A clean attempt that said exactly `text` - no audio, no network."""
+    from server.pronunciation import simulated_score
+    s = simulated_score(text, "good")
+    s.recognized = text
+    return s
+
+
+# --------------------------------------------------------------- 1 the course
+def t_course_loads():
+    for lang in ("ja", "zh"):
+        c = Course(lang)
+        assert c.lesson_ids, f"{lang}: no lessons"
+        assert c.topics, f"{lang}: no vocabulary topics"
+    assert len(Course("ja").lesson_ids) == 73
+
+
+def t_vocab_no_duplicates():
+    """A word belongs to exactly one topic, across the whole bank."""
+    seen, dupes = {}, []
+    for topic in Course("ja").topics.values():
+        for w in topic.words:
+            if w.text in seen:
+                dupes.append(f"{w.text}: {seen[w.text]} and {topic.id}")
+            seen[w.text] = topic.id
+    assert not dupes, dupes[:5]
+
+
+def t_vocab_no_padding():
+    """A word must be filed in exactly one topic, not merely drilled once.
+
+    `Course` de-duplicates on load, so `kana_check` reports 0 issues even
+    when a word is written into two files - which is how 39 words sat in
+    both an N1 topic and an N2 topic without anything failing. The loader
+    records what it dropped; that is the real signal that someone is
+    padding their bank with words a lower band already owns.
+    """
+    dupes = Course("ja").duplicate_words
+    assert not dupes, [f"{w}: {keep} and {drop}" for w, keep, drop in dupes[:8]]
+
+
+def t_basic_words_owned_by_easiest_band():
+    """The beginner band must own the beginner words.
+
+    Bands run 0 (N1+, hardest) to 5 (N5, easiest). Getting the dedupe
+    direction wrong hands 山 to an N3 topic and deletes it from N5, so the
+    beginner never meets it - and every other check still passes.
+    """
+    basic = ("山 川 海 犬 猫 走る 泳ぐ 洗う 地下鉄 出口 入口 信号 交差点 "
+             "明るい 暗い 丸い 静か 賑やか").split()
+    c = Course("ja")
+    bad = []
+    for w in basic:
+        owners = [(t.id, t.band) for t in c.topics.values()
+                  if any(x.text == w for x in t.words)]
+        if not owners:
+            bad.append(f"{w}: not present at all")
+        elif len(owners) > 1:
+            bad.append(f"{w}: in {owners}")
+        elif owners[0][1] != 5:
+            bad.append(f"{w}: owned by {owners[0]} not band 5")
+    assert not bad, bad[:5]
+
+
+# ------------------------------------------------------------ 2 the checkers
+def t_kana_check():
+    problems = kana_check.check_course(Course("ja"))
+    assert not problems, problems[:5]
+
+
+def t_readings():
+    assert not readings.check(), readings.check()[:5]
+    assert readings.stats()["passages"] == 73, readings.stats()
+
+
+def t_grammar():
+    assert not grammar.check(), grammar.check()[:5]
+
+
+def t_kanji():
+    assert not kanji.check(), kanji.check()[:5]
+    assert kanji.stats()["total"] > 1000, kanji.stats()
+
+
+def t_parts_actually_loaded():
+    """A part file that exists but contributes nothing must not pass.
+
+    This is the guard for the swallowed-import bug: a part with a syntax
+    error used to disappear silently while every check reported clean.
+    """
+    for mod, names in ((readings, ("readings_a", "readings_b", "readings_c")),
+                       (grammar, ("grammar_b",)),
+                       (kanji, ("kanji_extra1", "kanji_extra2"))):
+        dead = mod._parts.dead_parts(names)
+        assert not dead, f"{mod.__name__}: parts loaded nothing: {dead}"
+
+
+# ------------------------------------------------- 3 the runtime path (the gap)
+def t_session_state_every_lesson():
+    """The bug that started this file: `state()` raised NameError.
+
+    Nothing built a Session and called state(), so the app could be broken
+    while every data check was green. Exercise the real path, both
+    languages, every lesson.
+    """
+    for lang in ("ja", "zh"):
+        for lid in Course(lang).lesson_ids:
+            s = _session(lang, lid)
+            st = s.state()
+            assert isinstance(st, dict), f"{lang} L{lid}: state() not a dict"
+            assert "grammar" in st, f"{lang} L{lid}: state() has no grammar"
+            assert isinstance(st["grammar"], list)
+
+
+def t_grammar_reaches_a_lesson():
+    """37-73 have pages; state() must actually carry them through."""
+    st = _session("ja", 50).state()
+    assert st["grammar"], "lesson 50 has a page but state() carried none"
+
+
+def t_new_step_kinds_present():
+    ja = {st.kind for lid in Course("ja").lesson_ids
+          for st in _session("ja", lid).steps}
+    for kind in ("kana", "kanji", "read"):
+        assert kind in ja, f"no {kind} steps anywhere in the Japanese course"
+    # Kana and kanji are Japanese-only - the syllabaries have to be taught
+    # outright and kanji are drilled on their own, neither of which has a
+    # Chinese counterpart. Reading is NOT Japanese-only: zh carries its own
+    # passages, so a `read` step there is correct, not a leak.
+    zh = {st.kind for lid in Course("zh").lesson_ids
+          for st in _session("zh", lid).steps}
+    assert not (zh & {"kana", "kanji"}), f"zh leaked ja steps: {zh}"
+
+
+def t_read_steps_are_speakable():
+    """A read step is graded as speech, so the mic must be enabled for it."""
+    s = _session("ja", 20)
+    read = [st for st in s.steps if st.kind == "read"]
+    assert read, "lesson 20 has no reading step"
+    s.pos = s.steps.index(read[0])
+    assert s.needs_speech(), "read step is not speech-gated"
+
+
+def t_zh_new_step_kinds_present():
+    zh = {st.kind for lid in Course("zh").lesson_ids
+          for st in _session("zh", lid).steps}
+    for kind in ("hanzi", "read", "hear", "write"):
+        assert kind in zh, f"no {kind} steps anywhere in the Mandarin course"
+
+
+def t_write_is_speakable_and_graded():
+    """A 缩写 is produced by the learner: mic on, and not refused by submit().
+
+    `submit()` rejects anything not in its list of speakable kinds, so a new
+    step kind that forgets to register there looks like "the other person's
+    line" instead of a bug.
+    """
+    s = _session("zh", 64)
+    write = [st for st in s.steps if st.kind == "write"]
+    assert write, "lesson 64 (HSK 6) has no 缩写 step"
+    s.pos = s.steps.index(write[0])
+    assert s.needs_speech(), "write step is not speech-gated"
+    assert s.reference_text() == "", "write step must not grade against a reference"
+
+
+def t_write_graded_on_coverage_not_wording():
+    """The whole reason 缩写 has its own grader.
+
+    A fluent, grammatical, on-topic summary that drops the point must fail.
+    Character overlap with the prompt cannot see that; coverage can.
+    """
+    from server import free
+
+    s = _session("zh", 64)
+    step = next(st for st in s.steps if st.kind == "write")
+    gate, cfg = s.gate(), s.cfg
+
+    def say(text):
+        sc = _score(text)
+        return free.grade_writing(sc, step, gate, cfg, "zh", 6)[0]
+
+    assert say(step.sample_text), "the authored sample must pass its own grader"
+    assert not say("因为情况有变化，会议改到下周了，麻烦大家调整一下时间。"), \
+        "a summary that drops 下周一 and 不便 passed"
+
+
+def t_placement_places_you():
+    from server import placement
+    from server.pronunciation import simulated_score
+
+    course = Course("zh")
+    items = placement.build(course)
+    assert len(items) >= 6, f"only {len(items)} probes - one band is missing"
+    assert {i["band"] for i in items} == {1, 2, 3, 4, 5, 6, 7}, \
+        sorted({i["band"] for i in items})
+
+    def run(ok_upto):
+        t = placement.Placement(course, load_config("zh"))
+        while t.current():
+            it = t.current()
+            t.submit(simulated_score(it["text"], "good" if it["band"] <= ok_upto else "bad"))
+        return t.recommended()
+
+    first = {b: Course("zh").lessons_of_band(b)[0].id for b in range(1, 8)}
+    assert run(0) == first[1], "a total beginner was not placed at lesson 1"
+    assert run(2) == first[3], "clearing 1-2 should place you at HSK 3"
+    assert run(7) == first[7], "clearing everything should place you at the top"
+
+
+def t_drill_frames_only_use_x():
+    """The drill engine fills {x} and nothing else, so any other {slot}
+    reaches the glasses as literal braces (HSK 7 lessons 80-85 shipped with
+    {y})."""
+    import re
+    for lang in ("zh", "ja"):
+        course = Course(lang)
+        for lid in course.lesson_ids:
+            for p in getattr(course.lesson(lid), "patterns", []) or []:
+                for field in (p.text, p.reading, p.en):
+                    extra = set(re.findall(r"\{(\w+)\}", field or "")) - {"x"}
+                    assert not extra, f"{lang} lesson {lid}: {field!r} has slot(s) {extra}"
+
+
+def t_next_ignores_a_stale_step_index():
+    """Glasses page and phone share one session; both may ask to move past
+    the same line. The second request must not skip the following one."""
+    sess = _session("zh", 1)
+    while sess.current() and sess.current().kind not in ("listen", "info", "kana", "kanji", "hanzi", "hear"):
+        sess.pos += 1
+    at = sess.pos
+    assert sess.advance_non_speech(at), "first request did not advance"
+    assert not sess.advance_non_speech(at), "a duplicate request skipped a step"
+    assert sess.pos == at + 1
+
+
+def main() -> int:
+    for name, fn in sorted(globals().items()):
+        if name.startswith("t_"):
+            check(name[2:].replace("_", " "), fn)
+    print(f"\n{len(PASS)} passed, {len(FAIL)} failed")
+    for name, exc in FAIL:
+        print(f"  FAILED {name}: {exc}")
+    return 1 if FAIL else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

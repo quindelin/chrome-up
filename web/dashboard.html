@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HUDstream — control panel</title>
+<style>
+  :root { --gold: #e8c88a; --bg: #0d0c0a; --panel: #16140f; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 32px;
+    background: radial-gradient(1200px 600px at 20% -10%, #221c12, var(--bg));
+    color: #efe3cb; font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  h1 { font-size: 26px; letter-spacing: .14em; color: var(--gold); margin: 0 0 4px;
+       font-family: Georgia, serif; }
+  .sub { opacity: .6; margin-bottom: 26px; }
+  .grid { display: grid; grid-template-columns: 360px 1fr; gap: 22px; align-items: start; }
+  .card { background: var(--panel); border: 1px solid rgba(232,200,138,.22);
+          border-radius: 8px; padding: 18px 20px; margin-bottom: 18px; }
+  .card h2 { font-size: 13px; letter-spacing: .16em; text-transform: uppercase;
+             color: var(--gold); margin: 0 0 12px; opacity: .85; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .url { display: block; padding: 8px 10px; margin: 6px 0 14px; background: #0a0908;
+         border: 1px solid rgba(232,200,138,.2); border-radius: 5px; font-size: 13px;
+         word-break: break-all; color: #ffe9bd; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid rgba(255,255,255,.06); }
+  th { color: var(--gold); font-weight: 600; font-size: 12px; letter-spacing: .1em; }
+  .on { color: #7bd88f; } .off { color: #e07b6b; } .dim { opacity: .6; }
+  iframe { width: 1920px; height: 1080px; border: 0; transform: scale(.5);
+           transform-origin: top left; }
+  .scaler { width: 100%; height: 540px; overflow: hidden; border-radius: 6px;
+            border: 1px solid rgba(232,200,138,.25); background: #000; }
+  .kv { display: flex; justify-content: space-between; padding: 3px 0; }
+  .kv span:last-child { color: var(--gold); }
+  button {
+    padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px;
+    background: #221d14; color: #f0e2c2; border: 1px solid rgba(232,200,138,.35);
+  }
+  button:hover { background: #2e2718; }
+  button.sel { background: var(--gold); color: #16140f; font-weight: 600; }
+  .pad { display: flex; flex-wrap: wrap; gap: 8px; }
+  input[type=text] {
+    width: 100%; padding: 9px 11px; border-radius: 6px; background: #0a0908;
+    border: 1px solid rgba(232,200,138,.25); color: #ffe9bd; font-size: 13px;
+  }
+  .row { display: flex; gap: 8px; margin-top: 8px; }
+  .note { font-size: 12px; opacity: .65; margin-top: 10px; }
+</style>
+</head>
+<body>
+  <h1>HUDSTREAM</h1>
+  <div class="sub">Skyrim HUD overlay for Meta Ray-Ban Display / POV streams</div>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <h2>Add to OBS</h2>
+        <code class="url" id="overlay-url">/overlay/index.html</code>
+        <p class="note">Browser source · 1920×1080 · uncheck "Shutdown source when not visible".</p>
+      </div>
+
+      <div class="card">
+        <h2>Phone compass bridge</h2>
+        <code class="url" id="phone-url">/phone</code>
+        <p class="note">iPhone needs HTTPS: run with <span class="mono">--ssl-cert</span> (see scripts/https.sh) or a tunnel. The phone also feeds GPS to navigation.</p>
+      </div>
+
+      <div class="card">
+        <h2>Sources</h2>
+        <div class="kv"><span>audio</span><span id="s-audio">…</span></div>
+        <div class="kv"><span>video</span><span id="s-video">…</span></div>
+        <div class="kv"><span>heading</span><span id="s-heading">…</span></div>
+        <div class="kv"><span>heading live</span><span id="s-live">…</span></div>
+        <div class="kv"><span>phones</span><span id="s-phones">…</span></div>
+        <div class="kv"><span>uptime</span><span id="s-uptime">…</span></div>
+        <div class="kv"><span>attributes</span><span id="s-attr">…</span></div>
+      </div>
+
+      <div class="card">
+        <h2>VTuber · avatar</h2>
+        <div class="kv"><span>theme</span><span id="s-theme">…</span></div>
+        <div class="kv"><span>engine</span><span id="s-engine">…</span></div>
+        <div class="kv"><span>vts</span><span id="s-vts">…</span></div>
+        <div class="kv"><span>last trigger</span><span id="s-vts-age">…</span></div>
+        <div class="row">
+          <select id="theme-pick"></select>
+        </div>
+        <div class="row">
+          <button id="trigger-fus">Trigger Fus</button>
+          <button id="trigger-level">Trigger Level Up</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Phone IMU</h2>
+        <div class="kv"><span>activity</span><span id="s-imu-act">…</span></div>
+        <div class="kv"><span>cadence</span><span id="s-imu-cad">…</span></div>
+        <div class="kv"><span>fresh</span><span id="s-imu-fresh">…</span></div>
+        <div class="kv"><span>az var</span><span id="s-imu-az">…</span></div>
+        <div class="kv"><span>gyro mean</span><span id="s-imu-gyro">…</span></div>
+        <div class="row">
+          <button id="force-imu-running">Inject run</button>
+          <button id="force-imu-lifting">Inject lift</button>
+          <button id="force-imu-boxing">Inject box</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Focus · shouts · discovery</h2>
+        <div class="kv"><span>looking at</span><span id="s-focus">…</span></div>
+        <div class="kv"><span>source</span><span id="s-focus-src">…</span></div>
+        <div class="kv"><span>text rows</span><span id="s-textrows">…</span></div>
+        <div class="kv"><span>desktop</span><span id="s-desktop">…</span></div>
+        <div class="kv"><span>shout</span><span id="s-shout">…</span></div>
+        <div class="kv"><span>discovered</span><span id="s-discover">…</span></div>
+        <div class="row">
+          <button id="force-shout">Force shout</button>
+          <button id="force-focus-reading">Set reading</button>
+          <button id="force-focus-coding">Set coding</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Gesture pad</h2>
+        <div class="pad" id="pad"></div>
+        <p class="note">Keys: <b>M</b> menu · <b>←/→</b> tab · <b>↑/↓</b> scroll. Any app that can POST <span class="mono">/api/gesture</span> (Stream Deck, band bridge) drives the same menu.</p>
+      </div>
+
+      <div class="card">
+        <h2>Navigation objective</h2>
+        <input type="text" id="dest" placeholder="Paste a maps link, or 'Blue Bottle SF'" />
+        <div class="row">
+          <button id="set-dest">Set destination</button>
+          <button id="clear-dest">Clear</button>
+        </div>
+        <p class="note" id="nav-state">inactive</p>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h2>Live preview</h2>
+        <div class="scaler"><iframe id="preview" src="/overlay/index.html"></iframe></div>
+      </div>
+
+      <div class="card">
+        <h2>Skills</h2>
+        <table>
+          <thead><tr><th>Skill</th><th>Level</th><th>XP</th><th>Total</th><th>State</th></tr></thead>
+          <tbody id="skills-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+<script>
+  const loc = window.location;
+  document.getElementById("overlay-url").textContent = `${loc.origin}/overlay/index.html`;
+  document.getElementById("phone-url").textContent = `${loc.origin}/phone`;
+
+  // ------------------------------------------------------------ gesture pad
+  const GESTURES = ["tap", "pinch", "double_tap", "swipe_left", "swipe_right",
+                    "swipe_up", "swipe_down", "rotate_cw", "rotate_ccw", "spread"];
+  const pad = document.getElementById("pad");
+  GESTURES.forEach((g) => {
+    const b = document.createElement("button");
+    b.textContent = g;
+    b.onclick = () => sendGesture(g, b);
+    pad.appendChild(b);
+  });
+
+  function sendGesture(gesture, btn) {
+    fetch("/api/gesture", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ gesture }),
+    });
+    if (btn) {
+      btn.classList.add("sel");
+      setTimeout(() => btn.classList.remove("sel"), 180);
+    }
+  }
+
+  const KEYS = { m: "tap", ArrowLeft: "swipe_left", ArrowRight: "swipe_right",
+                 ArrowUp: "swipe_up", ArrowDown: "swipe_down" };
+  window.addEventListener("keydown", (e) => {
+    const tag = (e.target.tagName || "").toLowerCase();
+    if (tag === "input" || tag === "textarea") return;
+    const g = KEYS[e.key] || KEYS[e.key.toLowerCase()];
+    if (g) sendGesture(g);
+  });
+
+  // ------------------------------------------------------------ navigation
+  function setDestination() {
+    const value = document.getElementById("dest").value.trim();
+    if (!value) return;
+    const isLink = /https?:\/\//i.test(value);
+    const body = isLink ? { link: value } : { query: value };
+    fetch("/api/destination", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }).then(() => poll());
+    document.getElementById("dest").value = "";
+  }
+  document.getElementById("set-dest").onclick = setDestination;
+  document.getElementById("dest").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") setDestination();
+  });
+  document.getElementById("clear-dest").onclick = () => {
+    fetch("/api/destination", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ clear: true }),
+    }).then(() => poll());
+  };
+
+  document.getElementById("force-shout").onclick = () => {
+    const w = ["Fus Ro Dah", "Yol Toor Shul", "Wuld Nah Kest"][Math.floor(Math.random() * 3)];
+    fetch("/api/shout", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ word: w }),
+    });
+  };
+  document.getElementById("force-focus-reading").onclick = () => {
+    fetch("/api/focus", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "reading" }),
+    }).then(() => poll());
+  };
+  document.getElementById("force-focus-coding").onclick = () => {
+    fetch("/api/focus", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "coding" }),
+    }).then(() => poll());
+  };
+
+  function injectImu(kind) {
+    // 5 seconds of synthetic samples at 25 Hz
+    const samples = [];
+    const t0 = Date.now() / 1000;
+    const dt = 0.04;
+    const N = Math.round(5 / dt);
+    for (let i = 0; i < N; i++) {
+      const t = t0 + i * dt;
+      let az = 0, gmag = 0;
+      if (kind === "running") { az = 3.0 * Math.sin(2 * Math.PI * 3.0 * t); gmag = 0.15; }
+      else if (kind === "lifting") { az = 2.5 * Math.sin(2 * Math.PI * 0.5 * t); gmag = 0.2; }
+      else if (kind === "boxing") { az = 0.8 * Math.sin(2 * Math.PI * 2.0 * t); gmag = 2.0 * Math.abs(Math.sin(2 * Math.PI * 2.0 * t)); }
+      const a = 9.81 + az;
+      samples.push({ t: t * 1000, ax: 0, ay: 0, az: a, gx: 0, gy: 0, gz: gmag });
+    }
+    fetch("/api/imu", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ samples }),
+    }).then(() => poll());
+  }
+  async function loadThemes() {
+    const cfg = await (await fetch("/api/config")).json();
+    const sel = document.getElementById("theme-pick");
+    if (sel.options.length) return;
+    for (const t of (cfg.avatar?.themes || ["default"])) {
+      const o = document.createElement("option");
+      o.value = t; o.textContent = t;
+      sel.appendChild(o);
+    }
+    sel.value = cfg.avatar?.theme || "default";
+    sel.onchange = () => {
+      fetch("/api/avatar", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: sel.value }),
+      }).then(() => poll());
+    };
+  }
+  loadThemes();
+
+  document.getElementById("trigger-fus").onclick = () => {
+    fetch("/api/vtube", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "shout_fus" }),
+    }).then(() => poll());
+  };
+  document.getElementById("trigger-level").onclick = () => {
+    fetch("/api/vtube", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "level_up" }),
+    }).then(() => poll());
+  };
+
+  document.getElementById("force-imu-running").onclick = () => injectImu("running");
+  document.getElementById("force-imu-lifting").onclick = () => injectImu("lifting");
+  document.getElementById("force-imu-boxing").onclick = () => injectImu("boxing");
+
+  // ------------------------------------------------------------ status poll
+  async function poll() {
+    try {
+      const s = await (await fetch("/api/status")).json();
+      const mark = (el, ok) => {
+        el.textContent = ok;
+        el.className = ok === "sim" ? "off" : "on";
+      };
+      mark(document.getElementById("s-audio"), s.sources.audio);
+      mark(document.getElementById("s-video"), s.sources.video);
+      document.getElementById("s-heading").textContent = s.heading?.mode ?? "—";
+      const live = s.heading?.live || {};
+      document.getElementById("s-live").textContent =
+        Object.keys(live).length ? Object.entries(live).map(([k, v]) => `${k} ${v}s`).join(", ") : "none";
+      document.getElementById("s-phones").textContent = s.phones;
+      document.getElementById("s-uptime").textContent = s.uptime + "s";
+      const attr = s.attributes || {};
+      document.getElementById("s-attr").textContent =
+        attr.enabled ? `opt-in · ${attr.status}` : "off";
+
+      const desk = s.desktop || {};
+      document.getElementById("s-desktop").textContent =
+        desk.app ? `${desk.app} (${desk.kind})` : "—";
+      const fc = s.focus || {};
+      const fFeat = fc.features || {};
+      document.getElementById("s-focus").textContent =
+        `${fc.kind || "other"} · ${Math.round((fc.confidence || 0) * 100)}%`;
+      document.getElementById("s-focus-src").textContent =
+        fFeat.source || "—";
+      document.getElementById("s-textrows").textContent =
+        `${fFeat.text_rows || 0} · bright ${Math.round(fFeat.mean_brightness || 0)} · sat ${Math.round(fFeat.mean_saturation || 0)} · syntax ${(fFeat.syntax_ratio || 0).toFixed(4)}`;
+      const sh = s.shout || {};
+      document.getElementById("s-shout").textContent =
+        sh.ready ? `ready · ${sh.last || "—"}` : `${Math.round(sh.cooldown || 0)}s left`;
+      document.getElementById("s-discover").textContent =
+        `${s.discovery?.count ?? 0} · ${s.discovery?.status || "—"}`;
+
+      const av = s.avatar || {};
+      const vts = (av.vtube_studio) || {};
+      document.getElementById("s-theme").textContent = av.theme || "default";
+      document.getElementById("s-engine").textContent = av.engine || "procedural";
+      document.getElementById("s-vts").textContent = vts.enabled
+        ? `${vts.connected ? "connected" : "not connected"} · ${vts.uri}` : "disabled";
+      document.getElementById("s-vts-age").textContent =
+        vts.last_event_age != null ? `${vts.last_event_age}s ago` : "—";
+
+      const imu = s.imu || {};
+      const imuF = imu.features || {};
+      document.getElementById("s-imu-act").textContent =
+        imu.activity ? `${imu.activity} · ${imu.source || "—"}` : "— (no samples)";
+      document.getElementById("s-imu-cad").textContent =
+        imu.cadence != null ? `${imu.cadence} Hz` : "—";
+      document.getElementById("s-imu-fresh").textContent =
+        imu.fresh ? `yes · ${imu.age_s ?? 0}s old · ${imu.samples ?? 0} samples` : "no";
+      document.getElementById("s-imu-az").textContent = imuF.az_var ?? "—";
+      document.getElementById("s-imu-gyro").textContent = imuF.gyro_mean ?? "—";
+
+      const nav = s.nav || {};
+      document.getElementById("nav-state").textContent = nav.active
+        ? `${nav.objective.name} · ${Math.round(nav.objective.distance)} m · ${nav.objective.step || ""}`
+        : (nav.status || "inactive");
+
+      document.getElementById("skills-body").innerHTML = Object.values(s.skills).map((k) => `
+        <tr>
+          <td>${k.name}</td>
+          <td>${k.level}</td>
+          <td>${Math.round(k.xp * 100)}%</td>
+          <td>${k.total}</td>
+          <td class="${k.active ? "on" : ""}">${k.active ? "gaining" : "—"}</td>
+        </tr>`).join("");
+    } catch (err) { /* server busy */ }
+    setTimeout(poll, 1000);
+  }
+  poll();
+</script>
+</body>
+</html>

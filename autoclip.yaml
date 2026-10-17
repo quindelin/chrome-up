@@ -1,0 +1,281 @@
+# ---------------------------------------------------------------------------
+# autoclip — rolling-buffer clip agent for POV streams.
+# Source today: OBS.  Source next: Meta Ray-Ban Display glasses (DAT SDK), which
+# just becomes another entry in `source.mode`.
+#
+# Quickstart (no OBS required):
+#   source.mode: file        + source.file: /path/to/your/recording.mp4
+#   python -m autoclip run
+#
+# With OBS (recommended):
+#   1. OBS -> Tools -> obs-websocket Settings -> Enable WebSocket server (port 4455)
+#   2. OBS -> Settings -> Output -> Replay Buffer -> enable, set duration to 300s
+#   3. source.mode: replay_buffer, obs.password: <your password>
+#   4. python -m autoclip loop
+# ---------------------------------------------------------------------------
+
+workdir: var/autoclip
+
+source:
+  # replay_buffer | watch_dir | stream_url | rtmp | file | auto
+  mode: auto
+  stream_url: ""            # srt://0.0.0.0:9000?mode=listener   (OBS -> SRT output)
+  watch_dir: ~/Movies/OBS   # OBS recording dir (enable Settings > Advanced > auto-split)
+  watch_glob: "*.{mp4,mkv,mov,ts,flv}"
+  file: ""                  # offline testing: one video file
+  segment_seconds: 10
+
+  # Cloud / phone-pushed: ffmpeg subscribes to a live RTMP feed and writes
+  # `.ts` chunks into `rtmp.dir`. The pipeline then tails it just like a
+  # watch_dir. Used by deploy/cloud (MediaMTX) — see docs/PHONE_APP.md.
+  rtmp:
+    url: "rtmp://127.0.0.1:1935/live"
+    stream_key: "${RTMP_STREAM_KEY:-glasses}"
+    dir: var/autoclip/incoming
+    chunk_seconds: 30
+
+obs:
+  enabled: true
+  host: 127.0.0.1
+  port: 4455
+  password: ""
+  timeout: 4.0
+  auto_start_replay_buffer: true
+  replay_dir: ""            # fallback if obs-websocket can't report the saved path
+
+  # Voice -> OBS control. Off by default: nothing touches OBS until you set
+  # `enabled: true`. See docs/OBS_VOICE_CONTROL.md for the full vocabulary.
+  voice:
+    enabled: false
+    scene: ""               # pin source ops to one scene ("" = whatever is live)
+    scenes: []              # allowlist of voice-switchable scenes ([] = all)
+    allow_dangerous: false  # required for "stop broadcasting"/"stop recording"
+    default_audio: ""       # bare "mute"/"volume 50" target ("" = autodetect)
+    # Spoken name -> what OBS actually calls the source. Without these the
+    # controller fuzzy-matches, so add an alias when fuzzy gets it wrong.
+    aliases:
+      compass: "Compass"
+      health: "HealthBar"
+      mic: "Mic/Aux"
+    scene_aliases:
+      map: "MapScene"
+    intents:
+      - scene
+      - mute
+      - unmute
+      - volume
+      - record
+      - unrecord
+      - vcam
+      - unvcam
+      - broadcast
+      - unbroadcast
+      - replay
+      - clip
+
+# ---------------------------------------------------------------------------
+# Live multi-streaming — re-broadcast the POV stream to N platforms at once.
+# Each active platform runs one ffmpeg `-c copy` republisher. Start/stop per
+# platform by voice ("go live on twitch", "stop youtube") or via REST:
+#   POST /api/autoclip/live/start/{name}   POST /api/autoclip/live/stop/{name}
+# See docs/LIVE_STREAMING.md for per-platform ingest URLs and stream keys.
+# ---------------------------------------------------------------------------
+live_streams:
+  enabled: false            # leave false until keys are configured
+  # What the republishers pull from: the local MediaMTX (cloud) or OBS output.
+  source: "rtmp://127.0.0.1:1935/live/${RTMP_STREAM_KEY:-glasses}"
+  max_restarts: 5
+  restart_backoff_seconds: 5
+  targets:
+    - name: youtube
+      url: "rtmp://a.rtmp.youtube.com/live2"
+      key: "${YOUTUBE_STREAM_KEY}"
+      enabled: false
+    - name: twitch
+      url: "rtmp://live.twitch.tv/app"
+      key: "${TWITCH_STREAM_KEY}"
+      enabled: false
+    - name: kick
+      url: "rtmp://ingest.kick.com/app"
+      key: "${KICK_STREAM_KEY}"
+      enabled: false
+    - name: x
+      url: "rtmp://ingest.pscp.tv:80/x/"
+      key: "${X_STREAM_KEY}"
+      enabled: false
+    # Add any RTMP target. Instagram / TikTok live need their own apps and do
+    # not accept bare RTMP in all regions — see docs/LIVE_STREAMING.md.
+    # - name: custom
+    #   url: "rtmp://your-relay.example.com/live"
+    #   key: "${CUSTOM_STREAM_KEY}"
+    #   enabled: false
+
+window:
+  seconds: 300              # "the past five minutes"
+  stride_seconds: 60
+  cycle_seconds: 60
+  min_ready_seconds: 45
+  overlap_seconds: 30
+
+analysis:
+  frame_fps: 1.0
+  audio_hz: 16000
+  motion_threshold: 0.06
+  scene_cut_threshold: 0.35
+  silence_db: -45.0
+  transcribe: true
+  transcribe_model: base    # tiny|base|small|medium|large-v3
+  transcribe_max_seconds: 300
+
+agent:
+  # heuristic (offline rules) | llm (vision+JSON) | remote (your own endpoint)
+  name: heuristic
+  auto_approve_score: 0.62
+  max_clips_per_window: 3
+  # Short-form reach rides on completion rate and replays, so clips are held in
+  # a tight band: 10s floor, ~25s ideal, 30s hard ceiling. Raise max_clip_seconds
+  # to 60 if you want YouTube Shorts to have room to breathe.
+  min_clip_seconds: 10
+  target_clip_seconds: 25
+  max_clip_seconds: 30
+
+  llm:
+    base_url: https://api.openai.com/v1
+    model: gpt-4o-mini
+    api_key_env: OPENAI_API_KEY
+    send_frames: true
+    max_frames: 12
+    temperature: 0.2
+
+  remote:
+    url: ""                 # POST AgentContext JSON -> {"clips": [...]}
+    headers: {}
+    timeout: 120
+
+render:
+  aspect: "9:16"            # 9:16 (Reels/Shorts) | 1:1 | 16:9 | source
+  layout: crop              # crop | blur
+  crop_x: 0.5
+  width: 1080
+  height: 1920
+  fps: 30
+  video_bitrate: 8M
+  audio_bitrate: 160k
+  loudnorm: true
+  captions: true
+  # Live animated subtitles burned into every clip.
+  #   karaoke : line stays up, active word fills in colour as it is spoken
+  #   pop     : one event per word, active word highlights + pops (CapCut style)
+  #   line    : static, no animation
+  caption_style:
+    mode: karaoke
+    # auto   -> libass `subtitles` filter when available, else PNG overlay
+    # ass    -> force the subtitles filter (fails if ffmpeg lacks libass)
+    # images -> force the pre-rendered PNG overlay (needs Pillow)
+    burn: auto
+    caption_fps: 12           # PNG overlay frame rate (images mode)
+    stroke: 5                 # outline width (images mode)
+    font: Arial
+    size: 64
+    primary: "&H0000FFFF"     # active / sung colour   (ASS &HAABBGGRR)
+    secondary: "&H00FFFFFF"   # not-yet-sung colour
+    outline: "&H00000000"
+    back: "&H80000000"
+    active_inline: "&H00FFFF&"    # per-word colour in `pop` mode (&HBBGGRR)
+    inactive_inline: "&HFFFFFF&"
+    pop_scale: 118
+    pop_ms: 90
+    fade_ms: 90
+    margin_v: 260
+    max_words: 3
+    max_chars: 28
+  watermark: ""
+
+# ---------------------------------------------------------------------------
+# Privacy blur — blur bystanders' faces, toggled by voice.
+#   "blur faces" / "privacy mode on"   -> on
+#   "unblur faces" / "stop blurring"   -> off
+#   "toggle face blur"                 -> flip
+# mode: clip = blur faces in rendered clips (ffmpeg, works offline)
+#       obs  = blur faces on the live OBS program output (obs-websocket)
+#       both = both
+# See docs/PRIVACY_BLUR.md.
+# ---------------------------------------------------------------------------
+privacy:
+  enabled: false            # master switch: nothing runs until this is true
+  default_on: true
+  mode: clip                # clip | obs | both
+  detector: auto            # auto | yunet (DNN, best) | haar (cv2 4.x only)
+  yunet_model: ""           # "" = <workdir>/models/face_detection_yunet_2023mar.onnx
+  auto_download_model: true # fetch the YuNet ONNX once when it is missing
+  strength: 20              # blur radius in pixels
+  padding: 0.25             # grow each box so hair/chin are covered
+  max_faces: 4
+  sample_fps: 2.0
+  hold_seconds: 0.8
+  persist: true
+  obs:
+    scene: ""               # "" = whatever scene is live
+    source: ""              # "" = autodetect the video source
+    patch_scene: "PrivacyBlur"
+    update_hz: 3.0
+    blur_type: box
+    blur_size: 25
+
+voice:
+  # regex (default, offline) | llm (loosely-phrased commands) | off
+  name: regex
+  min_confidence: 0.5
+  # LLM parser uses an OpenAI-compatible /chat/completions. Set the env var
+  # in the env file: OPENAI_API_KEY=...
+  llm:
+    base_url: https://api.openai.com/v1
+    model: gpt-4o-mini
+    api_key_env: OPENAI_API_KEY
+    timeout: 30
+
+publish:
+  mode: dry_run             # dry_run | live
+  platforms: [youtube, instagram, x]
+  default_title: "From the last five minutes"
+  default_tags: []
+  require_approval: true    # live posts wait in outbox until approved
+
+  youtube:
+    privacy: unlisted       # private | unlisted | public
+    category: "22"
+    client_secrets: ""      # Google OAuth desktop client JSON
+    credentials: var/autoclip/youtube_creds.json
+    made_for_kids: false
+
+  instagram:
+    graph_version: v23.0
+    ig_user_id: ""
+    access_token_env: INSTAGRAM_ACCESS_TOKEN
+    share_to_feed: true
+    hosting: static         # static (this server + public_base_url) | s3
+    hosting_s3:
+      bucket: ""
+      prefix: "autoclip/"
+      endpoint: ""
+      region: auto
+      public_base_url: ""
+    poll_seconds: 5
+    poll_timeout: 300
+
+  x:
+    consumer_key_env: X_CONSUMER_KEY
+    consumer_secret_env: X_CONSUMER_SECRET
+    access_token_env: X_ACCESS_TOKEN
+    access_token_secret_env: X_ACCESS_TOKEN_SECRET
+    max_seconds: 140
+
+server:
+  enabled: false
+  host: 0.0.0.0
+  port: 8899
+  public_base_url: ""       # e.g. https://abcd.ngrok-free.app  (Instagram hosting=static)
+  api_token: ""             # optional bearer token for the REST API
+
+logging:
+  level: INFO

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>LinguaLens · phone companion</title>
+<link rel="stylesheet" href="/static/styles.css" />
+<link rel="stylesheet" href="/static/progress.css" />
+</head>
+<body data-page="phone" class="phone">
+<div id="app">
+  <header>
+    <span class="lesson" id="lesson">—</span>
+    <span class="badge" id="course">…</span>
+    <span class="progress" id="progress">0/0</span>
+    <span class="badge" id="provider">…</span>
+  </header>
+
+  <main id="stage">
+    <div class="role" id="role">listen</div>
+    <div class="reading" id="reading"></div>
+    <div class="target" id="target"></div>
+    <div class="en hidden" id="en"></div>
+    <div class="cue" id="cue"></div>
+    <div class="note" id="note"></div>
+    <div class="sample hidden" id="sample"></div>
+    <div class="wait" id="wait"></div>
+    <div id="scorebox"></div>
+  </main>
+
+  <div class="panel">
+    <button class="rec" id="mic" disabled>Hold to speak</button>
+    <div class="hintline" id="message"></div>
+    <div class="hintline" id="reason"></div>
+    <div class="row" style="margin-top:10px">
+      <button class="ghost" id="repeat">Replay model</button>
+      <button class="ghost" id="menuBtn">Course menu</button>
+      <button class="ghost" id="reviewBtn">Review due</button>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="ghost" id="good">Sim: pass</button>
+      <button class="ghost" id="bad">Sim: fail</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3 id="thinktitle">Think in the language</h3>
+    <form id="thinkform" class="row">
+      <input type="text" id="thought" placeholder="I want to go to the airport" autocomplete="off" />
+      <button type="submit">Translate</button>
+    </form>
+    <div class="row" style="margin-top:10px">
+      <button class="ghost" id="exitThink">Back to lesson</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>Course</h3>
+    <div class="row" id="courseBtns"></div>
+    <div class="hintline" id="courseStats"></div>
+  </div>
+
+  <div class="panel">
+    <h3>Lesson</h3>
+    <select id="lessonSelect"></select>
+  </div>
+
+  <div class="panel">
+    <h3>Recent attempts</h3>
+    <div class="log" id="log"></div>
+  </div>
+
+  <div class="panel">
+    <h3 id="progressTitle">Progress</h3>
+    <div id="progressPanel"></div>
+  </div>
+
+  <div class="panel">
+    <h3 id="wordsTitle">Words you learned</h3>
+    <div id="wordsPanel"></div>
+  </div>
+
+  <footer>
+    <span>Phone captures audio · glasses show the line</span>
+    <span id="locale">…</span>
+  </footer>
+
+  <div id="menu" class="hidden"></div>
+</div>
+<script src="/static/app.js"></script>
+<script src="/static/progress.js"></script>
+</body>
+</html>

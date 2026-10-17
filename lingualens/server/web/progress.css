@@ -1,0 +1,184 @@
+/* Per-course progress UI (phone). Same palette as the glasses UI. */
+
+.chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  flex: 1 1 130px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid #262626;
+  background: #0d0d0d;
+  color: var(--fg);
+  font: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.chip .cn { font-size: 19px; font-weight: 600; letter-spacing: 0.04em; }
+.chip .nm { font-size: 12px; color: var(--dim); }
+.chip .sub { font-size: 11px; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+.chip.on {
+  border-color: var(--accent);
+  background: #0b1a22;
+}
+.chip.on .sub { color: var(--accent); }
+
+.chip.off { opacity: 0.45; cursor: not-allowed; }
+
+/* ---------- one row per course ---------- */
+.crows { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+
+.crow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #1c1c1c;
+  background: #0d0d0d;
+}
+.crow.on { border-color: var(--accent); background: #0b1a22; }
+.crow .cn { font-size: 17px; font-weight: 600; min-width: 70px; }
+.crow .cs { font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
+
+/* ---------- stats ---------- */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin: 14px 0 12px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px;
+  border-radius: 10px;
+  background: #0d0d0d;
+  border: 1px solid #1c1c1c;
+}
+
+.stat b { font-size: 20px; font-variant-numeric: tabular-nums; }
+.stat .of { font-size: 13px; color: var(--dim); font-weight: 400; }
+.stat span { font-size: 11px; color: var(--dim); letter-spacing: 0.03em; }
+
+.pbar {
+  position: relative;
+  height: 22px;
+  border-radius: 11px;
+  background: #131313;
+  border: 1px solid #1f1f1f;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.pbar .fill {
+  height: 100%;
+  background: linear-gradient(90deg, #0e7490, var(--accent));
+  opacity: 0.85;
+  transition: width 0.4s ease;
+}
+
+.pbar .plabel {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg);
+  text-shadow: 0 1px 2px #000;
+}
+
+/* ---------- bands ---------- */
+.bands { display: flex; flex-direction: column; gap: 4px; }
+
+.band {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: var(--dim);
+  padding: 3px 2px;
+  border-bottom: 1px solid #141414;
+}
+.band .code { color: var(--fg); font-weight: 600; min-width: 64px; }
+.band .bt { font-variant-numeric: tabular-nums; }
+
+.recent { margin-top: 12px; font-size: 13px; color: var(--dim); }
+.recent .w {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 15px;
+  padding: 2px 4px;
+  cursor: pointer;
+}
+
+/* ---------- words ---------- */
+.wtools {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.wtools input[type="search"] {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #262626;
+  background: #0d0d0d;
+  color: var(--fg);
+  font: inherit;
+  font-size: 14px;
+}
+
+.wtools select {
+  padding: 9px 8px;
+  border-radius: 10px;
+  border: 1px solid #262626;
+  background: #0d0d0d;
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+}
+
+.wcount { font-size: 12px; color: var(--dim); margin-bottom: 8px; }
+
+.wlist {
+  max-height: 46vh;
+  overflow-y: auto;
+  border-radius: 10px;
+  border: 1px solid #1c1c1c;
+}
+
+.wrow {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "t r" "e m";
+  gap: 0 10px;
+  padding: 9px 12px;
+  border-bottom: 1px solid #141414;
+  cursor: pointer;
+}
+.wrow:active { background: #111; }
+
+.wrow .wt { grid-area: t; font-size: 18px; font-weight: 600; }
+.wrow .wr { grid-area: r; font-size: 13px; color: var(--accent); align-self: center; }
+.wrow .we { grid-area: e; font-size: 12px; color: var(--dim); }
+.wrow .wm { grid-area: m; font-size: 11px; color: #666; text-align: right; align-self: center; }
+
+.empty { color: var(--dim); font-size: 13px; padding: 10px 2px; }

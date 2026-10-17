@@ -1,0 +1,172 @@
+# ---------------------------------------------------------------------------
+# LinguaLens - Pimsleur-style Japanese coach for Meta Ray-Ban Display glasses.
+# Same engine as config.yaml, same gate, same UI - `language: ja` swaps in the
+# JLPT N5 -> N1 course and the ja-JP speech engines.
+#
+#   ./run.sh ja          # or: python -m server.main --config config.ja.yaml
+# ---------------------------------------------------------------------------
+
+language: ja              # ja = Japanese (JLPT N5, N4, N3, N2, N1, N1+)
+
+server:
+  host: 0.0.0.0
+  port: 8899          # glasses/phone UI: http://<your-ip>:8899/
+
+pronunciation:
+  # auto    -> picks the first configured engine (see `prefer`)
+  # azure   -> Azure AI Speech ja-JP: accuracy / fluency / completeness / pron,
+  #            plus word-level error types. No pitch accent.
+  # iflytek -> iFlytek ISE. Set language: ja_jp if your account has the
+  #            Japanese evaluation service enabled.
+  # mock    -> offline scorer for development (no key needed)
+  provider: auto
+  prefer: azure          # auto tries azure first, then iflytek, then mock
+  language: ja-JP
+  region: null           # e.g. japaneast / eastus. Or set AZURE_SPEECH_REGION.
+  key_env: AZURE_SPEECH_KEY
+  region_env: AZURE_SPEECH_REGION
+  enable_miscue: true    # azure: detects omitted / mispronounced words
+  granularity: phoneme   # if the service rejects it, switch this to word
+  phoneme_nbest: 0
+
+  iflytek:
+    endpoint: https://ise-api.xfyun.cn/v2/ise
+    iat_endpoint: https://iat-api.xfyun.cn/v2/iat
+    appid_env: IFLYTEK_APPID
+    apikey_env: IFLYTEK_API_KEY
+    apisecret_env: IFLYTEK_API_SECRET
+    language: ja_jp
+    category: auto
+    result_level: entirety
+    extra_ability: multi_dimension
+    timeout: 20
+
+gate:
+  # These are the N5 floor. Every JLPT band tightens them (62 -> 82).
+  min_pron_score: 60.0        # overall pronunciation score needed to pass
+  min_accuracy: 60.0          # per-utterance accuracy
+  min_completeness: 75.0      # did you say the whole line
+  # Japanese pitch accent (高低アクセント). Only enforced when a provider
+  # actually reports an accent score - Azure ja-JP does not, so this stays
+  # dormant rather than failing you on something nobody measured.
+  min_tone_score: 58.0
+  min_phone_score: 0.0        # segmentals (音素); 0 = off
+  require_recognized_match: true
+  min_reference_coverage: 0.75
+  max_attempts: 0             # 0 = never auto-advance. Retry until correct.
+  reveal_after_attempts: 2    # after N failures, show kana/English help
+  slow_replay_after_attempts: 2
+
+think:
+  # English thought -> Japanese. auto = LLM if OPENAI_API_KEY is set, else the
+  # built-in offline Japanese phrasebook (~70 phrases + pattern matcher).
+  provider: auto
+  base_url: https://api.openai.com/v1
+  model: gpt-4o-mini
+  api_key_env: OPENAI_API_KEY
+  timeout: 12
+
+audio:
+  target_sample_rate: 16000
+  min_seconds: 0.4
+  max_seconds: 15.0
+  noise_gate_rms: 0.005
+  seconds_per_char: 0.16    # a Japanese mora is about half a Chinese syllable
+
+recall:
+  intervals: [10, 30, 75]
+  rounds: 3
+  # the silent pause before the English cue lands. 0 prints the cue at once.
+  anticipation_seconds: 5
+
+drills:
+  enabled: true
+  per_pattern: 3
+  rounds: 1
+
+# Literacy. Japanese is the one major language you cannot read without being
+# taught the writing system outright, so the syllabaries and the characters
+# are drilled as things in their own right (server/course/ja/kana.py,
+# server/course/ja/kanji.py) rather than assumed.
+kana:
+  enabled: true
+  per_lesson: 5        # five a lesson; the table covers both syllabaries
+  through_lesson: 8
+
+kanji:
+  enabled: true
+  per_lesson: 3        # drawn from whatever words the lesson actually uses
+  recall_in_session: 2
+
+# Reading. The dialogue is 7,500 characters across the whole course, which
+# is a skeleton and not a corpus; passages (server/course/ja/readings*.py)
+# are the only place Japanese arrives in paragraphs.
+reading:
+  enabled: true
+  per_lesson: 1
+  read_aloud: true
+  comprehension: true
+
+# Listening. Everything is synthesised in the browser, and taking whichever
+# voice matches first means a year of one speaker. Rotate them, and stop
+# slowing every line down.
+listening:
+  enabled: true
+  rotate_voices: true
+  vary_pitch: true
+  rate:
+    model: 0.95        # the question, and a line being taught
+    listen: 1.0        # the model line - natural speed
+    drill: 0.85        # a replay after you have missed it once
+    slow: 0.6          # the last resort, after repeated misses
+
+vocab:
+  # The word bank (server/course/ja/vocab_n*.py): 960 JLPT-graded words in
+  # themed topics. Menu: JLPT band -> 単語 -> topic.
+  enabled: true
+  inject_per_lesson: 4
+  recall_rounds: 2
+
+free:
+  enabled: true
+  per_lesson: 2
+  asr: auto               # auto | client | azure | iflytek | mock
+  require_relevance: true
+  min_chars: 0
+  gate_relief: 6.0
+
+storage:
+  path: state.ja.json
+
+ui:
+  show_english_default: false
+  display_size: 600
+  vocab_label: 単語
+  # Kana above the line is the crutch, the way pinyin is for Chinese. Kanji is
+  # a much bigger reading problem than hanzi, so the kana survives one band
+  # longer than pinyin does.
+  reading_mode: auto
+  reading_by_level:
+    1: always   # N5
+    2: always   # N4
+    3: always   # N3
+    4: fade     # N2
+    5: fade     # N1
+    6: reveal   # N1+
+  # The English scene printed before a conversation starts: who you are talking
+  # to, and where. It also tells you how politely to speak, which in Japanese
+  # is half the sentence. For the same reason kana survives one band longer,
+  # so does this.
+  # auto   -> the ladder below
+  # always -> every lesson opens with it
+  # first  -> only the first lesson of each unit
+  # tip    -> never printed; ↓ reveals it
+  scene_mode: auto
+  scene_by_level:
+    1: always   # N5
+    2: always   # N4
+    3: always   # N3
+    4: first    # N2
+    5: first    # N1
+    6: tip      # N1+
+  scene_seconds: 6

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>HUDstream — Skyrim HUD overlay</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <!-- ============================ compass ============================ -->
+  <div id="compass-wrap">
+    <canvas id="compass" width="1200" height="96"></canvas>
+  </div>
+
+  <!-- ============================ objective line ====================== -->
+  <div id="objective" class="hidden"></div>
+
+  <!-- ============================ level banner ======================== -->
+  <div id="levelup" class="hidden"></div>
+
+  <!-- ============================ crosshair =========================== -->
+  <div id="crosshair"></div>
+
+  <!-- ============================ vitals + skills ===================== -->
+  <div id="left-stack">
+    <div id="skills"></div>
+    <div id="vitals">
+      <div class="vital" data-vital="health">
+        <div class="bar"><div class="fill"></div><div class="gloss"></div></div>
+        <span class="label">Health</span>
+      </div>
+      <div class="vital" data-vital="magicka">
+        <div class="bar"><div class="fill"></div><div class="gloss"></div></div>
+        <span class="label">Magicka</span>
+      </div>
+      <div class="vital" data-vital="stamina">
+        <div class="bar"><div class="fill"></div><div class="gloss"></div></div>
+        <span class="label">Stamina</span>
+      </div>
+      <div id="levelbadge"><span class="lv">Lv</span><span id="levelnum">1</span></div>
+    </div>
+  </div>
+
+  <!-- ============================ toasts ============================== -->
+  <div id="toasts"></div>
+
+  <!-- ============================ vtube avatar ======================== -->
+  <div id="avatar-wrap">
+    <canvas id="ring" width="360" height="360"></canvas>
+    <canvas id="avatar" width="300" height="380"></canvas>
+    <div id="nameplate"><span id="avatarname">Vtuber</span><span id="statetext">idle</span></div>
+  </div>
+
+  <!-- ============================ stealth eye ======================= -->
+  <div id="stealth" class="hidden">hidden</div>
+
+  <!-- ============================ thu'um meter ====================== -->
+  <div id="thuum">
+    <span class="th-name" id="thuum-name">Fus Ro Dah</span>
+    <span class="th-bar"><i id="thuum-fill"></i></span>
+  </div>
+
+  <!-- ============================ gesture menu ======================== -->
+  <div id="menu" class="hidden"></div>
+
+  <!-- ============================ privacy badge ======================== -->
+  <!-- Mirrors autoclip's face-blur switch. Set data-autoclip to wherever
+       your autoclip REST server runs (default port 8899). -->
+  <div id="privacy" class="hidden" data-autoclip="http://127.0.0.1:8899">
+    <span class="pv-dot"></span><span class="pv-text">faces blurred</span>
+  </div>
+
+  <div id="status" class="hidden"></div>
+
+  <!-- ============================ vicinity chat ======================== -->
+  <!-- Read-only mirror of what the Meta Ray-Ban Display is showing: the
+       phone pushes the view model to the vicinity relay and this panel draws
+       it. Set data-relay to wherever relay/server.py runs (default 8901).
+       data-hide-stale="false" keeps the panel up when the phone drops off. -->
+  <div id="vicinity" class="hidden" data-relay="http://127.0.0.1:8901"></div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

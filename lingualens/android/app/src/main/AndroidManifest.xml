@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- pairing with the glasses -->
+    <uses-permission android:name="android.permission.BLUETOOTH" />
+    <uses-permission android:name="android.permission.BLUETOOTH_SCAN" />
+    <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
+
+    <!-- RF scope. Android 12+ withholds BLE scan results without a location
+         permission unless BLUETOOTH_SCAN declares neverForLocation; we want
+         location, and Wi-Fi scanning as a second layer, so we ask for it. -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <uses-feature android:name="android.hardware.bluetooth_le" android:required="true" />
+    <uses-feature android:name="android.hardware.sensor.compass" android:required="false" />
+    <uses-feature android:name="android.hardware.sensor.accelerometer" android:required="false" />
+
+    <uses-feature android:name="android.hardware.microphone" android:required="true" />
+
+    <application
+        android:allowBackup="true"
+        android:label="LinguaLens"
+        android:theme="@style/Theme.LinguaLens"
+        android:usesCleartextTraffic="true">
+
+        <!-- Meta Wearables Device Access Toolkit attestation. Values come from
+             local.properties (see app/build.gradle.kts); "0" is fine while
+             the Meta AI app is in Developer Mode. -->
+        <meta-data
+            android:name="com.meta.wearable.mwdat.APPLICATION_ID"
+            android:value="${mwdat_application_id}" />
+        <meta-data
+            android:name="com.meta.wearable.mwdat.CLIENT_TOKEN"
+            android:value="${mwdat_client_token}" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:screenOrientation="portrait">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- callback the Meta AI app uses to return here after
+                 registration / permission prompts -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="lingualens" />
+            </intent-filter>
+        </activity>
+
+        <!-- RF scope: a phone-side debug view of the same data the glasses HUD
+             will eventually consume, so the bearing math can be validated
+             without hardware. -->
+        <activity
+            android:name=".rf.RfScopeActivity"
+            android:exported="true"
+            android:label="RF scope"
+            android:screenOrientation="portrait" />
+    </application>
+</manifest>

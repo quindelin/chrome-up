@@ -1,0 +1,11 @@
+# Core (required)
+fastapi>=0.110
+uvicorn[standard]>=0.27
+python-multipart>=0.0.9
+PyYAML>=6.0
+numpy>=1.24
+
+# Pronunciation scoring (Azure AI Speech: zh-CN and ja-JP). Mandarin prefers
+# iFlytek ISE, which is tone-aware and needs no SDK - just urllib.
+# Without this (or without a key) the app falls back to the mock scorer.
+azure-cognitiveservices-speech>=1.40

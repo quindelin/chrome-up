@@ -1,0 +1,264 @@
+/* LinguaLens - sized for the Meta Ray-Ban Display waveguide:
+   600x600 fixed viewport, black renders as transparent, light text only. */
+
+:root {
+  --fg: #ffffff;
+  --dim: #9aa0a6;
+  --ok: #4ade80;
+  --bad: #ff6b6b;
+  --warn: #fbbf24;
+  --accent: #7dd3fc;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 600px;
+  height: 600px;
+  overflow: hidden;
+  background: #000;
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC",
+    "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic",
+    "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+body.phone { width: 100%; height: 100%; overflow: auto; }
+
+#app {
+  position: relative;
+  width: 600px;
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 22px;
+}
+
+body.phone #app { width: min(600px, 100%); height: auto; min-height: 100vh; padding: 20px; }
+
+/* ---------- header ---------- */
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 17px;
+  color: var(--dim);
+  letter-spacing: 0.02em;
+  border-bottom: 1px solid #1c1c1c;
+  padding-bottom: 10px;
+}
+header .lesson { color: var(--fg); font-weight: 600; }
+header .progress { font-variant-numeric: tabular-nums; }
+
+/* ---------- stage ---------- */
+main { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+
+.role {
+  font-size: 18px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 10px;
+}
+.role.you { color: var(--warn); }
+.role.them { color: var(--accent); }
+.role.recall { color: #c4b5fd; }
+.role.answer { color: #7dd3fc; }
+.role.scene { color: #86efac; }
+.role.pass { color: var(--ok); }
+.role.fail { color: var(--bad); }
+
+.reading {
+  font-size: 40px;
+  line-height: 1.15;
+  color: #d8dee9;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  margin-bottom: 6px;
+}
+
+.target {
+  font-size: 92px;
+  line-height: 1.1;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 6px 0 14px;
+  text-shadow: 0 0 24px rgba(255, 255, 255, 0.12);
+}
+.target.short { font-size: 110px; }
+.target.long { font-size: 58px; }
+
+.en { font-size: 24px; color: var(--dim); max-width: 560px; }
+.en.hidden { visibility: hidden; }
+
+.cue { font-size: 30px; color: var(--fg); margin: 8px 0 4px; }
+/* the before-the-conversation scene: a full sentence, so it wraps and shrinks */
+.cue.scene { font-size: 24px; line-height: 1.25; max-width: 560px; }
+.note { font-size: 19px; color: var(--warn); margin-top: 10px; max-width: 540px; }
+.sample {
+  margin-top: 10px;
+  padding: 8px 14px;
+  border-left: 3px solid #7dd3fc;
+  max-width: 560px;
+  text-align: left;
+}
+.sample .lbl {
+  display: block;
+  font-size: 15px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.sample .rd { display: block; font-size: 20px; color: var(--muted); }
+.sample .tg { display: block; font-size: 26px; color: var(--fg); }
+.heard { margin-top: 10px; font-size: 20px; color: #7dd3fc; max-width: 560px; }
+
+.wait { font-size: 78px; color: var(--accent); font-variant-numeric: tabular-nums; }
+
+/* ---------- score ---------- */
+.score {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-top: 14px;
+}
+.score .value { font-size: 64px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.score .value.ok { color: var(--ok); }
+.score .value.bad { color: var(--bad); }
+.score .label { font-size: 18px; color: var(--dim); }
+
+.bars { display: flex; gap: 6px; margin-top: 10px; }
+.bars div { width: 34px; height: 8px; border-radius: 4px; background: #262626; }
+.bars div.on { background: var(--accent); }
+
+.reasons { margin-top: 12px; font-size: 20px; color: var(--bad); max-width: 560px; }
+
+/* ---------- footer ---------- */
+footer {
+  border-top: 1px solid #1c1c1c;
+  padding-top: 10px;
+  font-size: 15px;
+  color: #5f6368;
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* ---------- haptic menu ---------- */
+#menu {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 22px;
+}
+#menu.hidden { display: none; }
+
+#menu .crumb {
+  font-size: 17px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border-bottom: 1px solid #1c1c1c;
+  padding-bottom: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#menu .list { flex: 1; overflow: hidden; margin-top: 6px; }
+
+#menu .item {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 68px;
+  padding: 6px 14px;
+  border-radius: 12px;
+  border-left: 4px solid transparent;
+}
+#menu .item.sel {
+  background: #141414;
+  border-left-color: var(--accent);
+}
+#menu .item .t { font-size: 27px; font-weight: 600; }
+#menu .item .s {
+  font-size: 16px;
+  color: var(--dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#menu .keyhint {
+  font-size: 15px;
+  color: #5f6368;
+  border-top: 1px solid #1c1c1c;
+  padding-top: 10px;
+}
+
+.tonebad {
+  margin-top: 8px;
+  font-size: 19px;
+  color: var(--warn);
+}
+
+/* ---------- phone extras ---------- */
+.panel {
+  width: 100%;
+  border: 1px solid #262626;
+  border-radius: 14px;
+  padding: 14px 16px;
+  margin-top: 14px;
+  background: #0b0b0b;
+}
+.panel h3 { font-size: 15px; color: var(--dim); font-weight: 600; margin-bottom: 10px; letter-spacing: .08em; text-transform: uppercase; }
+
+button {
+  font: inherit;
+  color: #000;
+  background: var(--fg);
+  border: 0;
+  border-radius: 12px;
+  padding: 14px 18px;
+  min-height: 56px;
+  font-weight: 600;
+  cursor: pointer;
+}
+button.ghost { background: #1a1a1a; color: var(--fg); border: 1px solid #2e2e2e; }
+button.rec { background: var(--bad); color: #fff; width: 100%; font-size: 20px; min-height: 72px; }
+button:disabled { opacity: 0.45; cursor: not-allowed; }
+button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+
+.row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+input[type="text"], select {
+  flex: 1;
+  min-height: 56px;
+  font: inherit;
+  font-size: 18px;
+  color: var(--fg);
+  background: #111;
+  border: 1px solid #2e2e2e;
+  border-radius: 12px;
+  padding: 0 14px;
+}
+
+.hintline { font-size: 15px; color: #5f6368; margin-top: 8px; }
+
+.badge {
+  display: inline-block;
+  font-size: 14px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #1a1a1a;
+  border: 1px solid #2e2e2e;
+  color: var(--dim);
+}
+.badge.live { color: #000; background: var(--ok); border-color: var(--ok); }
+.badge.mock { color: #000; background: var(--warn); border-color: var(--warn); }
+
+.log { font-size: 15px; color: var(--dim); max-height: 140px; overflow: auto; }
+.log div { padding: 3px 0; border-bottom: 1px solid #141414; }

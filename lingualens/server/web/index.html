@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=600, height=600, initial-scale=1, user-scalable=no" />
+<title>LinguaLens</title>
+<meta name="application-name" content="LinguaLens" />
+<meta name="description" content="Mandarin and Japanese speaking coach: say the line, pass the gate." />
+<meta name="mrbd-web-app-capable" content="yes" />
+<link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body data-page="glasses">
+<div id="app">
+  <header>
+    <span class="lesson" id="lesson">—</span>
+    <span class="badge" id="course">…</span>
+    <span class="progress" id="progress">0/0</span>
+  </header>
+
+  <main id="stage">
+    <div class="role" id="role">listen</div>
+    <div class="reading" id="reading"></div>
+    <div class="target" id="target"></div>
+    <div class="en hidden" id="en"></div>
+    <div class="cue" id="cue"></div>
+    <div class="note" id="note"></div>
+    <div class="sample hidden" id="sample"></div>
+    <div class="wait" id="wait"></div>
+    <div id="scorebox"></div>
+  </main>
+
+  <footer>
+    <span>↑ English · ↓ tip · → grammar</span>
+    <span>← menu</span>
+  </footer>
+
+  <!-- haptic menu: levels -> units -> lessons -->
+  <div id="menu" class="hidden"></div>
+</div>
+<script src="/static/app.js"></script>
+</body>
+</html>
