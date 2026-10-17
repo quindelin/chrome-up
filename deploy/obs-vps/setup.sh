@@ -28,6 +28,8 @@ OUT_KEY=
 OBS_AUTOSTREAM=0
 ENV
 fi
+# the IP is ephemeral: point the HTTPS hostname at whatever we got this boot
+sed -i "s/^DOMAIN=.*/DOMAIN=${IP//./-}.sslip.io/" .env
 set -a; . ./.env; set +a
 
 sed -e "s/__STREAM_KEY__/${STREAM_KEY}/" -e "s/__SRT_PASSPHRASE__/${SRT_PASSPHRASE}/" \
