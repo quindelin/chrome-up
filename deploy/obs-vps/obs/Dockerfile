@@ -15,6 +15,8 @@ RUN useradd -m -s /bin/bash obs
 COPY seed/ /opt/obs-seed/
 COPY supervisord.conf /etc/supervisor/conf.d/obs.conf
 COPY start.sh /usr/local/bin/start-obs
-RUN chmod +x /usr/local/bin/start-obs
+COPY entrypoint.sh /usr/local/bin/obs-entrypoint
+RUN chmod +x /usr/local/bin/start-obs /usr/local/bin/obs-entrypoint \
+ && mkdir -p /home/obs/.config/obs-studio && chown -R obs:obs /home/obs/.config
 ENV DISPLAY=:99
-CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/supervisord.conf"]
+CMD ["/usr/local/bin/obs-entrypoint"]
