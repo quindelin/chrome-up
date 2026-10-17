@@ -12,6 +12,9 @@ if [ ! -f "$CFG/.seeded" ]; then
   envsubst < /opt/obs-seed/websocket.json > "$CFG/plugin_config/obs-websocket/config.json"
   touch "$CFG/.seeded"
 fi
+# A headless box has nobody to click "launch in Safe Mode?": supervisord
+# restarts are the crash handling, so drop OBS's unclean-shutdown marker.
+rm -rf "$CFG/.sentinel"
 ARGS=(--profile IRL --collection IRL --scene IRL --disable-shutdown-check --disable-updater)
 [ "${OBS_AUTOSTREAM:-0}" = "1" ] && ARGS+=(--startstreaming)
 exec obs "${ARGS[@]}"
