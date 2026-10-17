@@ -22,7 +22,8 @@ DISK_GB="${DISK_GB:-30}"
 G=(gcloud --project "$PROJECT" --quiet)
 REMOTE="chrome_up"
 
-ssh_() { "${G[@]}" compute ssh "$NAME" --zone "$ZONE" -- "$@"; }
+# keepalives: a dropped connection fails fast instead of hanging
+ssh_() { "${G[@]}" compute ssh "$NAME" --zone "$ZONE" -- -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o ConnectTimeout=20 "$@"; }
 
 upload() {
   local tgz; tgz="$(mktemp -t chrome_up.XXXX).tgz"
@@ -34,9 +35,17 @@ upload() {
     "${G[@]}" compute scp --zone "$ZONE" ../../overlay/assets/sfx/*.{wav,ogg,mp3} "$NAME:~/" 2>/dev/null || true
   fi
   rm -f "$tgz"
+  # setup runs detached on the VM, so a dropped SSH session cannot kill it
   ssh_ "mkdir -p $REMOTE && tar -xzf chrome_up.tgz -C $REMOTE && \
         (mv -f ~/*.wav ~/*.ogg ~/*.mp3 $REMOTE/overlay/assets/sfx/ 2>/dev/null || true) && \
-        bash $REMOTE/deploy/obs-vps/setup.sh"
+        (nohup bash $REMOTE/deploy/obs-vps/setup.sh > ~/setup.log 2>&1 < /dev/null &)"
+  echo "setup running on the VM (log: ~/setup.log)..."
+  for _ in $(seq 1 60); do
+    sleep 20
+    state="$(ssh_ "pgrep -f 'deploy/obs-vps/setup.sh' >/dev/null && echo running || echo done" 2>/dev/null || true)"
+    [ "${state##*$'\n'}" = "done" ] && break
+  done
+  ssh_ "tail -n 8 ~/setup.log"
 }
 
 case "${1:-help}" in
