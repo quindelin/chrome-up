@@ -1,0 +1,14 @@
+Target dependency graph (5 targets)
+Target 'AllIncludingTests' in project 'Aggregate'
+➜ Explicit dependency on target 'LinguaLensCoreTests-product' in project 'LinguaLensCore'
+➜ Explicit dependency on target 'LinguaLensCore_LinguaLensCoreTests' in project 'LinguaLensCore'
+➜ Dependency on target 'LinguaLensCoreTests-product' in project 'LinguaLensCore' via transitive dependency through 'LinguaLensCoreTests-test-runner'
+➜ Explicit dependency on target 'LinguaLensCore-product' in project 'LinguaLensCore'
+➜ Explicit dependency on target 'LinguaLensCore' in project 'LinguaLensCore'
+Target 'LinguaLensCore-product' in project 'LinguaLensCore'
+➜ Explicit dependency on target 'LinguaLensCore' in project 'LinguaLensCore'
+Target 'LinguaLensCoreTests-product' in project 'LinguaLensCore'
+➜ Explicit dependency on target 'LinguaLensCore_LinguaLensCoreTests' in project 'LinguaLensCore'
+➜ Explicit dependency on target 'LinguaLensCore' in project 'LinguaLensCore'
+Target 'LinguaLensCore' in project 'LinguaLensCore' (no dependencies)
+Target 'LinguaLensCore_LinguaLensCoreTests' in project 'LinguaLensCore' (no dependencies)

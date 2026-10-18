@@ -1,0 +1,39 @@
+{
+  "" : {
+    "diagnostics" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/LinguaLensCoreTests-primary.dia",
+    "emit-module-dependencies" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/LinguaLensCoreTests-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/LinguaLensCoreTests-primary-emit-module.dia",
+    "pch" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/LinguaLensCoreTests-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/LinguaLensCoreTests-primary.swiftdeps"
+  },
+  "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/DerivedSources/resource_bundle_accessor.swift" : {
+    "const-values" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/resource_bundle_accessor.swiftconstvalues",
+    "dependencies" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/resource_bundle_accessor.d",
+    "diagnostics" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/resource_bundle_accessor.dia",
+    "index-unit-output-path" : "/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/resource_bundle_accessor.o",
+    "llvm-bc" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/resource_bundle_accessor.bc",
+    "object" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/resource_bundle_accessor.o",
+    "swift-dependencies" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/resource_bundle_accessor.swiftdeps",
+    "swiftmodule" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/resource_bundle_accessor~partial.swiftmodule"
+  },
+  "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/DerivedSources/test_entry_point.swift" : {
+    "const-values" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/test_entry_point.swiftconstvalues",
+    "dependencies" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/test_entry_point.d",
+    "diagnostics" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/test_entry_point.dia",
+    "index-unit-output-path" : "/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/test_entry_point.o",
+    "llvm-bc" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/test_entry_point.bc",
+    "object" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/test_entry_point.o",
+    "swift-dependencies" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/test_entry_point.swiftdeps",
+    "swiftmodule" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/test_entry_point~partial.swiftmodule"
+  },
+  "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/Tests/LinguaLensCoreTests/LinguaLensCoreTests.swift" : {
+    "const-values" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/LinguaLensCoreTests.swiftconstvalues",
+    "dependencies" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/LinguaLensCoreTests.d",
+    "diagnostics" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/LinguaLensCoreTests.dia",
+    "index-unit-output-path" : "/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/LinguaLensCoreTests.o",
+    "llvm-bc" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/LinguaLensCoreTests.bc",
+    "object" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/LinguaLensCoreTests.o",
+    "swift-dependencies" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/LinguaLensCoreTests.swiftdeps",
+    "swiftmodule" : "/Users/quin_pc/Desktop/chrome_up/lingualens/ios/LinguaLens/.build/out/Intermediates.noindex/LinguaLensCore.build/Debug/LinguaLensCoreTests-p.build/Objects-normal/arm64/LinguaLensCoreTests~partial.swiftmodule"
+  }
+}

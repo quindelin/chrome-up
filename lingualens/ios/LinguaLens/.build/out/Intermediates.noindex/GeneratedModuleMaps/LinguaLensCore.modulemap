@@ -1,0 +1,4 @@
+module LinguaLensCore {
+header "LinguaLensCore-Swift.h"
+export *
+}

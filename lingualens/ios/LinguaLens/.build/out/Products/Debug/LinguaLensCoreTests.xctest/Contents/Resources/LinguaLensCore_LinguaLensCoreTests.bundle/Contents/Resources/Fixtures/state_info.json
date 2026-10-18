@@ -1,0 +1,274 @@
+{
+ "mode": "lesson",
+ "lesson": {
+  "id": 1,
+  "unit": 1,
+  "band": 1,
+  "title": "Hello",
+  "goal": "Greet someone, say you are fine, and say goodbye.",
+  "scene": "You bump into a neighbour in the hallway of your building. She speaks no English.",
+  "vocab": [
+   {
+    "text": "你好",
+    "reading": "nǐ hǎo",
+    "en": "hello",
+    "note": ""
+   },
+   {
+    "text": "你好吗？",
+    "reading": "nǐ hǎo ma?",
+    "en": "how are you?",
+    "note": ""
+   },
+   {
+    "text": "我很好",
+    "reading": "wǒ hěn hǎo",
+    "en": "I am very well",
+    "note": ""
+   },
+   {
+    "text": "谢谢",
+    "reading": "xièxie",
+    "en": "thank you",
+    "note": ""
+   },
+   {
+    "text": "不客气",
+    "reading": "bú kèqi",
+    "en": "you're welcome",
+    "note": "不 is 4th tone, but becomes bú before another 4th tone."
+   },
+   {
+    "text": "再见",
+    "reading": "zàijiàn",
+    "en": "goodbye",
+    "note": ""
+   }
+  ],
+  "dialogue": [
+   {
+    "speaker": "them",
+    "text": "你好！",
+    "reading": "nǐ hǎo!",
+    "en": "Hello!",
+    "note": ""
+   },
+   {
+    "speaker": "you",
+    "text": "你好！",
+    "reading": "nǐ hǎo!",
+    "en": "Hello!",
+    "note": ""
+   },
+   {
+    "speaker": "them",
+    "text": "你好吗？",
+    "reading": "nǐ hǎo ma?",
+    "en": "How are you?",
+    "note": ""
+   },
+   {
+    "speaker": "you",
+    "text": "我很好，谢谢。",
+    "reading": "wǒ hěn hǎo, xièxie.",
+    "en": "I'm very well, thank you.",
+    "note": ""
+   },
+   {
+    "speaker": "them",
+    "text": "再见。",
+    "reading": "zàijiàn.",
+    "en": "Goodbye.",
+    "note": ""
+   },
+   {
+    "speaker": "you",
+    "text": "再见。",
+    "reading": "zàijiàn.",
+    "en": "Goodbye.",
+    "note": ""
+   }
+  ],
+  "patterns": [],
+  "prompts": [
+   {
+    "q_text": "你好，你叫什么名字？",
+    "q_reading": "nǐ hǎo, nǐ jiào shénme míngzi?",
+    "q_en": "Hello, what's your name?",
+    "a_text": "我叫李华，很高兴认识你。",
+    "a_reading": "wǒ jiào Lǐ Huá, hěn gāoxìng rènshi nǐ.",
+    "a_en": "I'm Li Hua. Nice to meet you.",
+    "keywords": [
+     "你好",
+     "名字"
+    ],
+    "min_chars": 3
+   },
+   {
+    "q_text": "你今天怎么样？",
+    "q_reading": "nǐ jīntiān zěnmeyàng?",
+    "q_en": "How are you today?",
+    "a_text": "我很好，谢谢。你呢？",
+    "a_reading": "wǒ hěn hǎo, xièxie. nǐ ne?",
+    "a_en": "I'm good, thanks. And you?",
+    "keywords": [
+     "今天"
+    ],
+    "min_chars": 2
+   }
+  ],
+  "notes": [
+   "Tone tip: 你好 is ní-hǎo in real speech - two 3rd tones make the first one rise."
+  ]
+ },
+ "unit": {
+  "id": 1,
+  "title": "Greetings & Courtesy",
+  "focus": "Survive the first thirty seconds: hello, please, thank you, sorry."
+ },
+ "level": {
+  "id": 1,
+  "band": 1,
+  "code": "HSK 1",
+  "title": "HSK 1 · First contact",
+  "focus": "Greetings, please/thank you/sorry, directions, numbers, ordering the basics."
+ },
+ "progress": {
+  "lesson_id": 1,
+  "completed": [],
+  "lesson_count": 85
+ },
+ "step": {
+  "kind": "info",
+  "text": "",
+  "reading": "",
+  "en": "You bump into a neighbour in the hallway of your building. She speaks no English.",
+  "speaker": "",
+  "prompt_en": "",
+  "note": "",
+  "wait_seconds": 6.0,
+  "round": 0,
+  "show_target": true,
+  "show_reading": true,
+  "show_sample": false,
+  "sample": {
+   "text": "",
+   "reading": "",
+   "en": ""
+  },
+  "keywords": [],
+  "alt": "",
+  "alt_label": "",
+  "kun": "",
+  "radical": "",
+  "components": "",
+  "audio_text": "",
+  "hide_text": false,
+  "passage_title": "",
+  "chunk_index": 0,
+  "chunk_total": 0,
+  "index": 0,
+  "total": 125
+ },
+ "scene": "You bump into a neighbour in the hallway of your building. She speaks no English.",
+ "position": {
+  "index": 0,
+  "total": 125
+ },
+ "reading_mode": "always",
+ "topic": null,
+ "attempts": 0,
+ "gate": {
+  "min_pron_score": 62.0,
+  "min_accuracy": 62.0,
+  "min_completeness": 78.0,
+  "min_tone_score": 60.0,
+  "min_phone_score": 0.0,
+  "require_recognized_match": true,
+  "min_reference_coverage": 0.75,
+  "max_attempts": 0,
+  "reveal_after_attempts": 2,
+  "slow_replay_after_attempts": 2
+ },
+ "slow_replay": false,
+ "last_score": null,
+ "message": "Unit 1 · Lesson 1: Hello",
+ "thought": null,
+ "history": [],
+ "review_due": 0,
+ "grammar": [],
+ "client_id": "me",
+ "active": "zh",
+ "language": "zh",
+ "language_name": "Mandarin",
+ "native": "中文",
+ "speech_lang": "zh-CN",
+ "provider": "mock",
+ "azure_ready": false,
+ "asr": "mock",
+ "courses": [
+  {
+   "id": "zh",
+   "name": "Mandarin",
+   "native": "中文",
+   "ready": true,
+   "lessons": 85,
+   "vocab": 1264,
+   "prompts": 170,
+   "speech_lang": "zh-CN",
+   "band_label": "HSK",
+   "active": true,
+   "lessons_done": 0,
+   "words_learned": 0,
+   "minutes": 0.0,
+   "streak_days": 0,
+   "review_due": 0
+  },
+  {
+   "id": "ja",
+   "name": "Japanese",
+   "native": "日本語",
+   "ready": true,
+   "lessons": 73,
+   "vocab": 4374,
+   "prompts": 146,
+   "speech_lang": "ja-JP",
+   "band_label": "JLPT",
+   "active": false,
+   "lessons_done": 0,
+   "words_learned": 0,
+   "minutes": 0.0,
+   "streak_days": 0,
+   "review_due": 0
+  },
+  {
+   "id": "es",
+   "name": "Spanish",
+   "native": "Español",
+   "ready": true,
+   "lessons": 15,
+   "vocab": 90,
+   "prompts": 30,
+   "speech_lang": "es-ES",
+   "band_label": "CEFR",
+   "active": false,
+   "lessons_done": 0,
+   "words_learned": 0,
+   "minutes": 0.0,
+   "streak_days": 0,
+   "review_due": 0
+  }
+ ],
+ "config": {
+  "display_size": 600,
+  "show_english_default": false,
+  "vocab_label": "词汇",
+  "listening_rate": {
+   "model": 0.95,
+   "slow": 0.6,
+   "listen": 1.0,
+   "drill": 0.85
+  },
+  "listening_vary_pitch": true
+ }
+}
