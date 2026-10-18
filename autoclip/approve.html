@@ -1,0 +1,86 @@
+<!doctype html>
+<!-- autoclip approval queue, phone-sized. Served at "/" (browsers) and, on the
+     VPS, at https://<domain>/autoclip/ behind Caddy basic_auth. Every URL is
+     relative so it works under any path prefix. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>autoclip</title>
+<style>
+  :root { color-scheme: dark; --bg:#111; --card:#1c1c1c; --fg:#eee; --dim:#999; --ok:#2e7d32; --no:#8e2a2a; }
+  body { margin:0; background:var(--bg); color:var(--fg); font:15px/1.4 system-ui, sans-serif; }
+  header { padding:12px 16px; border-bottom:1px solid #333; display:flex; justify-content:space-between; gap:8px; }
+  header small { color:var(--dim); }
+  main { padding:12px 16px; max-width:640px; margin:0 auto; }
+  h2 { font-size:15px; color:var(--dim); text-transform:uppercase; letter-spacing:.05em; margin:20px 0 8px; }
+  .card { background:var(--card); border-radius:10px; padding:10px; margin-bottom:12px; }
+  video { width:100%; max-height:60vh; border-radius:6px; background:#000; }
+  .t { font-weight:600; margin:8px 0 2px; }
+  .m { color:var(--dim); font-size:13px; }
+  .row { display:flex; gap:8px; margin-top:10px; }
+  button { flex:1; border:0; border-radius:8px; padding:12px; color:#fff; font-size:16px; }
+  .approve { background:var(--ok); } .reject { background:var(--no); }
+  button:disabled { opacity:.5; }
+  .empty { color:var(--dim); }
+</style>
+</head>
+<body>
+<header><strong>autoclip</strong><small id="status">…</small></header>
+<main>
+  <h2>Waiting for approval</h2>
+  <div id="pending"><p class="empty">loading…</p></div>
+  <h2>Recent clips</h2>
+  <div id="clips"><p class="empty">loading…</p></div>
+</main>
+<script>
+const api = (p, opt) => fetch("api/autoclip/" + p, opt).then(r => r.json());
+const base = p => String(p || "").split("/").pop();
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function card(clip, actions) {
+  const d = clip.decision || {};
+  const el = document.createElement("div");
+  el.className = "card";
+  el.innerHTML = `<video controls playsinline preload="metadata" src="outbox/${encodeURIComponent(base(clip.path))}"></video>
+    <div class="t">${esc(d.title || base(clip.path))}</div>
+    <div class="m">${esc(d.caption || "")}</div>
+    <div class="m">${(+clip.duration || 0).toFixed(1)}s · score ${(+d.score || 0).toFixed(2)}${actions ? " · → " + esc((actions.platforms || []).join(", ")) : ""}</div>`;
+  if (actions) {
+    const row = document.createElement("div");
+    row.className = "row";
+    for (const [label, cls, path] of [["Post", "approve", "approve"], ["Drop", "reject", "reject"]]) {
+      const b = document.createElement("button");
+      b.className = cls; b.textContent = label;
+      b.onclick = async () => {
+        row.querySelectorAll("button").forEach(x => x.disabled = true);
+        try { await api(`${path}/${encodeURIComponent(actions.id)}`, {method: "POST"}); }
+        finally { load(); }
+      };
+      row.appendChild(b);
+    }
+    el.appendChild(row);
+  }
+  return el;
+}
+
+function fill(id, items, make, empty) {
+  const box = document.getElementById(id);
+  box.replaceChildren(...(items.length ? items.map(make) : [Object.assign(document.createElement("p"), {className: "empty", textContent: empty})]));
+}
+
+async function load() {
+  try {
+    const [p, c, s] = await Promise.all([api("pending"), api("clips"), api("status")]);
+    fill("pending", p.pending || [], i => card(i.clip || {}, i), "nothing waiting");
+    fill("clips", (c.clips || []).slice(-10).reverse(), x => card(x, null), "no clips yet");
+    document.getElementById("status").textContent = `publish: ${s.publish_mode || "?"} · ${s.cycles} cycles`;
+  } catch (e) {
+    document.getElementById("status").textContent = "offline";
+  }
+}
+load();
+setInterval(load, 30000);
+</script>
+</body>
+</html>

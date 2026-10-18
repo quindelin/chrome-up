@@ -1,6 +1,24 @@
 # Real TLS (Let's Encrypt) for the phone page, so iOS/Android hand over the
 # compass and motion sensors. DOMAIN defaults to <ip>.sslip.io (setup.sh).
 {$DOMAIN} {
-	encode gzip
-	reverse_proxy 127.0.0.1:8787
+	# autoclip approval queue for the phone: https://{$DOMAIN}/autoclip/
+	redir /autoclip /autoclip/
+	# rendered clips stay public: Instagram (hosting: static) fetches them
+	# from server.public_base_url and cannot do basic auth
+	handle_path /autoclip/outbox/* {
+		rewrite * /outbox{path}
+		reverse_proxy 127.0.0.1:8899
+	}
+	handle_path /autoclip/* {
+		basic_auth {
+			{$AUTOCLIP_USER} {$AUTOCLIP_PASS_HASH}
+		}
+		reverse_proxy 127.0.0.1:8899 {
+			flush_interval -1    # SSE (/api/autoclip/events)
+		}
+	}
+	handle {
+		encode gzip
+		reverse_proxy 127.0.0.1:8787
+	}
 }

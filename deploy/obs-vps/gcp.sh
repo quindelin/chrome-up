@@ -5,7 +5,7 @@
 #   ./gcp.sh deploy    re-upload the repo and rebuild (after code changes)
 #   ./gcp.sh info      ingest URLs, keys, HUD URL
 #   ./gcp.sh tunnel    open OBS (noVNC) at http://localhost:6080/vnc.html, websocket at :4455
-#   ./gcp.sh obs-reset re-seed OBS from .env (after setting OUT_KEY)
+#   ./gcp.sh obs-reset re-seed OBS scenes/settings from .env (loses UI edits)
 #   ./gcp.sh stop      stop the VM - only the 15 GB disk bills (~$0.60/mo)
 #   ./gcp.sh start     start it again and print the (new) ingest URLs
 #   ./gcp.sh ssh       shell on the VM
@@ -90,7 +90,9 @@ case "${1:-help}" in
   phone sensor page (HTTPS)      https://\${IP//./-}.sslip.io/phone
   OBS UI                         ./gcp.sh tunnel  ->  http://localhost:6080/vnc.html
   obs-websocket (via tunnel)     ws://localhost:4455  password \$OBS_WS_PASSWORD
-  OBS streams to                 \${OUT_SERVER:-unset}  key \${OUT_KEY:+set}\${OUT_KEY:-NOT SET}
+  OBS streams to                 \${OUT_SERVER:-unset}/\${OUT_KEY:-?}
+  clip approvals (HTTPS)         https://\${IP//./-}.sslip.io/autoclip/   user \$AUTOCLIP_USER  password \$AUTOCLIP_PASSWORD
+  autoclip                       publish \${AUTOCLIP_PUBLISH:-dry_run}  restream \$([ \"\${AUTOCLIP_LIVE_STREAMS:-0}\" = 1 ] && echo on || echo off)  (edit .env, then ./gcp.sh deploy)
 TXT"
     ;;
   tunnel)

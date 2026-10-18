@@ -260,8 +260,8 @@ get notified). The defaults are conservative on purpose.
 ## 8. Smoke test
 
 ```bash
-# 1. enable + set keys in deploy/cloud/.env
-LIVE_STREAMS_ENABLED=1
+# 1. enable + set keys in deploy/obs-vps/.env on the VM, then ./gcp.sh deploy
+AUTOCLIP_LIVE_STREAMS=1
 TWITCH_STREAM_KEY=live_123_abc
 
 # 2. confirm the manager sees the targets

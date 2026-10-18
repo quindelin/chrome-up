@@ -358,18 +358,37 @@ always-on VM.
                               └──────────────────┘
 ```
 
-Bring it up:
+Bring it up (Google Cloud, one script, from your laptop):
 
 ```bash
-cd deploy/cloud
-cp .env.example .env             # set RTMP_STREAM_KEY
-docker compose up -d --build
+cd deploy/obs-vps
+./gcp.sh up        # first time: firewall + VM + build + start
+./gcp.sh deploy    # after code changes
+./gcp.sh info      # ingest URLs, approval page URL + password
+./gcp.sh stop      # stop paying for the VM when not streaming
 ```
 
-The compose file ships two containers: `mediamtx` (the public RTMP
-listener) and `autoclip` (this pipeline, subscribed to MediaMTX as a
-viewer). `autoclip` then writes 30 s `.ts` chunks into its own
-`var/autoclip/incoming/` and the rest of the pipeline is unchanged.
+`autoclip` is one service of the streaming stack in
+`deploy/obs-vps/docker-compose.yml` (MediaMTX, headless OBS + HUD, Caddy;
+host network). It runs `serve --loop` in one process (cycle loop + REST on
+`127.0.0.1:8899`), capped at `cpus: 1.5` and `nice 15` so OBS never drops
+frames, with `transcribe_model: tiny`. Its config is the repo
+`autoclip.yaml` with [`deploy/obs-vps/autoclip.vps.yaml`](deploy/obs-vps/autoclip.vps.yaml)
+merged on top by `setup.sh`.
+
+- **Clips** come from the raw glasses feed `live/<STREAM_KEY>`.
+- **Restreams** (`go live on twitch`) pull OBS's composited program —
+  HUD + avatar — which OBS publishes back into MediaMTX as `live/program`
+  (publish allowed from localhost only).
+- **Approval queue** for the phone: `https://<ip>.sslip.io/autoclip/`
+  behind Caddy `basic_auth` (password generated into `.env`).
+  `/autoclip/outbox/*` stays public so Instagram `hosting: static` can fetch
+  clips; `server.public_base_url` follows the boot's IP.
+- Guardrails hold: `AUTOCLIP_PUBLISH=dry_run` and `AUTOCLIP_LIVE_STREAMS=0`
+  in `.env` by default.
+
+(`deploy/cloud/`, the old standalone MediaMTX + autoclip compose, is gone;
+this stack supersedes it.)
 
 **Source driver in `autoclip.yaml`:**
 
@@ -378,7 +397,7 @@ source:
   mode: rtmp
   rtmp:
     url: "rtmp://127.0.0.1:1935/live"   # mediamtx on the same host
-    stream_key: "${RTMP_STREAM_KEY}"    # ${VAR:-default} also supported
+    stream_key: "${STREAM_KEY}"         # ${VAR:-default} also supported
     dir: var/autoclip/incoming
     chunk_seconds: 30
 ```

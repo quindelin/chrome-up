@@ -25,3 +25,8 @@ build/
 # game audio you extract yourself (Bethesda's, not ours to redistribute)
 overlay/assets/sfx/*
 !overlay/assets/sfx/README.md
+
+# rendered on the VM by deploy/obs-vps/setup.sh
+deploy/obs-vps/mediamtx.yml
+deploy/obs-vps/hud.yaml
+deploy/obs-vps/autoclip.yaml

@@ -1,6 +1,8 @@
-# Rendered to mediamtx.yml by setup.sh. Only one path exists, live/<STREAM_KEY>,
-# so anything else is refused; reading is allowed from this host only (OBS,
-# HUD), publishing from anywhere that knows the key.
+# Rendered to mediamtx.yml by setup.sh. Two paths exist, so anything else is
+# refused:
+#   live/<STREAM_KEY>  the raw glasses feed: publish from anywhere that knows the key
+#   live/program       OBS's composited output (HUD + avatar): publish from this host only
+# Reading is allowed from this host only (OBS, HUD, autoclip).
 logLevel: info
 api: no
 metrics: no
@@ -21,10 +23,13 @@ authInternalUsers:
     ips: []
     permissions:
       - action: publish
+        path: live/__STREAM_KEY__
   - user: any
     pass:
     ips: ["127.0.0.1", "::1"]
     permissions:
+      - action: publish
+        path: live/program
       - action: read
 
 paths:
@@ -32,3 +37,5 @@ paths:
     source: publisher
     # SRT is the one to use on cellular: it is encrypted with this passphrase
     srtPublishPassphrase: __SRT_PASSPHRASE__
+  live/program:
+    source: publisher

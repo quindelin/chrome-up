@@ -26,10 +26,10 @@ import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -362,8 +362,11 @@ def create_app(pipeline: Optional[Pipeline] = None, config_path: str = "autoclip
         rt: Pipeline = app.state.pipeline
         return JSONResponse({"rejected": await run_in_threadpool(rt.reject, item_id)})
 
-    @app.get("/")
-    async def index() -> Dict[str, Any]:
+    @app.get("/", response_model=None)
+    async def index(request: Request):
+        # browsers get the approval queue page; agents get the pointer JSON
+        if "text/html" in request.headers.get("accept", ""):
+            return HTMLResponse((Path(__file__).parent / "approve.html").read_text(encoding="utf-8"))
         return {"service": "autoclip", "docs": "/docs", "schema": "/api/autoclip/schema"}
 
     @app.get("/api/autoclip/outbox/{name}")
@@ -501,10 +504,21 @@ def _next_with_timeout(queue, timeout: float, sentinel):
     return sentinel
 
 
-def serve(config_path: str = "autoclip.yaml", host: str | None = None, port: int | None = None) -> None:
+def serve(config_path: str = "autoclip.yaml", host: str | None = None, port: int | None = None,
+          loop: bool = False, every: float | None = None) -> None:
+    """REST server. With `loop`, the cycle loop runs on a thread of the same
+    process, so voice commands, live restreams and the approval queue the API
+    shows are the ones the loop actually drives."""
+    import threading
     import uvicorn
 
     cfg = load_config(config_path)
-    app = create_app(config_path=config_path)
+    rt = build_pipeline(config_path)
+    app = create_app(pipeline=rt)
+    if loop:
+        threading.Thread(target=rt.loop, kwargs={"seconds": every},
+                         name="autoclip-loop", daemon=True).start()
+    # behind a path-stripping proxy (Caddy /autoclip/*) so /docs finds its schema
     uvicorn.run(app, host=host or cfg["server"].get("host", "0.0.0.0"),
-                port=int(port or cfg["server"].get("port", 8899)), log_level="info")
+                port=int(port or cfg["server"].get("port", 8899)), log_level="info",
+                root_path=str(cfg["server"].get("root_path") or ""))

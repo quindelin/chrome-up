@@ -261,7 +261,7 @@ The HUD agent should treat each one the same as a real voice event.
 | `docs/VOICE_COMMANDS.md` | you (HUD agent) | the wire format of voice events |
 | `docs/AUDIO_VIDEO_SYNC.md` | the phone app | the A/V sync contract |
 | `docs/PHONE_APP.md` | the phone app | how to push RTMP up |
-| `deploy/cloud/README.md` | you (ops) | how to bring up the cloud VM |
+| `deploy/obs-vps/gcp.sh` | you (ops) | how to bring up the cloud VM |
 | `AGENTS.md` | everyone | the autoclip contract |
 
 If you change a voice command vocabulary, update

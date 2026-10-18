@@ -27,7 +27,7 @@ source:
 
   # Cloud / phone-pushed: ffmpeg subscribes to a live RTMP feed and writes
   # `.ts` chunks into `rtmp.dir`. The pipeline then tails it just like a
-  # watch_dir. Used by deploy/cloud (MediaMTX) — see docs/PHONE_APP.md.
+  # watch_dir. Used by deploy/obs-vps (MediaMTX) — see docs/PHONE_APP.md.
   rtmp:
     url: "rtmp://127.0.0.1:1935/live"
     stream_key: "${RTMP_STREAM_KEY:-glasses}"
@@ -276,6 +276,7 @@ server:
   port: 8899
   public_base_url: ""       # e.g. https://abcd.ngrok-free.app  (Instagram hosting=static)
   api_token: ""             # optional bearer token for the REST API
+  root_path: ""             # path prefix when behind a proxy (the VPS: /autoclip)
 
 logging:
   level: INFO

@@ -263,6 +263,7 @@ DEFAULTS: Dict[str, Any] = {
         "port": 8899,
         "public_base_url": "",      # needed by Instagram hosting=static
         "api_token": "",            # optional bearer token for the REST API
+        "root_path": "",            # path prefix when behind a proxy, e.g. /autoclip
         # The OBS browser overlay is served from another origin (the HUD
         # server), so it needs CORS to poll privacy state and read the SSE
         # stream. Leave api_token empty if you want the overlay badge.

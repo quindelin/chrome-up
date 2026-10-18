@@ -1,4 +1,5 @@
-# The IRL streaming box: phone/glasses -> MediaMTX -> OBS (+ Skyrim HUD) -> Twitch/YouTube.
+# The IRL streaming box: phone/glasses -> MediaMTX -> OBS (+ Skyrim HUD) -> MediaMTX live/program -> Twitch/YouTube.
+# + autoclip (clips, approval queue, multi-platform restream).
 # Brought up by setup.sh on the VM; everything uses host networking and the
 # GCP firewall decides what is reachable (80/443, 1935/tcp, 8890/udp only).
 
@@ -32,6 +33,20 @@ services:
     volumes:
       - obs-config:/home/obs/.config/obs-studio
 
+  # clip pipeline + approval API: reads the raw glasses feed back out of
+  # MediaMTX, restreams OBS's program on voice ("go live on twitch").
+  autoclip:
+    build:
+      context: ../..
+      dockerfile: deploy/obs-vps/autoclip/Dockerfile
+    restart: unless-stopped
+    network_mode: host
+    env_file: .env
+    cpus: 1.5                        # + nice 15 in the image: never starve OBS
+    volumes:
+      - ./autoclip.yaml:/app/config.vps.yaml:ro
+      - autoclip-data:/app/var       # clips, outbox, state, whisper model
+
   caddy:
     image: caddy:2.8
     restart: unless-stopped
@@ -45,3 +60,4 @@ volumes:
   hud-data:
   obs-config:
   caddy-data:
+  autoclip-data:

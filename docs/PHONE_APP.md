@@ -26,7 +26,8 @@ rtmp://<HOST>:1935/live/<STREAM_KEY>
 ```
 
 where `<HOST>` is a public IP/hostname the phone can reach and
-`<STREAM_KEY>` is configured in `deploy/cloud/.env` on the server. The
+`<STREAM_KEY>` is generated into `deploy/obs-vps/.env` on the server
+(`./gcp.sh info` prints it). The
 stream may be any resolution between 720p and 1080p, 24–30 fps, 1.5–4
 Mbps video + 96–128 kbps AAC. Audio is **optional but recommended** — it
 drives transcription and "loud audio" scoring on the server.

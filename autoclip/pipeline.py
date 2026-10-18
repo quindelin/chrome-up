@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import shutil
+import threading
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -75,6 +76,10 @@ class Pipeline:
         self.events = EventBus(self.workdir / "events.jsonl")
         self.state: Dict[str, Any] = self._load_state()
         self._last_cycle_end_wall = 0.0
+        # `serve --loop` runs cycles on a thread while the API approves and
+        # rejects: one cycle at a time, and state edits never interleave.
+        self._cycle_lock = threading.Lock()
+        self._state_lock = threading.RLock()
 
         # Voice -> OBS. Opt-in: no obs-websocket connection is opened at all
         # unless obs.voice.enabled is true.
@@ -193,7 +198,8 @@ class Pipeline:
         return {"cycles": [], "pending": []}
 
     def _save_state(self) -> None:
-        self._save_state_to(self.state_path)
+        with self._state_lock:
+            self._save_state_to(self.state_path)
 
     def _save_state_to(self, path: Path) -> None:
         self.state["cycles"] = self.state.get("cycles", [])[-50:]
@@ -269,6 +275,11 @@ class Pipeline:
     # ------------------------------------------------------------------ one cycle
     def run_cycle(self, with_frames: bool = True, publish: Optional[bool] = None,
                   agent_name: Optional[str] = None) -> CycleResult:
+        with self._cycle_lock:
+            return self._run_cycle(with_frames, publish, agent_name)
+
+    def _run_cycle(self, with_frames: bool, publish: Optional[bool],
+                   agent_name: Optional[str]) -> CycleResult:
         result = CycleResult(id=uuid.uuid4().hex[:12])
         agent = self.agent
         if agent_name:
@@ -346,10 +357,11 @@ class Pipeline:
                 for res in publish_all(clip, ["local"], {"mode": "dry_run"}, self.workdir):
                     res.message = "pending approval (publish.mode=live, require_approval=true)"
                     result.results.append(res.to_dict())
-                self.state.setdefault("pending", []).append({
-                    "id": f"{result.id}_{i}", "cycle": result.id,
-                    "clip": clip.to_dict(), "platforms": platforms,
-                })
+                with self._state_lock:
+                    self.state.setdefault("pending", []).append({
+                        "id": f"{result.id}_{i}", "cycle": result.id,
+                        "clip": clip.to_dict(), "platforms": platforms,
+                    })
                 continue
 
             for res in publish_all(clip, platforms, pub_cfg, self.workdir):
@@ -359,12 +371,13 @@ class Pipeline:
         return result
 
     def _record(self, result: CycleResult) -> None:
-        cycles = self.state.setdefault("cycles", [])
-        cycles.append(result.to_dict())
-        keep = int(self._retention().get("cycles", 50))
-        if len(cycles) > keep:
-            del cycles[:-keep]
-        self._save_state()
+        with self._state_lock:
+            cycles = self.state.setdefault("cycles", [])
+            cycles.append(result.to_dict())
+            keep = int(self._retention().get("cycles", 50))
+            if len(cycles) > keep:
+                del cycles[:-keep]
+            self._save_state()
         try:
             self._cleanup(current=(result.window or {}).get("path"))
         except Exception as exc:  # noqa: BLE001 - housekeeping must never kill a cycle
@@ -413,7 +426,8 @@ class Pipeline:
         # clips: by age, then by total size; never anything awaiting approval
         pending = {Path(i.get("clip", {}).get("path", "")).stem for i in self.state.get("pending", [])}
         groups: Dict[str, List[Path]] = {}
-        for p in self.clips_dir.iterdir():
+        outbox = self.workdir / "outbox"       # dry-run / static-hosting copies
+        for p in [*self.clips_dir.iterdir(), *(outbox.iterdir() if outbox.is_dir() else [])]:
             if p.is_file():
                 groups.setdefault(p.name.split(".")[0], []).append(p)
             elif p.is_dir() and p.name.endswith("_caps"):
@@ -438,15 +452,16 @@ class Pipeline:
     def approve(self, item_id: str, platforms: Optional[List[str]] = None) -> List[dict]:
         """Publish a clip that was held for approval."""
         pub_cfg = self.cfg.get("publish", {})
-        remaining, target = [], None
-        for item in self.state.get("pending", []):
-            if item.get("id") == item_id:
-                target = item
-            else:
-                remaining.append(item)
-        if target is None:
-            raise KeyError(f"no pending clip {item_id!r}")
-        self.state["pending"] = remaining
+        with self._state_lock:
+            remaining, target = [], None
+            for item in self.state.get("pending", []):
+                if item.get("id") == item_id:
+                    target = item
+                else:
+                    remaining.append(item)
+            if target is None:
+                raise KeyError(f"no pending clip {item_id!r}")
+            self.state["pending"] = remaining
 
         clip_info = target["clip"]
         clip = Clip(path=Path(clip_info["path"]), start=float(clip_info["start"]),
@@ -460,10 +475,11 @@ class Pipeline:
         return out
 
     def reject(self, item_id: str) -> bool:
-        before = len(self.state.get("pending", []))
-        self.state["pending"] = [i for i in self.state.get("pending", []) if i.get("id") != item_id]
-        self._save_state()
-        return len(self.state["pending"]) < before
+        with self._state_lock:
+            before = len(self.state.get("pending", []))
+            self.state["pending"] = [i for i in self.state.get("pending", []) if i.get("id") != item_id]
+            self._save_state()
+            return len(self.state["pending"]) < before
 
     # ------------------------------------------------------------------ events
     def _emit_transcript_chunks(self, window: Window, transcript: Transcript,

@@ -6,6 +6,7 @@
   python -m autoclip propose --agent llm
   python -m autoclip render --window var/autoclip/windows/window_1.mkv --start 42 --end 73
   python -m autoclip serve               # REST + OpenAPI on :8899
+  python -m autoclip serve --loop        # both, one process (the VPS runs this)
   python -m autoclip mcp                 # MCP stdio server for agents
 
 Live multi-streaming (see docs/LIVE_STREAMING.md):
@@ -79,6 +80,8 @@ def main(argv: list[str] | None = None) -> int:
     p_serve = sub.add_parser("serve", help="REST + OpenAPI server")
     p_serve.add_argument("--host", default=None)
     p_serve.add_argument("--port", type=int, default=None)
+    p_serve.add_argument("--loop", action="store_true", help="also run the cycle loop in-process")
+    p_serve.add_argument("--every", type=float, default=None)
     p_mcp = sub.add_parser("mcp", help="MCP stdio server")
     p_mcp.add_argument("--list-tools", action="store_true")
     p_live = sub.add_parser("live", help="multi-stream control")
@@ -107,7 +110,7 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "serve":
         from .api import serve
-        serve(args.config, host=args.host, port=args.port)
+        serve(args.config, host=args.host, port=args.port, loop=args.loop, every=args.every)
         return 0
 
     if args.cmd == "doctor":

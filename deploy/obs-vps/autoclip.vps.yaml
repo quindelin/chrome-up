@@ -1,0 +1,40 @@
+# autoclip on the streaming VPS: merged over the repo's autoclip.yaml by
+# setup.sh into autoclip.yaml (next to this file), mounted as config.vps.yaml.
+# ${VAR} is expanded by autoclip at load time from the container env (.env).
+
+source:
+  mode: rtmp
+  rtmp:
+    url: "rtmp://127.0.0.1:1935/live"
+    stream_key: "${STREAM_KEY}"        # the raw glasses feed (no HUD)
+    dir: var/autoclip/incoming
+    chunk_seconds: 30
+
+obs:
+  password: "${OBS_WS_PASSWORD}"
+  auto_start_replay_buffer: false      # rtmp mode never uses the replay buffer
+
+# "go live on twitch" restreams OBS's composited program (HUD + avatar), which
+# OBS publishes to MediaMTX at live/program. Turn on with AUTOCLIP_LIVE_STREAMS=1
+# in .env and put TWITCH_STREAM_KEY / YOUTUBE_STREAM_KEY / ... there too.
+live_streams:
+  enabled: false                       # setup.sh: AUTOCLIP_LIVE_STREAMS
+  source: "rtmp://127.0.0.1:1935/live/program"
+
+analysis:
+  transcribe_model: tiny               # CPU is shared with OBS x264 + Chromium
+
+retention:
+  keep_windows: 2
+  clip_hours: 48
+  max_clips_gb: 1.5                    # 15 GB disk, ~7 GB of it images
+
+publish:
+  mode: dry_run                        # setup.sh: AUTOCLIP_PUBLISH (dry_run | live)
+  require_approval: true
+
+server:
+  host: 127.0.0.1                      # Caddy proxies /autoclip/*; the overlay reads :8899
+  port: 8899
+  root_path: /autoclip
+  public_base_url: "https://${DOMAIN}/autoclip"   # DOMAIN follows the boot's IP
