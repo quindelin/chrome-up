@@ -163,7 +163,7 @@ def render_clip(window_path: Path, decision: ClipDecision, render_cfg: dict,
             max_chars=int(style.get("max_chars", 28)),
         )
         if lines:
-            written = write_captions(lines, out_dir, style)
+            written = write_captions(lines, out_dir, style, stem=name)
             srt_path, ass_path = written["srt"], written["ass"]
         else:
             notes.append("no caption lines produced")

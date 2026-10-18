@@ -70,6 +70,18 @@ DEFAULTS: Dict[str, Any] = {
         "overlap_seconds": 30,      # keep this much overlap with the previous window
     },
 
+    # ---------------------------------------------------------------- retention
+    # The VPS disk is small; without this every cycle leaves a 5-minute window
+    # file behind and the disk fills in a couple of hours of streaming.
+    "retention": {
+        "keep_windows": 2,          # materialized windows kept (latest N)
+        "clip_hours": 72,           # rendered clips older than this are deleted
+        "max_clips_gb": 4.0,        # ...and the oldest go first above this size
+        "cycles": 50,               # cycle records kept in state.json
+        "dedupe_overlap": 0.5,      # a candidate overlapping a recent clip by
+                                    # this fraction of its length is a repeat
+    },
+
     # ---------------------------------------------------------------- analysis
     "analysis": {
         "frame_fps": 1.0,           # frames per second sampled from the window

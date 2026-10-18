@@ -170,10 +170,15 @@ def write_ass(lines: List[dict], path: Path, style: dict) -> Path:
     return path
 
 
-def write_captions(lines: List[dict], out_dir: Path, style: dict) -> dict:
-    """Write both sidecar SRT and burn-in ASS. Returns {'srt': path, 'ass': path}."""
+def write_captions(lines: List[dict], out_dir: Path, style: dict,
+                   stem: str = "captions") -> dict:
+    """Write both sidecar SRT and burn-in ASS. Returns {'srt': path, 'ass': path}.
+
+    Pass the clip name as `stem`: clips share one directory, and a shared
+    captions.srt meant every clip's sidecar was overwritten by the next one.
+    """
     out_dir = ensure_dir(out_dir)
     return {
-        "srt": write_srt(lines, out_dir / "captions.srt"),
-        "ass": write_ass(lines, out_dir / "captions.ass", style),
+        "srt": write_srt(lines, out_dir / f"{stem}.srt"),
+        "ass": write_ass(lines, out_dir / f"{stem}.ass", style),
     }

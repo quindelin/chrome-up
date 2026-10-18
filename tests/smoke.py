@@ -1000,6 +1000,84 @@ def t_privacy_dispatcher():
         assert disp.processed == before, "HUD toggles must fall through"
 
 
+def _bare_pipeline():
+    from autoclip.config import load_config
+    from autoclip.pipeline import Pipeline
+    cfg = load_config(str(ROOT / "autoclip.yaml"))
+    cfg["workdir"] = str(Path(tempfile.mkdtemp()) / "w")
+    return Pipeline(cfg)
+
+
+def t_dedupe_across_windows():
+    """The window slides 60 s per cycle but spans 300 s, so one moment is
+    re-proposed for ~5 cycles. It must be clipped once."""
+    from autoclip.agents import ClipDecision
+    from autoclip.buffer import Window
+    p = _bare_pipeline()
+    try:
+        w1 = Window(path=Path("w1.mkv"), start_wall=1000.0, duration=300.0, source="t")
+        # cycle 1 clipped 200-225 s of window 1 (wall 1200-1225)
+        p.state["cycles"] = [{"clips": [{"abs_start": 1200.0, "abs_end": 1225.0,
+                                         "decision": {"title": "big moment"}}]}]
+        w2 = Window(path=Path("w2.mkv"), start_wall=1060.0, duration=300.0, source="t")
+        same = ClipDecision(start=140.0, end=165.0, score=0.9)      # wall 1200-1225 again
+        new = ClipDecision(start=250.0, end=275.0, score=0.8)       # wall 1310-1335
+        kept, dropped = p._drop_repeats(w2, [same, new])
+        assert dropped == 1 and kept == [new], (dropped, kept)
+        # two picks inside one window may not overlap each other either
+        a = ClipDecision(start=10.0, end=35.0, score=0.9)
+        b = ClipDecision(start=15.0, end=40.0, score=0.8)
+        kept, dropped = p._drop_repeats(w1, [a, b])
+        assert kept == [a] and dropped == 1
+        # the agent is told where earlier clips sit in the new window
+        assert p._recent_spans()[0][:2] == (1200.0, 1225.0)
+    finally:
+        p.shutdown()
+
+
+def t_retention_keeps_disk_bounded():
+    import os
+    import time as _t
+    p = _bare_pipeline()
+    try:
+        p.cfg["retention"] = {"keep_windows": 2, "clip_hours": 1, "max_clips_gb": 100, "cycles": 3}
+        for i in range(5):
+            w = p.windows_dir / f"window_{i}.mkv"
+            w.write_bytes(b"x")
+            os.utime(w, (_t.time() + i, _t.time() + i))
+        old = _t.time() - 7200
+        for stem in ("old_0", "pend_0", "new_0"):
+            for ext in (".mp4", ".srt", ".jpg"):
+                f = p.clips_dir / f"{stem}{ext}"
+                f.write_bytes(b"x")
+                if stem != "new_0":
+                    os.utime(f, (old, old))
+        (p.clips_dir / "old_0_caps").mkdir()
+        p.state["pending"] = [{"id": "pend_0", "clip": {"path": str(p.clips_dir / "pend_0.mp4")}}]
+        p._cleanup()
+        assert sorted(x.name for x in p.windows_dir.iterdir()) == ["window_3.mkv", "window_4.mkv"]
+        names = {x.name for x in p.clips_dir.iterdir()}
+        assert not any(n.startswith("old_0") for n in names), names     # aged out, caps dir too
+        assert {"pend_0.mp4", "pend_0.srt", "pend_0.jpg"} <= names       # awaiting approval: kept
+        assert "new_0.mp4" in names
+        # state.json keeps only the last N cycles
+        from autoclip.pipeline import CycleResult
+        for _ in range(6):
+            p._record(CycleResult(id="c"))
+        assert len(p.state["cycles"]) == 3
+    finally:
+        p.shutdown()
+
+
+def t_captions_one_file_per_clip():
+    with tempfile.TemporaryDirectory() as td:
+        lines = [{"t0": 0.0, "t1": 1.0, "text": "one"}]
+        a = write_captions(lines, Path(td), {"mode": "line"}, stem="clipA")
+        b = write_captions([{"t0": 0.0, "t1": 1.0, "text": "two"}], Path(td), {"mode": "line"}, stem="clipB")
+        assert a["srt"] != b["srt"]
+        assert "one" in Path(a["srt"]).read_text() and "two" in Path(b["srt"]).read_text()
+
+
 def main() -> int:
     print("autoclip smoke test\n")
     for name, fn in [
@@ -1017,6 +1095,9 @@ def main() -> int:
         ("privacy blur", t_privacy),
         ("privacy voice grammar", t_privacy_voice),
         ("privacy dispatcher routing", t_privacy_dispatcher),
+        ("dedupe across windows", t_dedupe_across_windows),
+        ("retention keeps disk bounded", t_retention_keeps_disk_bounded),
+        ("captions one file per clip", t_captions_one_file_per_clip),
     ]:
         check(name, fn)
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed")

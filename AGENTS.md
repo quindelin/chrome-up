@@ -430,7 +430,7 @@ Tuning: `primary` / `secondary` are ASS `&HAABBGGRR` (active vs not-yet-sung);
 `max_words: 3` and `max_chars: 28` give the 2–3-word-per-screen look.
 PNG-mode extras: `burn` (`auto|ass|images`), `caption_fps` (12), `stroke` (5).
 
-A sidecar `captions.srt` is always written next to the clip for platform
+A sidecar `<clip>.srt` is always written next to the clip for platform
 uploads (YouTube captions API, etc.).
 - `source.mode: file` + a local mp4 is the offline path — use it in tests.
 - Instagram needs a **public** URL for the video (`server.public_base_url` for

@@ -6,6 +6,7 @@ thin shell over it, which is what makes it agent-operable.
 from __future__ import annotations
 
 import json
+import shutil
 import time
 import uuid
 from dataclasses import dataclass, field
@@ -249,10 +250,12 @@ class Pipeline:
             "default_tags": list(pub_cfg.get("default_tags", [])),
             "window_seconds": float(self.cfg.get("window", {}).get("seconds", 300)),
         }
+        # Clip times are relative to their own window, and windows slide every
+        # cycle, so the agent is told where recent clips fall in THIS window.
         previous = []
-        for cycle in self.state.get("cycles", [])[-5:]:
-            for clip in cycle.get("clips", []):
-                previous.append({"start": clip.get("start"), "title": clip.get("decision", {}).get("title")})
+        for a, b, title in self._recent_spans():
+            previous.append({"start": round(a - window.start_wall, 2),
+                             "end": round(b - window.start_wall, 2), "title": title})
         return AgentContext(
             window=window.to_dict(),
             analysis=analysis,
@@ -304,6 +307,9 @@ class Pipeline:
 
         threshold = float(self.cfg.get("agent", {}).get("auto_approve_score", 0.62))
         decisions.sort(key=lambda d: d.score, reverse=True)
+        decisions, dropped = self._drop_repeats(window, decisions)
+        if dropped:
+            result.notes.append(f"{dropped} candidate(s) skipped: already clipped in an earlier window")
         decisions = decisions[: int(self.cfg.get("agent", {}).get("max_clips_per_window", 3))]
         approved = [d for d in decisions if d.score >= threshold]
         result.decisions = [d.to_dict() for d in decisions]
@@ -324,7 +330,10 @@ class Pipeline:
             except Exception as exc:  # noqa: BLE001
                 result.notes.append(f"render failed for {decision.start:.1f}s: {exc}")
                 continue
-            result.clips.append(clip.to_dict())
+            clip_info = clip.to_dict()
+            clip_info["abs_start"] = round(window.start_wall + decision.start, 3)
+            clip_info["abs_end"] = round(window.start_wall + decision.end, 3)
+            result.clips.append(clip_info)
             result.notes.extend(clip.notes)
 
             platforms = decision.platforms or pub_cfg.get("platforms", [])
@@ -350,8 +359,77 @@ class Pipeline:
         return result
 
     def _record(self, result: CycleResult) -> None:
-        self.state.setdefault("cycles", []).append(result.to_dict())
+        cycles = self.state.setdefault("cycles", [])
+        cycles.append(result.to_dict())
+        keep = int(self._retention().get("cycles", 50))
+        if len(cycles) > keep:
+            del cycles[:-keep]
         self._save_state()
+        try:
+            self._cleanup(current=(result.window or {}).get("path"))
+        except Exception as exc:  # noqa: BLE001 - housekeeping must never kill a cycle
+            result.notes.append(f"cleanup failed: {exc}")
+
+    # ------------------------------------------------------------------ dedupe + retention
+    def _retention(self) -> Dict[str, Any]:
+        return self.cfg.get("retention", {}) or {}
+
+    def _recent_spans(self) -> List[tuple]:
+        """Wall-clock (start, end, title) of clips from recent cycles."""
+        out = []
+        for cycle in self.state.get("cycles", [])[-10:]:
+            for clip in cycle.get("clips", []):
+                a, b = clip.get("abs_start"), clip.get("abs_end")
+                if a is not None and b is not None:
+                    out.append((float(a), float(b), clip.get("decision", {}).get("title", "")))
+        return out
+
+    def _drop_repeats(self, window: Window, decisions: List[ClipDecision]):
+        """Drop candidates that cover a moment already clipped. Without this the
+        same moment is re-proposed every cycle for as long as it stays inside
+        the sliding window (5 x at the defaults)."""
+        frac = float(self._retention().get("dedupe_overlap", 0.5))
+        taken = [(a, b) for a, b, _ in self._recent_spans()]
+        kept, dropped = [], 0
+        for d in decisions:
+            a, b = window.start_wall + d.start, window.start_wall + d.end
+            length = max(0.1, b - a)
+            if any(max(0.0, min(b, y) - max(a, x)) >= frac * min(length, y - x) for x, y in taken):
+                dropped += 1
+                continue
+            kept.append(d)
+            taken.append((a, b))      # two picks in one window must not overlap either
+        return kept, dropped
+
+    def _cleanup(self, current: Optional[str] = None) -> None:
+        ret = self._retention()
+        # windows: keep the newest few (the API's render call may still want one)
+        wins = sorted(self.windows_dir.glob("*.mkv"), key=lambda p: p.stat().st_mtime, reverse=True)
+        for p in wins[int(ret.get("keep_windows", 2)):]:
+            if current and str(p) == str(current):
+                continue
+            p.unlink(missing_ok=True)
+
+        # clips: by age, then by total size; never anything awaiting approval
+        pending = {Path(i.get("clip", {}).get("path", "")).stem for i in self.state.get("pending", [])}
+        groups: Dict[str, List[Path]] = {}
+        for p in self.clips_dir.iterdir():
+            if p.is_file():
+                groups.setdefault(p.name.split(".")[0], []).append(p)
+            elif p.is_dir() and p.name.endswith("_caps"):
+                shutil.rmtree(p, ignore_errors=True)      # PNG caption frames: render-time only
+        def newest(files): return max(f.stat().st_mtime for f in files)
+        order = sorted(groups.items(), key=lambda kv: newest(kv[1]))          # oldest first
+        cutoff = time.time() - float(ret.get("clip_hours", 72)) * 3600
+        budget = float(ret.get("max_clips_gb", 4.0)) * 1024 ** 3
+        total = sum(f.stat().st_size for files in groups.values() for f in files)
+        for stem, files in order:
+            if stem in pending:
+                continue
+            if newest(files) < cutoff or total > budget:
+                total -= sum(f.stat().st_size for f in files)
+                for f in files:
+                    f.unlink(missing_ok=True)
 
     # ------------------------------------------------------------------ approvals
     def pending(self) -> List[dict]:
