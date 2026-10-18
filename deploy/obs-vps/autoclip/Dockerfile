@@ -1,7 +1,8 @@
 # autoclip on the streaming VPS (clip pipeline + approval API). Build context: repo root.
 FROM python:3.12-slim
+# same first layer as hud/Dockerfile, so the two images share python + ffmpeg
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ffmpeg ca-certificates \
+ && apt-get install -y --no-install-recommends ffmpeg libglib2.0-0 libportaudio2 \
  && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 # no opencv: privacy blur stays off here (it would add ~200 MB to a 15 GB disk)
