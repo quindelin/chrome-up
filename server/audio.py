@@ -8,6 +8,8 @@ from __future__ import annotations
 import collections
 import math
 import random
+import shutil
+import subprocess
 import threading
 import time
 
@@ -31,7 +33,13 @@ class AudioAnalyzer:
         self.gate = float(cfg.get("gate", 0.015))
         self.bars = int(cfg.get("bars", 12))
         self.device = cfg.get("device")
-        self.enabled = bool(cfg.get("enabled", True)) and sd is not None
+        # url: pull audio from a stream (the glasses feed in MediaMTX) through
+        # ffmpeg instead of a local mic - how the HUD hears you on the VPS
+        self.url = cfg.get("url") or None
+        self.enabled = bool(cfg.get("enabled", True)) and (
+            sd is not None or bool(self.url and shutil.which("ffmpeg")))
+        self._proc = None
+        self._stopping = False
 
         self._lock = threading.Lock()
         self._level = 0.0
@@ -60,6 +68,9 @@ class AudioAnalyzer:
         the microphone permission prompt, and that must not stall the server."""
         if not self.enabled:
             return "sim"
+        if self.url:
+            threading.Thread(target=self._stream_loop, daemon=True).start()
+            return "stream"
         box: dict = {}
 
         def _open():
@@ -89,6 +100,12 @@ class AudioAnalyzer:
         return "sim"
 
     def stop(self) -> None:
+        self._stopping = True
+        if self._proc is not None:
+            try:
+                self._proc.kill()
+            except Exception:
+                pass
         if self._stream is not None:
             try:
                 self._stream.stop()
@@ -96,6 +113,37 @@ class AudioAnalyzer:
             except Exception:
                 pass
             self._stream = None
+
+    # ------------------------------------------------------------------ stream audio
+    def _stream_loop(self) -> None:
+        """ffmpeg -> 16-bit mono PCM -> the same analysis as the mic. Restarts
+        while nobody is publishing (MediaMTX refuses the read until then)."""
+        cmd = ["ffmpeg", "-nostdin", "-loglevel", "error",
+               "-fflags", "nobuffer", "-flags", "low_delay",
+               "-probesize", "32768", "-analyzeduration", "0",
+               "-i", self.url, "-vn", "-ac", "1", "-ar", str(self.rate),
+               "-f", "s16le", "-"]
+        need = BLOCK * 2
+        while not self._stopping:
+            try:
+                self._proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                out = self._proc.stdout
+                while not self._stopping:
+                    buf = out.read(need)
+                    if not buf or len(buf) < need:
+                        break
+                    frame = np.frombuffer(buf, dtype="<i2").astype(np.float32) / 32768.0
+                    self._callback(frame[:, None], BLOCK, None, None)
+            except Exception as exc:  # pragma: no cover - network / ffmpeg failures
+                print(f"[audio] stream read failed: {exc}")
+            finally:
+                if self._proc is not None:
+                    try:
+                        self._proc.kill()
+                    except Exception:
+                        pass
+            if not self._stopping:
+                time.sleep(2.0)
 
     # ------------------------------------------------------------------ real audio
     def _callback(self, indata, frames, time_info, status):
@@ -147,7 +195,7 @@ class AudioAnalyzer:
             openness=openness,
             width=width,
             onset=onset,
-            source="mic" if self.enabled else "sim",
+            source=("stream" if self.url else "mic") if self.enabled else "sim",
         )
 
     # ------------------------------------------------------------------ simulated

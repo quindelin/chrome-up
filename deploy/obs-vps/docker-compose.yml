@@ -19,9 +19,9 @@ services:
     volumes:
       - ./hud.yaml:/app/config.vps.yaml:ro
       - hud-data:/app/data
-    # no mic on a VPS: audio-driven skills run on the simulated source;
-    # vision reads the glasses feed back out of MediaMTX
-    command: ["python", "-m", "server.main", "--config", "config.vps.yaml", "--host", "127.0.0.1", "--no-audio"]
+    # no mic on a VPS: audio (lip-sync, speech skills, shouts) and vision
+    # both read the glasses feed back out of MediaMTX - see hud.yaml
+    command: ["python", "-m", "server.main", "--config", "config.vps.yaml", "--host", "127.0.0.1"]
 
   obs:
     build: ./obs

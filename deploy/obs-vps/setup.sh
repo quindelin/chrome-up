@@ -41,7 +41,9 @@ python3 - "$STREAM_KEY" <<'PY'
 import re, sys
 key = sys.argv[1]
 s = open("../../config.yaml").read()
-s = re.sub(r"(?m)^(\s*source:) 0\b.*$", rf'\1 "rtmp://127.0.0.1:1935/live/{key}"', s, count=1)
+feed = f"rtmp://127.0.0.1:1935/live/{key}"
+s = re.sub(r"(?m)^(\s*source:) 0\b.*$", rf'\1 "{feed}"', s, count=1)
+s = re.sub(r"(?m)^audio:\n", f'audio:\n  url: "{feed}"\n', s, count=1)
 open("hud.yaml", "w").write(s)
 PY
 
