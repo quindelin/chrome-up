@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-"""JLPT N2 — opinions and reasons.
+"""Band 2 (shown as N4–N3) — opinions and reasons.
 
 Pimsleur-style.  Polite base (です/ます) with a fair share of plain form,
-which is correct at N2: news, opinions and conditions are the point of this
+which is correct here: news, opinions and conditions are the point of this
 band, not errands.  Each lesson's vocabulary is re-used in the dialogue so
 the learner meets the words twice in one sitting.
 
@@ -747,9 +747,12 @@ UNITS: List[Dict[str, Any]] = [
 LEVEL = {
     "band": 2,
     "id": 4,
-    "code": "N2",
-    "title": "JLPT N2 · Opinions & reasons",
-    "focus": "Reported speech (〜そうです / 〜によると), reasons (〜ので / 〜ため), conditionals (〜ば / 〜たら / 〜なら), passive and causative, and abstract nouns.",
+    # Passive, causative, 〜そうだ, 〜たら/ば/なら, 〜ても, 〜はず and 〜てしまう are
+    # N4 grammar; 〜によると, 〜に違いない, 〜わけではない and 〜おかげで/せいで are
+    # N3 (docs/COURSE_AUDIT.md, finding 1).
+    "code": "N4–N3",
+    "title": "JLPT N4–N3 · Opinions & reasons",
+    "focus": "The core of N4 grammar - hearsay (〜そうです), reasons (〜ので / 〜ため), conditionals (〜ば / 〜たら / 〜なら), 〜ても, passive and causative, 〜はず, 〜てしまう - plus first N3 points: 〜によると, 〜に違いない, 〜わけではない, 〜おかげで / 〜せいで.",
     "gate": {"min_pron_score": 76.0, "min_accuracy": 76.0, "min_completeness": 86.0},
     "units": UNITS,
 }

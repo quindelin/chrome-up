@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-"""JLPT N1+ — beyond the exam.
+"""Band 0 (shown as N2 preview) — the register beyond the textbook.
 
-Nothing here is in the exam syllabus. It is the register you meet in a
-newspaper editorial, a conference Q&A, a formal address: dense 漢語, hedged
+It is the register you meet in a newspaper editorial, a conference Q&A, a formal address: dense 漢語, hedged
 assertions, 慣用句, and the ability to say the same thing at three levels of
 formality. The learner is expected to already control 敬語 — the work here is
 choosing, not conjugating.
@@ -795,9 +794,11 @@ UNITS: List[Dict[str, Any]] = [
 LEVEL = {
     "band": 0,
     "id": 6,
-    "code": "N1+",
-    "title": "JLPT N1+ · Mastery",
-    "focus": "Beyond the exam: editorials, academic and professional register, idiom and rhetorical range.",
+    # Twelve lessons cannot be N1 or beyond (docs/COURSE_AUDIT.md, finding
+    # 1). They sample N2-N1 register; the label says so.
+    "code": "N2 preview",
+    "title": "Toward N2 · Media & formal register",
+    "focus": "A preview, not exam coverage: twelve lessons sampling the register of headlines, editorials, interviews, academic talk, idiom and a formal address. The word bank behind it is N1-sized; the lessons are not.",
     "gate": {"min_pron_score": 84.0, "min_accuracy": 84.0, "min_completeness": 90.0},
     "units": UNITS,
 }

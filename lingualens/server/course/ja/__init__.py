@@ -1,4 +1,5 @@
-"""Japanese course package: the JLPT N5 -> N1 ladder (+ an above-N1 band).
+"""Japanese course package: six bands, labelled by what they teach
+(N5, N4, N4+, N4–N3, N3, N2 preview; see docs/COURSE_AUDIT.md).
 
 Two kinds of content live here:
   LEVELS - the lesson ladder (units -> lessons: dialogue, drills, recall)
@@ -34,7 +35,8 @@ scenes = _try("scenes")
 
 LEVELS = [_modules[n].LEVEL for n in _LEVEL_MODULES if _modules[n]]
 
-# jlpt band -> themed word lists. 0 is the above-N1 mastery band.
+# jlpt band -> themed word lists. Band n's bank is JLPT Nn-sized (0 = above
+# N1), even where the band's lessons are labelled lower.
 VOCAB = {band: _modules[n].TOPICS for band, n in sorted(_VOCAB_MODULES.items())
          if _modules[n]}
 
@@ -45,7 +47,7 @@ PROMPTS = getattr(freeform, "PROMPTS", {}) if freeform else {}
 SCENES = getattr(scenes, "SCENES", {}) if scenes else {}
 
 # how the UI and the gate talk about this ladder
-LABEL = "N"            # band 3 -> "N3"; band 0 is authored as "N1+"
+LABEL = "N"            # fallback only: every band authors its own `code`
 BAND_NAME = "jlpt"     # the key used in state / urls
 SPEECH_LANG = "ja-JP"  # what the TTS and the dictation engine use
 
