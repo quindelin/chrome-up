@@ -31,11 +31,10 @@ import urllib.error
 import urllib.request
 from typing import Dict, List, Optional, Tuple
 
-from .course import LANG_NAMES, normalize
-from .course import is_spaced
+from .course import LANG_NAMES, is_spaced, normalize
 from .curriculum import content_chars
 from .models import Score
-from .pronunciation import coverage_of, evaluate, normalize_text
+from .pronunciation import _LATIN_WORD, _fold, coverage_of, evaluate, normalize_text
 
 # keys the gate uses that we relax for free speech
 _RELIEVED = ("min_pron_score", "min_accuracy", "min_completeness", "min_tone_score",
@@ -325,7 +324,7 @@ def grade_writing(
             cfg,
             lang,
             # a summary is graded on what it kept, not on how it says it
-            "This is a 缩写 - a summary of a longer text. Judge whether the key "
+            "This is a spoken summary of a longer text. Judge whether the key "
             "points survived the shortening, not whether the wording matches. Do "
             "not require it to be short to the point of dropping the point.",
         )

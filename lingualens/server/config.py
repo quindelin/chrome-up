@@ -298,6 +298,11 @@ LANG_DEFAULTS: Dict[str, Any] = {
         },
         # ~12 letters/s in natural speech, vs ~3 kana/s
         "audio": {"seconds_per_char": 0.075},
+        # Bands count up here (1 = A1 ... 6 = C2): spoken summaries from C1,
+        # fluency from B2. The rate is letters a second with the spaces
+        # gone, so it is about four times the Mandarin number.
+        "writing": {"min_band": 5, "min_chars": 80},
+        "fluency": {"min_chars_per_second": 9.0, "min_band": 4},
         "reading": {"per_lesson": 1, "read_aloud": True, "comprehension": True},
         "storage": {"path": "state.es.json"},
     },

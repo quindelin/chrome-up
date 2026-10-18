@@ -49,6 +49,26 @@ Japanese, and drill it until you get it right.
 
 ---
 
+## 0. On the go (phone + glasses, no laptop)
+
+LinguaLens runs on Google Cloud Run, so the phone and the glasses reach it
+anywhere over HTTPS. It scales to zero, so an idle day costs nothing.
+
+```bash
+deploy/lingualens/deploy.sh        # build + deploy (keeps the same key)
+deploy/lingualens/deploy.sh url    # your phone / glasses / OBS links
+```
+
+- **Phone:** open the `phone` link (it records you and plays the model audio
+  through the glasses speakers). Add it to the home screen.
+- **Glasses:** load the `glasses web app` link as a Meta Ray-Ban Display Web App.
+- **Same `client_id` on both** = one shared session.
+- The key in the link is needed once per device (then a cookie). Anyone with
+  the link can use the app, so don't post it.
+- Progress is kept in a Cloud Storage bucket, so it survives restarts.
+- **On stream:** say "show lingualens" / "hide lingualens" (see
+  `deploy/obs-vps`); OBS shows a read-only copy of the same session.
+
 ## 1. Quick start
 
 ```bash

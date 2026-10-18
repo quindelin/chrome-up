@@ -505,6 +505,9 @@ def simulated_score(reference: str, quality: str = "good") -> Score:
 _FILLERS = {
     "zh": ("那个", "这个", "就是", "然后", "嗯", "呃", "啊", "就是说"),
     "ja": ("えっと", "ええと", "あの", "あのー", "まあ", "その", "うーん"),
+    # matched against de-spaced text, so only fillers that cannot hide inside
+    # a real word: not "este" (a demonstrative) and not "em" (tiempo)
+    "es": ("ehh", "emm", "mmm", "osea", "estee"),
 }
 
 
@@ -538,7 +541,9 @@ def fluency_reasons(
         if said:
             junk = sum(said.count(word) * len(word) for word in _FILLERS.get(lang, ()))
             if junk / len(said) > max_filler:
-                out.append("Too much filler - drop the 那个s and just say it")
+                out.append({"es": "Too much filler - drop the 'eh's and 'o sea's and just say it",
+                            "ja": "Too much filler - drop the えっとs and just say it"}
+                           .get(lang, "Too much filler - drop the 那个s and just say it"))
     return out
 
 

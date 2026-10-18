@@ -191,6 +191,11 @@ GRAMMAR = {
 }
 
 
+# later bands keep their pages in their own band file
+from . import merged as _merged  # noqa: E402
+GRAMMAR = _merged("GRAMMAR", GRAMMAR)
+
+
 def for_lesson(lesson_id: int) -> list:
     """The grammar page for one lesson, or an empty list."""
     return list(GRAMMAR.get(int(lesson_id)) or [])

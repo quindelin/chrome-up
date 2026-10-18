@@ -16,6 +16,9 @@ Two rules that the engine depends on, checked by `check()`:
 Passages use only the lesson's words and earlier ones, plus at most one new
 word you can guess. Each chunk is one sentence, under ~70 characters.
 
+A1 passages live here; A2-C2 passages live in their band files and are
+merged in below.
+
 Verify with:  .venv/bin/python -m server.course.es.readings
 """
 E = ""
@@ -185,6 +188,11 @@ PASSAGES = {
 }
 
 
+# later bands keep their passages in their own band file
+from . import merged as _merged  # noqa: E402
+PASSAGES = _merged("PASSAGES", PASSAGES)
+
+
 def get(lesson_id: int) -> dict:
     """The passage for one lesson, or {} if there isn't one yet."""
     return PASSAGES.get(int(lesson_id)) or {}
@@ -196,11 +204,12 @@ def check() -> list:
     for lid, p in sorted(PASSAGES.items()):
         chunks = p.get("chunks") or []
         qs = p.get("questions") or []
-        if not 3 <= len(chunks) <= 6:
-            problems.append(f"{lid}: {len(chunks)} chunks (want 3-6)")
+        if not 3 <= len(chunks) <= 7:
+            problems.append(f"{lid}: {len(chunks)} chunks (want 3-7)")
+        limit = 70 if lid <= 27 else 110   # one breath at A1-A2, one sentence after
         for text, _r, en in chunks:
-            if len(text) > 70:
-                problems.append(f"{lid}: chunk over 70 chars: {text}")
+            if len(text) > limit:
+                problems.append(f"{lid}: chunk over {limit} chars: {text}")
             if not en:
                 problems.append(f"{lid}: chunk without English: {text}")
         if len(qs) < 2:

@@ -7,9 +7,16 @@ Same contract as `course.ja` and `course.zh`:
   SCENES  - one English sentence before each conversation
 
 Bands count UP, the way HSK does and JLPT does not: 1 = A1, 2 = A2,
-3 = B1, 4 = B2, 5 = C1. Only A1 is written so far; the loader tolerates the
-rest being absent, exactly like the Japanese package, so the ladder grows
-one band at a time without the course ever failing to load.
+3 = B1, 4 = B2, 5 = C1, 6 = C2. The loader tolerates any band being absent,
+exactly like the Japanese package, so the ladder grows one band at a time
+without the course ever failing to load.
+
+A1 keeps its scenes, prompts, grammar and passages in shared modules
+(scenes.py, freeform.py, grammar.py, readings.py). Every later band is one
+file - `a2.py` ... `c2.py` - holding its LEVEL plus SCENES, PROMPTS, GRAMMAR,
+PASSAGES (and SUMMARIES from C1), so a band is reviewed in one place. The
+shared modules merge them in; an id defined twice is an error, not an
+override.
 
 Built against the audit of the Japanese course (docs/COURSE_AUDIT.md), so
 from lesson 1:
@@ -26,8 +33,9 @@ from lesson 1:
 """
 from importlib import import_module
 
-_LEVEL_MODULES = ["a1", "a2", "b1", "b2", "c1"]
-_VOCAB_MODULES = {1: "vocab_a1", 2: "vocab_a2", 3: "vocab_b1", 4: "vocab_b2", 5: "vocab_c1"}
+_LEVEL_MODULES = ["a1", "a2", "b1", "b2", "c1", "c2"]
+_VOCAB_MODULES = {1: "vocab_a1", 2: "vocab_a2", 3: "vocab_b1", 4: "vocab_b2",
+                  5: "vocab_c1", 6: "vocab_c2"}
 
 
 def _try(name):
@@ -50,12 +58,26 @@ scenes = _try("scenes")
 
 LEVELS = [_modules[n].LEVEL for n in _LEVEL_MODULES if _modules[n]]
 VOCAB = {band: _modules[n].TOPICS for band, n in sorted(_VOCAB_MODULES.items()) if _modules[n]}
-PROMPTS = getattr(freeform, "PROMPTS", {}) if freeform else {}
-SCENES = getattr(scenes, "SCENES", {}) if scenes else {}
+
+
+def merged(attr, base=None):
+    """{lesson_id: ...} from a shared module plus every band file."""
+    out = dict(base or {})
+    for name in _LEVEL_MODULES:
+        mod = _modules.get(name)
+        for key, value in (getattr(mod, attr, None) or {}).items():
+            if key in out:
+                raise ValueError(f"{attr}[{key}] defined twice (in {name})")
+            out[key] = value
+    return out
+
+
+PROMPTS = merged("PROMPTS", getattr(freeform, "PROMPTS", {}) if freeform else {})
+SCENES = merged("SCENES", getattr(scenes, "SCENES", {}) if scenes else {})
 
 LABEL = "CEFR"
 BAND_NAME = "cefr"
 SPEECH_LANG = "es-ES"   # TTS + dictation. The course is Peninsular; es-MX works too.
 
 __all__ = ["LEVELS", "VOCAB", "PROMPTS", "SCENES", "LABEL", "BAND_NAME", "SPEECH_LANG",
-           "freeform", "scenes"]
+           "freeform", "scenes", "merged"]
