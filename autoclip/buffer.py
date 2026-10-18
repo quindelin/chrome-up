@@ -162,7 +162,9 @@ class RollingWindow:
         list_file = out_dir / f"{name}.concat.txt"
         with list_file.open("w", encoding="utf-8") as fh:
             for seg in segs:
-                safe = str(seg.path).replace("'", "'\\''")
+                # absolute: ffmpeg resolves relative entries against the list
+                # file's own dir, and source dirs (rtmp.dir) are often relative
+                safe = str(seg.path.resolve()).replace("'", "'\\''")
                 fh.write(f"file '{safe}'\n")
 
         try:

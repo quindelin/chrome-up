@@ -55,8 +55,11 @@ fi
 sed -i "s/^DOMAIN=.*/DOMAIN=${IP//./-}.sslip.io/" .env
 set -a; . ./.env; set +a
 
+OLD_MTX="$(cat mediamtx.yml 2>/dev/null || true)"
 sed -e "s/__STREAM_KEY__/${STREAM_KEY}/" -e "s/__SRT_PASSPHRASE__/${SRT_PASSPHRASE}/" \
   mediamtx.yml.tmpl > mediamtx.yml
+# compose does not recreate a container for a changed bind-mounted file
+MTX_CHANGED=0; [ "$OLD_MTX" = "$(cat mediamtx.yml)" ] || MTX_CHANGED=1
 
 # HUD config: the repo default, with vision reading the glasses feed back
 # out of MediaMTX and progress kept in the data volume
@@ -95,4 +98,5 @@ else
   # boot: no rebuild, just recreate whatever changed (Caddy's DOMAIN)
   sudo docker compose up -d
 fi
+[ "$MTX_CHANGED" = 1 ] && sudo docker compose restart mediamtx
 sudo docker compose ps
