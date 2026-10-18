@@ -119,7 +119,13 @@ avatar:
   theme: default            # default | dark_swordsman | green_scout |
                             # silver_knight | blonde_prince | hacker
   themes: [default, dark_swordsman, green_scout, silver_knight, blonde_prince, hacker]
-  engine: procedural        # procedural | live2d
+  # vrm: a 3D VTuber model rendered in the overlay, lip-synced to your voice.
+  # Any VRM works (VRoid Studio exports, VRoid Hub downloads you are allowed
+  # to use): drop it in overlay/assets/avatar/ and set `model`. The default
+  # is VRoid's CC0 sample "Sakurada Fumiriya". Falls back to procedural if
+  # WebGL or the file is missing.
+  engine: vrm               # vrm | procedural | live2d
+  model: fumiriya.vrm
 
 # VTube Studio Plugin API — the practical way to use a real anime model.
 # Turn it on in VTube Studio: Settings -> Plugins -> "Start API Server".

@@ -10,6 +10,11 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;500;600&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="./styles.css" />
+<!-- three.js + three-vrm are vendored so OBS never waits on a CDN mid-stream -->
+<script type="importmap">
+{ "imports": { "three": "./vendor/three/three.module.min.js",
+               "three/addons/": "./vendor/three/addons/" } }
+</script>
 </head>
 <body>
   <!-- ============================ compass ============================ -->
@@ -81,6 +86,8 @@
   <div id="avatar-wrap">
     <canvas id="ring" width="360" height="360"></canvas>
     <canvas id="avatar" width="300" height="380"></canvas>
+    <!-- 3D VRM avatar; replaces the 2D one when WebGL + the model load -->
+    <canvas id="avatar3d" width="440" height="520" class="hidden"></canvas>
     <div id="nameplate"><span id="avatarname">Vtuber</span><span id="statetext">idle</span></div>
   </div>
 

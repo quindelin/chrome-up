@@ -6,6 +6,7 @@ import { Avatar } from "./avatar.js";
 import { Menu } from "./menu.js";
 import { resolve as resolveTheme } from "./themes.js";
 import { tryLoadLive2D, drawLive2D } from "./live2d.js";
+import { tryLoadAvatar3D } from "./avatar3d.js";
 import { PrivacyBadge } from "./privacy.js";
 import { VicinityFeed } from "./vicinity.js";
 import { loadSfx } from "./sfx.js";
@@ -20,6 +21,15 @@ const avatarCanvas = document.getElementById("avatar");
 const avatar = new Avatar(avatarCanvas, resolveTheme(cfg.avatar?.theme || "default"));
 const live2d = await tryLoadLive2D(avatarCanvas, cfg);
 if (live2d) console.log("[hudstream] Live2D model loaded:", live2d.name);
+// 3D VRM avatar (default). Falls back to Live2D / the 2D avatar if it can't load.
+const avatar3dCanvas = document.getElementById("avatar3d");
+const avatar3d = live2d ? null : await tryLoadAvatar3D(avatar3dCanvas, cfg);
+if (avatar3d) {
+  avatar3dCanvas.classList.remove("hidden");
+  avatarCanvas.classList.add("hidden");
+  document.getElementById("ring").classList.add("hidden");
+  document.getElementById("avatar-wrap").classList.add("is-3d");
+}
 const menu = new Menu(document.getElementById("menu"));
 const privacy = new PrivacyBadge(document.getElementById("privacy"));
 privacy.start();
@@ -47,6 +57,7 @@ net.on((payload) => {
   payload.__markers = cfg.markers || [];
   hud.update(payload);
   hud.handleEvents(payload.events);
+  avatar3d?.react(payload.events);
 });
 net.connect();
 
@@ -91,8 +102,10 @@ function frame(now) {
       viseme,
       bands: a.bands || [],
     };
-    ring.draw(dt, audioForDraw);
-    if (live2d) drawLive2D(live2d, audioForDraw);
+    if (avatar3d) avatar3d.update(dt, audioForDraw, latest.vision, latest.skills);
+    else ring.draw(dt, audioForDraw);
+    if (avatar3d) { /* the 3D rig draws itself */ }
+    else if (live2d) drawLive2D(live2d, audioForDraw);
     else avatar.draw(dt, audioForDraw, latest.vision, latest.skills);
     stateText.textContent = describe(latest);
     menu.update(latest, latest.ui || { open: false, tab: 0, tabs: [] });
