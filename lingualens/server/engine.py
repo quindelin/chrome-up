@@ -27,6 +27,20 @@ _WRITE_NOTE = {"zh": "用你自己的话说，不用跟原文一样",
                "es": "Con tus propias palabras, no hace falta copiar el texto"}
 
 
+def inject_count(vocab_cfg: Dict, band: int) -> int:
+    """New bank words per lesson in this band.
+
+    `inject_by_band` lets a course hand later bands more words a lesson
+    without changing the beginner pace; anything it does not list falls
+    back to `inject_per_lesson`.
+    """
+    by_band = vocab_cfg.get("inject_by_band") or {}
+    value = by_band.get(band, by_band.get(str(band)))
+    if value is None:
+        value = vocab_cfg.get("inject_per_lesson", 4)
+    return int(value or 0)
+
+
 def _course_module(lang: str, name: str):
     """`course.<lang>.<name>`, or None when that course has not written one."""
     try:
@@ -175,9 +189,7 @@ class Session:
         vocab_cfg = self.cfg.get("vocab") or {}
         if not vocab_cfg.get("enabled", True):
             return []
-        return self.course.vocab_for_lesson(
-            lesson, int(vocab_cfg.get("inject_per_lesson", 4) or 0)
-        )
+        return self.course.vocab_for_lesson(lesson, inject_count(vocab_cfg, lesson.band))
 
     # -- English orientation ------------------------------------------------
     def scene_text(self, lesson: Optional[Lesson] = None) -> str:

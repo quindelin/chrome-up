@@ -25,7 +25,8 @@ const AUDIO_HOST = IS_PHONE || !!window.LinguaLensHaptics;
 // ?view=stream: the copy OBS shows on stream. Read-only (never advances the
 // lesson, never speaks) and drawn as a translucent panel instead of black.
 const STREAM_VIEW = params.get('view') === 'stream';
-if (STREAM_VIEW) document.body.classList.add('stream');
+// <html> is black too, so both get the class
+if (STREAM_VIEW) { document.documentElement.classList.add('stream'); document.body.classList.add('stream'); }
 
 let state = null;
 let course = null;

@@ -32,6 +32,7 @@ import urllib.request
 from typing import Dict, List, Optional, Tuple
 
 from .course import LANG_NAMES, normalize
+from .course import is_spaced
 from .curriculum import content_chars
 from .models import Score
 from .pronunciation import coverage_of, evaluate, normalize_text
@@ -300,7 +301,14 @@ def grade_writing(
         keywords = list(getattr(step, "keywords", []) or [])
         need = max(1, (len(keywords) + 1) // 2)
         if keywords:
-            kept = [k for k in keywords if k in said]
+            if is_spaced(lang):
+                # `said` has lost its spaces; compare folded text instead, so
+                # "medio ambiente" and "Medio Ambiente" both count
+                heard = " ".join(_LATIN_WORD.findall(_fold(score.recognized or "")))
+                kept = [k for k in keywords
+                        if " ".join(_LATIN_WORD.findall(_fold(k))) in heard]
+            else:
+                kept = [k for k in keywords if k in said]
             if len(kept) < need:
                 missing = [k for k in keywords if k not in kept]
                 return False, [
