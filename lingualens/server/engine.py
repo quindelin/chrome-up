@@ -21,6 +21,12 @@ from .think import Target
 # no character teaching and no grammar notes - while its own config spent
 # thirty lines deciding how to fade the pinyin crutch out. A course that has
 # no `hanzi.py` simply gets no hanzi steps; that is the whole mechanism.
+_HEAR_NOTE = {"zh": "只听，不看", "ja": "聞くだけ、見ない", "es": "Solo escucha, no mires"}
+_WRITE_NOTE = {"zh": "用你自己的话说，不用跟原文一样",
+               "ja": "自分の言葉で、原文と同じでなくていい",
+               "es": "Con tus propias palabras, no hace falta copiar el texto"}
+
+
 def _course_module(lang: str, name: str):
     """`course.<lang>.<name>`, or None when that course has not written one."""
     try:
@@ -368,7 +374,9 @@ class Session:
                 hide_text=True,
                 reading=reading,
                 en="Listen. Nothing on the screen.",
-                note="只听，不看",
+                # in the course's own language: this note used to be Chinese
+                # on the Japanese course too
+                note=_HEAR_NOTE.get(self.lang, _HEAR_NOTE["zh"]),
                 key=f"hear:{lesson.id}",
             ),
             self._comprehension_step(lesson, q, f"hear-q:{lesson.id}",
@@ -406,7 +414,7 @@ class Session:
                 min_chars=int(item.get("min_chars")
                               or cfg.get("min_chars", 30) or 30),
                 key=f"write:{lesson.id}",
-                note="用你自己的话说，不用跟原文一样",
+                note=_WRITE_NOTE.get(self.lang, _WRITE_NOTE["zh"]),
             )
         ]
 

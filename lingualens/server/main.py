@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import threading
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -26,6 +27,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import asr, progress
+from .access import AccessKey
 from .config import load_config, resolve_provider
 from .course import LANG_NAMES, native_label, normalize, supported
 from .courses import CourseNotReady, Registry
@@ -649,12 +651,16 @@ def main() -> None:
     args = parser.parse_args()
 
     cfg = load_config(args.config or default_config(args.lang or "zh"))
+    # cloud deployment (Cloud Run): progress lives on a mounted bucket
+    if os.getenv("LINGUALENS_STATE"):
+        cfg["storage"]["path"] = os.environ["LINGUALENS_STATE"]
     if args.lang:
         cfg["language"] = normalize(args.lang)
         cfg["language_name"] = LANG_NAMES.get(cfg["language"], cfg["language"])
 
     host = args.host or cfg["server"]["host"]
-    port = args.port or cfg["server"]["port"]
+    port = args.port or int(os.getenv("PORT") or 0) or cfg["server"]["port"]
+    access_key = os.getenv("LINGUALENS_KEY", "")
     provider = resolve_provider(cfg)
 
     registry = Registry(cfg)
@@ -674,7 +680,11 @@ def main() -> None:
     print(f"  glasses display        : http://127.0.0.1:{port}/")
     print(f"  phone companion        : http://127.0.0.1:{port}/phone")
 
-    uvicorn.run(build_app(cfg), host=host, port=port, log_level="info")
+    if access_key:
+        print("  access                 : key required (?key=... once, then a cookie)")
+    # proxy_headers: Cloud Run terminates TLS, so trust its X-Forwarded-Proto
+    uvicorn.run(AccessKey(build_app(cfg), access_key), host=host, port=port,
+                log_level="info", proxy_headers=True, forwarded_allow_ips="*")
 
 
 if __name__ == "__main__":
