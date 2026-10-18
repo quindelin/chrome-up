@@ -293,7 +293,7 @@ def t_es_course_shape():
     from server.course.es import readings as es_readings, grammar as es_grammar
     c = Course("es")
     assert [lv.code for lv in c.levels] == ["A1", "A2", "B1", "B2", "C1", "C2"], [lv.code for lv in c.levels]
-    assert len(c.lesson_ids) == 75 and c.lesson_ids == list(range(1, 76)), len(c.lesson_ids)
+    assert len(c.lesson_ids) == 76 and c.lesson_ids == list(range(1, 77)), len(c.lesson_ids)
     bad = []
     for lid in c.lesson_ids:
         l = c.lessons[lid]
@@ -372,13 +372,13 @@ def t_es_summaries_from_c1():
     """C1-C2 lessons end in a spoken summary; earlier bands never do."""
     from server.course.es import summaries
     c = Course("es")
-    assert sorted(summaries.SUMMARIES) == list(range(52, 76)), sorted(summaries.SUMMARIES)
+    assert sorted(summaries.SUMMARIES) == list(range(53, 77)), sorted(summaries.SUMMARIES)
     cfg = load_config("config.es.yaml")
-    for lid in (51, 52, 75):
+    for lid in (52, 53, 76):
         steps = Session(c, cfg, {"lesson_id": lid, "completed": [], "mastery": {},
                                  "words": {}, "stats": {}}).steps
         has = any(st.kind == "write" for st in steps)
-        assert has == (lid >= 52), (lid, has)
+        assert has == (lid >= 53), (lid, has)
 
 
 def t_es_summary_keywords_match_spoken_words():
@@ -386,7 +386,7 @@ def t_es_summary_keywords_match_spoken_words():
     from types import SimpleNamespace
     from server.free import grade_writing
     from server.course.es import summaries
-    item = summaries.get(53)
+    item = summaries.get(54)
     step = SimpleNamespace(text=item["prompt"], sample_text=item["sample"],
                            keywords=item["keywords"], min_chars=10)
     s = _score(item["sample"].lower().replace("á", "a"))

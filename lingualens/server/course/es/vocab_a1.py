@@ -1,13 +1,16 @@
 # -*- coding: utf-8 -*-
-"""CEFR A1 word bank: 90 words in six topics of fifteen.
+"""CEFR A1 word bank: 96 words in six topics (people has twenty-one).
 
 Sized to the lessons, on purpose. `Course.vocab_for_lesson` hands each lesson
 the next `vocab.inject_per_lesson` words of the band (6 in config.es.yaml),
-so 15 lessons x 6 = 90: walking A1 in order meets every word here exactly
+so 16 lessons x 6 = 96: walking A1 in order meets every word here exactly
 once inside a lesson, and the topic order follows the units - people for
 unit 1, places and numbers for unit 2, food and verbs for unit 3. The
 Japanese N5 bank is 341 words fed four at a time to 15 lessons; 60 of them
 are ever reached.
+
+People has six more than the other topics: lesson 5 (describing people)
+made A1 sixteen lessons, and those six are the words for looks.
 
 Nouns carry their article. A Spanish noun without el/la is half a word, and
 the drills never have to guess a gender.
@@ -37,6 +40,12 @@ TOPICS = [
             ("el compañero de trabajo", E, "colleague"),
             ("simpático / simpática", E, "nice, friendly"),
             ("joven", E, "young"),
+            ("rubio / rubia", E, "blond, fair-haired"),
+            ("moreno / morena", E, "dark-haired; tanned", "in Spain mostly hair, not skin"),
+            ("guapo / guapa", E, "good-looking", "Spain also uses it as a friendly 'love': ¡hola, guapa!"),
+            ("delgado / delgada", E, "slim, thin"),
+            ("las gafas", E, "glasses", "Latin America: los lentes / los anteojos"),
+            ("la barba", E, "beard"),
         ],
     },
     {

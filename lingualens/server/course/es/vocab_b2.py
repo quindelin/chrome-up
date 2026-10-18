@@ -3,7 +3,7 @@
 
 12 lessons x 10 (`vocab.inject_by_band[4]`) = 120. Unit 10 draws environment
 and politics, unit 11 business and formal correspondence, unit 12
-relationships and colloquial Spain - the register lesson 50 teaches.
+relationships and colloquial Spain - the register lesson 51 teaches.
 """
 E = ""
 

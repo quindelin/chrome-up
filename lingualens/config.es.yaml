@@ -1,7 +1,7 @@
 # ---------------------------------------------------------------------------
 # LinguaLens - Pimsleur-style Spanish coach for Meta Ray-Ban Display glasses.
 # Same engine as config.yaml, same gate, same UI - `language: es` swaps in the
-# CEFR A1 -> C2 course (75 lessons) and the es-ES speech engines.
+# CEFR A1 -> C2 course (76 lessons) and the es-ES speech engines.
 #
 #   ./run.sh es          # or: python -m server.main --config config.es.yaml
 # ---------------------------------------------------------------------------
@@ -91,7 +91,7 @@ listening:
 
 vocab:
   # The word bank (server/course/es/vocab_*.py), sized so that walking each
-  # band in order reaches every word once: A1 15 x 6 = 90, A2 12 x 8 = 96,
+  # band in order reaches every word once: A1 16 x 6 = 96, A2 12 x 8 = 96,
   # B1/B2 12 x 10 = 120, C1/C2 12 x 12 = 144. Change a number here and that
   # bank either wraps around or leaves words unreached.
   enabled: true
