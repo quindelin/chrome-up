@@ -635,7 +635,7 @@ def build_app(cfg: Dict) -> FastAPI:
 
 
 def default_config(lang: str) -> str:
-    return "config.ja.yaml" if normalize(lang) == "ja" else "config.yaml"
+    return {"ja": "config.ja.yaml", "es": "config.es.yaml"}.get(normalize(lang), "config.yaml")
 
 
 def main() -> None:

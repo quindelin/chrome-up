@@ -115,6 +115,41 @@ BASE_PATTERNS: Dict[str, List[DrillPattern]] = {
             ],
         ),
     ],
+    # Spanish authors patterns on every lesson, so these only cover a lesson
+    # that is still being written. The slot carries its own article: gender
+    # agreement is the learner's job in the authored frames, not here.
+    "es": [
+        DrillPattern(
+            "Quiero {x}, por favor.",
+            "",
+            "I'd like {x}, please.",
+            [
+                Phrase("un café", "", "a coffee"),
+                Phrase("un té", "", "a tea"),
+                Phrase("agua", "", "water"),
+            ],
+        ),
+        DrillPattern(
+            "¿Dónde está {x}?",
+            "",
+            "Where is {x}?",
+            [
+                Phrase("el baño", "", "the bathroom"),
+                Phrase("la estación", "", "the station"),
+                Phrase("el hotel", "", "the hotel"),
+            ],
+        ),
+        DrillPattern(
+            "¿Cuánto cuesta {x}?",
+            "",
+            "How much is {x}?",
+            [
+                Phrase("esto", "", "this"),
+                Phrase("el billete", "", "the ticket"),
+                Phrase("la camiseta", "", "the T-shirt"),
+            ],
+        ),
+    ],
 }
 
 
@@ -130,6 +165,9 @@ SLOT_KINDS = {
     "{x}はいくらですか": "object",
     "{x}が好きです": "object",
     "{x}に行きます": "place",
+    "Quiero {x}, por favor.": "es-order",
+    "¿Dónde está {x}?": "es-place",
+    "¿Cuánto cuesta {x}?": "es-thing",
 }
 for _patterns in BASE_PATTERNS.values():
     for _pattern in _patterns:

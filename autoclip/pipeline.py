@@ -527,15 +527,25 @@ class Pipeline:
                              transcript: Transcript) -> List[dict]:
         """Run the configured voice parser; publish + return events."""
         events = self.voice.parse(transcript, window_t=0.0)
-        # drop commands that have neither intent nor target — empty sentences
+        # The window spans 300 s but slides 60 s per cycle, so a command stays
+        # in view for ~5 cycles. Fire each one once: only commands spoken after
+        # the last one already handled (wall clock) go out.
+        mark = float(self.state.get("voice_mark", 0.0))
+        newest = mark
         out: List[dict] = []
         for ev in events:
             if not ev.intent or ev.intent == "unknown":
                 continue
+            spoken = window.start_wall + float(ev.window_t or 0.0)
+            if spoken <= mark + 0.5:
+                continue
+            newest = max(newest, spoken)
             # attach window timing metadata for the HUD
             ev.extra.setdefault("window_start_wall", window.start_wall)
             self.events.publish(ev)
             out.append(ev.to_dict())
+        if newest > mark:
+            self.state["voice_mark"] = newest
         return out
 
     def inject_command(self, text: str, intent: str = "", target: str = "",

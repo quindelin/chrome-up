@@ -17,7 +17,7 @@ import re
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from .course import LANG_NAMES, normalize
 
@@ -422,9 +422,59 @@ JA_PATTERNS = [
      "{x}までどのくらいかかりますか", "{x}までどのくらいかかりますか", "How long to {x}?"),
 ]
 
-LEXICON = {"zh": ZH_LEXICON, "ja": JA_LEXICON}
-PHRASES = {"zh": ZH_PHRASES, "ja": JA_PHRASES}
-PATTERNS = {"zh": ZH_PATTERNS, "ja": JA_PATTERNS}
+# Spanish: a small offline phrasebook. The reading slot is empty - Spanish
+# is spelled the way it sounds, so there is nothing to put above the line.
+ES_LEXICON: Dict[str, Tuple[str, str]] = {
+    "coffee": ("un café", ""), "tea": ("un té", ""), "water": ("agua", ""),
+    "beer": ("una cerveza", ""), "wine": ("vino", ""), "bread": ("pan", ""),
+    "bathroom": ("el baño", ""), "restroom": ("el baño", ""), "toilet": ("el baño", ""),
+    "station": ("la estación", ""), "train station": ("la estación de tren", ""),
+    "bus stop": ("la parada de autobús", ""), "airport": ("el aeropuerto", ""),
+    "hotel": ("el hotel", ""), "bank": ("el banco", ""), "pharmacy": ("la farmacia", ""),
+    "hospital": ("el hospital", ""), "market": ("el mercado", ""), "beach": ("la playa", ""),
+    "museum": ("el museo", ""), "restaurant": ("el restaurante", ""),
+    "ticket": ("el billete", ""), "menu": ("la carta", ""), "bill": ("la cuenta", ""),
+    "check": ("la cuenta", ""), "help": ("ayuda", ""), "taxi": ("un taxi", ""),
+    "this": ("esto", ""), "that": ("eso", ""),
+}
+ES_PHRASES: Dict[str, Tuple[str, str]] = {
+    "hello": ("Hola.", ""), "good morning": ("Buenos días.", ""),
+    "good afternoon": ("Buenas tardes.", ""), "good evening": ("Buenas noches.", ""),
+    "good night": ("Buenas noches.", ""), "goodbye": ("Adiós.", ""),
+    "see you later": ("Hasta luego.", ""), "see you tomorrow": ("Hasta mañana.", ""),
+    "thank you": ("Gracias.", ""), "thanks": ("Gracias.", ""),
+    "thank you very much": ("Muchas gracias.", ""), "you are welcome": ("De nada.", ""),
+    "please": ("Por favor.", ""), "excuse me": ("Perdón.", ""), "sorry": ("Lo siento.", ""),
+    "yes": ("Sí.", ""), "no": ("No.", ""), "ok": ("Vale.", ""), "okay": ("Vale.", ""),
+    "i do not understand": ("No entiendo.", ""), "i do not know": ("No sé.", ""),
+    "slowly please": ("Más despacio, por favor.", ""),
+    "more slowly please": ("Más despacio, por favor.", ""),
+    "again please": ("Otra vez, por favor.", ""), "one more time": ("Otra vez, por favor.", ""),
+    "do you speak english": ("¿Habla inglés?", ""),
+    "how are you": ("¿Qué tal?", ""), "i am fine": ("Estoy bien, gracias.", ""),
+    "what is your name": ("¿Cómo te llamas?", ""), "nice to meet you": ("Mucho gusto.", ""),
+    "how much is it": ("¿Cuánto cuesta?", ""), "the check please": ("La cuenta, por favor.", ""),
+    "the bill please": ("La cuenta, por favor.", ""), "cheers": ("¡Salud!", ""),
+    "i am hungry": ("Tengo hambre.", ""), "i am thirsty": ("Tengo sed.", ""),
+    "i am tired": ("Estoy cansado.", ""), "really": ("¿En serio?", ""),
+    "what time is it": ("¿Qué hora es?", ""),
+}
+ES_PATTERNS: List[Tuple[str, str, str, str]] = [
+    (r"^i (?:would like|want) (?:a |an |some )?(?P<x>.+)$",
+     "Quiero {x}, por favor.", "", "I'd like {x}, please."),
+    (r"^where is (?:the )?(?P<x>.+)$",
+     "¿Dónde está {x}?", "", "Where is {x}?"),
+    (r"^how much is (?:the )?(?P<x>.+)$",
+     "¿Cuánto cuesta {x}?", "", "How much is {x}?"),
+    (r"^i am looking for (?:the |a |an )?(?P<x>.+)$",
+     "Busco {x}.", "", "I'm looking for {x}."),
+    (r"^is there (?:a |an )?(?P<x>.+?)(?: near here| nearby)?$",
+     "¿Hay {x} por aquí?", "", "Is there {x} around here?"),
+]
+
+LEXICON = {"zh": ZH_LEXICON, "ja": JA_LEXICON, "es": ES_LEXICON}
+PHRASES = {"zh": ZH_PHRASES, "ja": JA_PHRASES, "es": ES_PHRASES}
+PATTERNS = {"zh": ZH_PATTERNS, "ja": JA_PATTERNS, "es": ES_PATTERNS}
 
 _FILLER = re.compile(r"^(?:the|a|an|some|my|your|please)\s+")
 
@@ -447,6 +497,17 @@ SYSTEM_PROMPT = {
         "Reply with JSON only: {\"text\": str in normal Japanese script, \"reading\": the "
         "same line in kana, \"literal\": short English gloss, \"tips\": one short "
         "pronunciation tip}."
+    ),
+    "es": (
+        "You are a Spanish coach inside a hands-free glasses app. Turn the user's English "
+        "thought into natural SPOKEN Spanish a beginner can repeat out loud.\n"
+        "Rules: CEFR A1-A2 vocabulary only; keep it short; drop subject pronouns the way "
+        "Spanish does; use tú unless the thought is clearly to a stranger or official, then "
+        "usted; get gender and number agreement right; neutral Latin American usage unless "
+        "the user writes Peninsular forms - produce what a waiter in Mexico City would say.\n"
+        "Reply with JSON only: {\"text\": str, \"reading\": \"\" (Spanish needs no "
+        "reading line), \"literal\": short English gloss, \"tips\": one short "
+        "pronunciation tip - stress, r/rr, the soft d, linking}."
     ),
 }
 

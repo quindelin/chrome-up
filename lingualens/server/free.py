@@ -70,6 +70,24 @@ _GRADER_SYSTEM = {
         "in English, \"better\": a corrected version in Japanese}. "
         "If it is acceptable, \"reason\" is empty and \"better\" is empty."
     ),
+    "es": (
+        "You are grading a spoken answer in Spanish for a language learner. "
+        "You are given the question and the learner's answer as transcribed by "
+        "speech recognition, so minor transcription errors (a missing accent, "
+        "a dropped article, ¿ or ¡) are not the learner's fault - judge the "
+        "language, not the ASR.\n"
+        "Decide: (a) does it actually answer the question, (b) is the grammar "
+        "acceptable Spanish - agreement of gender and number, the right person "
+        "on the verb, ser vs estar - and (c) is the register consistent: tú or "
+        "usted, whichever the question used. Latin American and Peninsular "
+        "usage are both correct; vosotros is fine, so is ustedes.\n"
+        "Be strict on agreement, verb person and actually answering the "
+        "question. Do not penalise a dropped subject pronoun - Spanish drops "
+        "them.\n"
+        "Reply with JSON only: {\"ok\": true|false, \"reason\": one short sentence "
+        "in English, \"better\": a corrected version in Spanish}. "
+        "If it is acceptable, \"reason\" is empty and \"better\" is empty."
+    ),
 }
 
 

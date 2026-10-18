@@ -64,13 +64,14 @@ function youSaidLabel() { return lang() === 'ja' ? 'あなたは' : '你说'; }
 const STEP_LABELS = {
   ja: { read: '読む', literacy: '漢字', hearing: '聞く', writing: '要約' },
   zh: { read: '读', literacy: '汉字', hearing: '听', writing: '缩写' },
+  es: { read: 'Leer', literacy: 'Letras', hearing: 'Escuchar', writing: 'Resumen' },
 };
 function readingLabel() { return (STEP_LABELS[lang()] || STEP_LABELS.zh).read; }
 function literacyLabel() { return (STEP_LABELS[lang()] || STEP_LABELS.zh).literacy; }
 function hearingLabel() { return (STEP_LABELS[lang()] || STEP_LABELS.zh).hearing; }
 function writingLabel() { return (STEP_LABELS[lang()] || STEP_LABELS.zh).writing; }
 function vocabLabel() {
-  return (state && state.config && state.config.vocab_label) || (lang() === 'ja' ? '単語' : '词汇');
+  return (state && state.config && state.config.vocab_label) || ({ ja: '単語', es: 'Vocabulario' }[lang()] || '词汇');
 }
 
 /* ---------- server calls ---------- */

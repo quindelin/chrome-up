@@ -10,7 +10,7 @@ Two extra content streams hang off each band:
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 from . import course as course_pkg
 from .models import (
@@ -54,11 +54,35 @@ def _strip(text: str) -> str:
     return _PUNCT.sub("", text or "")
 
 
+# Spanish glue: articles, clitics, the commonest prepositions, the copulas and
+# the courtesy words that open half the lines in the course. Stripped before
+# we ask "did you actually answer this question?" - the same job
+# _JA_FUNCTION_WORDS does for です/ます.
+_ES_FUNCTION_WORDS = set("""
+el la los las un una unos unas lo le les me te se nos os mi mis tu tus su sus
+de del a al en con por para sin y o u e ni que qué si sí no pero como cómo
+es son soy eres está están estoy estás hay ser estar muy más ya también
+yo tú usted ustedes él ella nosotros nosotras vosotros ellos ellas
+hola gracias por favor bueno buena vale pues entonces bien este esta eso esto
+""".split())
+_WORD = re.compile(r"[^\W\d_]+", re.UNICODE)
+
+
+def _words(text: str) -> List[str]:
+    """Lower-cased words of a space-delimited line, accents kept (sí ≠ si)."""
+    return _WORD.findall((text or "").casefold())
+
+
 def content_runs(text: str, lang: str = "zh", min_len: int = 2) -> List[str]:
     """Maximal runs of characters that carry meaning.
 
     zh: 你叫|什么|名字 -> [叫, 名字]   ja: 最近の仕事 -> [最近, 仕事]
     """
+    if course_pkg.is_spaced(lang):
+        # a word is already a "run"; min_len is in words' letters here
+        runs = [w for w in _words(text) if w not in _ES_FUNCTION_WORDS]
+        long_runs = [r for r in runs if len(r) >= 3]
+        return long_runs or runs
     s = _strip(text)
     if lang == "ja":
         runs = [p for p in _JA_FUNCTION_RE.split(s) if p]
@@ -79,7 +103,14 @@ def content_runs(text: str, lang: str = "zh", min_len: int = 2) -> List[str]:
 
 
 def content_chars(text: str, lang: str = "zh") -> set:
-    """The characters in a line that actually carry meaning."""
+    """The characters in a line that actually carry meaning.
+
+    For a space-delimited language this is the set of content *words*: letter
+    overlap between any two Spanish sentences is near total, so a character
+    set would call every answer on-topic.
+    """
+    if course_pkg.is_spaced(lang):
+        return {w for w in _words(text) if w not in _ES_FUNCTION_WORDS}
     s = _strip(text)
     if lang == "ja":
         return {ch for ch in _JA_FUNCTION_RE.sub("", s)}
@@ -88,6 +119,17 @@ def content_chars(text: str, lang: str = "zh") -> set:
 
 def derive_keywords(question: str, answer: str, vocab: List[Phrase], lang: str = "zh") -> List[str]:
     """Hints shown with the question, e.g. 最近 / 仕事. Not a hard gate."""
+    if course_pkg.is_spaced(lang):
+        q_words = set(_words(question))
+        hits = [v.text for v in vocab
+                if _words(v.text) and set(_words(v.text)) <= q_words
+                and not set(_words(v.text)) <= _ES_FUNCTION_WORDS]
+        runs = content_runs(question, lang) or content_runs(answer, lang)
+        out = []
+        for word in hits + sorted(runs, key=len, reverse=True):
+            if word and word not in out:
+                out.append(word)
+        return out[:3]
     q = _strip(question)
     hits = [v.text for v in vocab if len(v.text) >= 2 and v.text in q]
     runs = content_runs(q, lang) or content_runs(_strip(answer), lang)
@@ -138,9 +180,17 @@ class Course:
         # is *descending* band order. Getting this backwards is quiet and
         # destructive: it hands 山 to an N3 topic and deletes it from N5, so
         # the beginner never meets it at all.
+        #
+        # Which way is "easiest" is the course's call, not ours: JLPT counts
+        # down (N5 -> N1) while HSK and CEFR count up. LEVELS is authored
+        # easiest-first, so that order decides; bands with no level module
+        # yet fall in after it, in JLPT order for backward compatibility.
         seen_words: Dict[str, str] = {}
         self.duplicate_words: List[Tuple[str, str, str]] = []
-        for band in sorted(raw_vocab, reverse=True):
+        level_order = [int(lv["band"]) for lv in raw_levels]
+        band_order = [b for b in level_order if b in raw_vocab] + [
+            b for b in sorted(raw_vocab, reverse=True) if b not in level_order]
+        for band in band_order:
             for raw in raw_vocab.get(band, []):
                 for w in raw["words"]:
                     seen_words.setdefault(w[0], raw["id"])

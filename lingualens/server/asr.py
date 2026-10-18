@@ -175,7 +175,7 @@ def resolve(cfg: Dict) -> str:
         if want == "azure" and not azure_ready(cfg):
             return "mock"
         return want
-    order = ["azure", "iflytek"] if cfg.get("language") == "ja" else ["iflytek", "azure"]
+    order = ["iflytek", "azure"] if cfg.get("language") == "zh" else ["azure", "iflytek"]
     for name in order:
         if name == "iflytek" and iflytek_ready(cfg):
             return "iflytek"

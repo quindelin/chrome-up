@@ -16,7 +16,7 @@ import yaml
 from .course import DEFAULT_LANG, LANG_NAMES, normalize, supported
 
 DEFAULTS: Dict[str, Any] = {
-    "language": "zh",   # zh = Mandarin (HSK 1-6) | ja = Japanese (JLPT N5-N1)
+    "language": "zh",   # zh = Mandarin (HSK 1-6) | ja = Japanese (JLPT N5-N1) | es = Spanish (CEFR)
     # One server can teach several courses at once and keeps their progress
     # apart. Empty list = every course package that loads.
     "courses": {"enabled": [], "default": None},
@@ -273,6 +273,34 @@ LANG_DEFAULTS: Dict[str, Any] = {
         "reading": {"per_lesson": 1, "read_aloud": True, "comprehension": True},
         "storage": {"path": "state.ja.json"},
     },
+    "es": {
+        "pronunciation": {
+            "prefer": "azure",
+            # Latin American by default: it is what most learners in the
+            # Americas will hear. es-ES works the same way - set it in
+            # config.es.yaml (and the course accepts vosotros either way).
+            "language": "es-MX",
+            # iFlytek ISE has no Spanish evaluation. Without this, `auto`
+            # with Chinese keys in the environment scores Spanish as Chinese.
+            "iflytek": {"enabled": False},
+        },
+        # Spanish has no lexical tone; nothing reports one, so leave it off.
+        "gate": {"min_tone_score": 0.0},
+        "ui": {
+            # The line is already phonetic: there is no second script to fall
+            # back on, so the reading slot is used only for stress/linking
+            # hints on the odd hard line and is otherwise empty.
+            "reading_by_level": {1: "always", 2: "fade", 3: "reveal", 4: "never",
+                                 5: "never", 6: "never"},
+            "scene_by_level": {1: "always", 2: "always", 3: "first", 4: "first",
+                               5: "tip", 6: "tip"},
+            "vocab_label": "Vocabulario",
+        },
+        # ~12 letters/s in natural speech, vs ~3 kana/s
+        "audio": {"seconds_per_char": 0.075},
+        "reading": {"per_lesson": 1, "read_aloud": True, "comprehension": True},
+        "storage": {"path": "state.es.json"},
+    },
 }
 
 
@@ -355,6 +383,8 @@ def azure_ready(cfg: Dict[str, Any]) -> bool:
 
 def iflytek_ready(cfg: Dict[str, Any]) -> bool:
     ise = cfg["pronunciation"].get("iflytek") or {}
+    if ise.get("enabled") is False:  # e.g. Spanish: ISE cannot score it
+        return False
     return bool(ise.get("appid")) and bool(ise.get("apikey"))
 
 
@@ -390,7 +420,7 @@ def resolve_asr(cfg: Dict[str, Any]) -> str:
         if want == "azure" and not azure_ready(cfg):
             return "mock"
         return want
-    order = ["azure", "iflytek"] if cfg.get("language") == "ja" else ["iflytek", "azure"]
+    order = ["iflytek", "azure"] if cfg.get("language") == "zh" else ["azure", "iflytek"]
     for name in order:
         if name == "iflytek" and iflytek_ready(cfg):
             return "iflytek"

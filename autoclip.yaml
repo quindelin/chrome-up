@@ -103,6 +103,12 @@ live_streams:
       url: "rtmp://ingest.pscp.tv:80/x/"
       key: "${X_STREAM_KEY}"
       enabled: false
+    # Rumble: Live Stream setup shows a Stream URL + Stream Key per account,
+    # so both come from the environment (RUMBLE_URL, RUMBLE_STREAM_KEY).
+    - name: rumble
+      url: "${RUMBLE_URL}"
+      key: "${RUMBLE_STREAM_KEY}"
+      enabled: false
     # Add any RTMP target. Instagram / TikTok live need their own apps and do
     # not accept bare RTMP in all regions — see docs/LIVE_STREAMING.md.
     # - name: custom

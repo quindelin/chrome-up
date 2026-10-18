@@ -670,6 +670,55 @@ def t_obs_controller():
     assert "unbroadcast" in st["intents"]
     assert OBSController(FakeOBS(), {"enabled": False}).status()["enabled"] is False
 
+    # ---------------------------------------------------------- visibility allowlist
+    # "show lingualens" is OBS's; "show the compass" stays with the HUD
+    fake4 = FakeOBS()
+    fake4.responses["GetInputList"]["inputs"].append(
+        {"inputName": "LinguaLens", "inputKind": "browser_source"})
+    vis = OBSController(fake4, {"enabled": True, "intents": ["show", "hide", "toggle"],
+                                "visibility_sources": ["LinguaLens"],
+                                "aliases": {"lingua lens": "LinguaLens"}})
+    assert vis.show("lingua lens").ok
+    assert fake4.sent("SetSceneItemEnabled")[-1]["sceneItemEnabled"] is True
+    refused = vis.hide("compass")
+    assert not refused.ok and "not voice-controllable" in refused.message
+    assert not vis.toggle("compass").ok
+    assert len(fake4.sent("SetSceneItemEnabled")) == 1
+
+
+def t_voice_once_and_rumble():
+    """A command stays inside the sliding window for ~5 cycles: it must fire
+    once. Two commands with the same verb keep their own spoken times."""
+    from autoclip.buffer import Window
+    from autoclip.transcript import Transcript, Word
+    from autoclip.voice import RegexParser
+
+    words = [Word(1.0, 1.4, "show"), Word(1.4, 2.0, "lingualens."),
+             Word(40.0, 40.4, "show"), Word(40.4, 41.0, "map.")]
+    tr = Transcript(words=words, text="show lingualens. show map.")
+    evs = RegexParser().parse(tr)
+    assert [round(e.window_t) for e in evs] == [1, 40], [e.window_t for e in evs]
+
+    p = _bare_pipeline()
+    try:
+        w1 = Window(path=Path("a.mkv"), start_wall=1000.0, duration=300.0, source="t")
+        first = p._emit_voice_commands(w1, tr)
+        assert len(first) == 2
+        # next cycle: window slid 60 s, same words now 60 s earlier in it
+        tr2 = Transcript(words=[Word(w.t0 - 60, w.t1 - 60, w.text) for w in words[:2]]
+                         + [Word(200.0, 200.4, "hide"), Word(200.4, 201.0, "lingualens.")],
+                         text="show lingualens. hide lingualens.")
+        w2 = Window(path=Path("b.mkv"), start_wall=1060.0, duration=300.0, source="t")
+        again = p._emit_voice_commands(w2, tr2)
+        assert [e["intent"] for e in again] == ["hide"], again
+    finally:
+        p.shutdown()
+
+    rx = RegexParser()
+    one = lambda text: rx.parse(Transcript(words=[Word(0, 1, text.split()[0])], text=text))[0]
+    assert (one("start rumble.").intent, one("start rumble.").target) == ("stream", "rumble")
+    assert one("go live on rumble.").target == "rumble"
+
 
 def t_dispatcher_obs():
     """The dispatcher routes OBS intents to the controller and leaves
@@ -1098,6 +1147,7 @@ def main() -> int:
         ("dedupe across windows", t_dedupe_across_windows),
         ("retention keeps disk bounded", t_retention_keeps_disk_bounded),
         ("captions one file per clip", t_captions_one_file_per_clip),
+        ("voice fires once + rumble", t_voice_once_and_rumble),
     ]:
         check(name, fn)
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed")

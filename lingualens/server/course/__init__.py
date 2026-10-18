@@ -2,6 +2,7 @@
 
     server/course/zh/   Mandarin  - HSK 1 -> HSK 6
     server/course/ja/   Japanese  - JLPT N5 -> N1, plus an above-N1 band
+    server/course/es/   Spanish   - CEFR A1 -> (A2 … C1 being written)
 
 Each package exports the same four things, so everything above this line is
 language-agnostic:
@@ -25,7 +26,7 @@ from typing import Any, Dict, List, Tuple
 
 DEFAULT_LANG = "zh"
 
-LANG_NAMES = {"zh": "Mandarin", "ja": "Japanese"}
+LANG_NAMES = {"zh": "Mandarin", "ja": "Japanese", "es": "Spanish"}
 
 # discovered from the filesystem: a course is a package, not an entry in a list
 _LOADED: Dict[str, Any] = {}
@@ -33,7 +34,7 @@ _LOADED: Dict[str, Any] = {}
 
 def supported() -> List[str]:
     """Every course package that exists on disk, in a stable order."""
-    order = ["zh", "ja"]
+    order = ["zh", "ja", "es"]
     found = [m.name for m in pkgutil.iter_modules(__path__) if m.ispkg]
     return [k for k in order if k in found] + sorted(k for k in found if k not in order)
 
@@ -46,6 +47,8 @@ def normalize(lang: str) -> str:
     aliases = {
         "chinese": "zh", "zh-cn": "zh", "zh_cn": "zh", "mandarin": "zh", "cn": "zh",
         "japanese": "ja", "ja-jp": "ja", "ja_jp": "ja", "jp": "ja", "nihongo": "ja",
+        "spanish": "es", "es-mx": "es", "es-es": "es", "es_mx": "es", "es_es": "es",
+        "espanol": "es", "español": "es", "castellano": "es",
     }
     return aliases.get(key, DEFAULT_LANG)
 
@@ -63,6 +66,16 @@ def package_for(lang: str):
     _LOADED[key] = mod
     globals()[key] = mod
     return mod
+
+
+#: languages written with spaces between words. Every "which characters carry
+#: meaning" heuristic in the engine was built for 汉字 and かな, where one
+#: character is a unit of meaning; for these, a word is the unit instead.
+SPACED = {"es"}
+
+
+def is_spaced(lang: str) -> bool:
+    return normalize(lang) in SPACED
 
 
 def __getattr__(name: str):
@@ -112,18 +125,18 @@ def speech_lang(lang: str) -> str:
 
 
 def band_label(lang: str) -> str:
-    """What the menu calls a band: HSK / JLPT…"""
+    """What the menu calls a band: HSK / JLPT / CEFR…"""
     pkg = package_for(lang)
     label = getattr(pkg, "LABEL", None)
-    return {"zh": "HSK", "ja": "JLPT"}.get(normalize(lang), label or "Level")
+    return {"zh": "HSK", "ja": "JLPT", "es": "CEFR"}.get(normalize(lang), label or "Level")
 
 
 def native_label(lang: str) -> str:
-    """The course in its own language: 中文 / 日本語."""
-    return {"zh": "中文", "ja": "日本語"}.get(normalize(lang), LANG_NAMES.get(normalize(lang), lang))
+    """The course in its own language: 中文 / 日本語 / Español."""
+    return {"zh": "中文", "ja": "日本語", "es": "Español"}.get(normalize(lang), LANG_NAMES.get(normalize(lang), lang))
 
 
 __all__ = [
-    "DEFAULT_LANG", "LANG_NAMES", "supported", "normalize", "package_for", "module_for",
-    "course_data", "scenes", "speech_lang", "band_label", "native_label", "zh", "ja",
+    "DEFAULT_LANG", "LANG_NAMES", "SPACED", "is_spaced", "supported", "normalize", "package_for", "module_for",
+    "course_data", "scenes", "speech_lang", "band_label", "native_label", "zh", "ja", "es",
 ]

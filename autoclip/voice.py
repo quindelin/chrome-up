@@ -189,7 +189,7 @@ DEFAULT_PATTERNS: List[Dict[str, Any]] = [
     # "start streaming on twitch" / "start streaming to youtube"
     {"intent": "stream",   "re": r"^\s*start\s+streaming\s+(?:on|to|at)\s+(?P<target>.+?)\s*\.?\s*$"},
     # "start twitch" (implicit: start streaming on <platform>)
-    {"intent": "stream",   "re": r"^\s*start\s+(?P<target>twitch|youtube|kick|instagram|facebook|tiktok|x)\s*\.?\s*$"},
+    {"intent": "stream",   "re": r"^\s*start\s+(?P<target>twitch|youtube|kick|rumble|instagram|facebook|tiktok|x)\s*\.?\s*$"},
     # "stop all streams" / "stop all live" — also before the generic rule
     {"intent": "unstream", "re": r"^\s*stop\s+all\s+(?:streams|live)\s*\.?\s*$",
      "target_literal": "all"},
@@ -265,6 +265,9 @@ class RegexParser:
         # Slide the window so we attribute the event to the time the words
         # were actually spoken (midpoint of first..last word in the sentence).
         word_starts = {i: (w.t0, w.t1) for i, w in enumerate(transcript.words)}
+        # sentences come in order, so each one is searched for after the last
+        # one found; otherwise a second "show ..." got the first one's time
+        cursor = 0
 
         for sentence in sentences:
             for p, rx in self.compiled:
@@ -272,7 +275,9 @@ class RegexParser:
                 if not m:
                     continue
                 # try to locate the sentence inside the word list
-                first = self._first_word_of(sentence, transcript)
+                first = self._first_word_of(sentence, transcript, cursor)
+                if first is not None:
+                    cursor = first + 1
                 wt = (word_starts[first][0] + word_starts[first][1]) / 2 if first is not None else window_t
                 ev = self._emit(p, m, sentence, wt)
                 if ev.confidence >= self.min_confidence:
@@ -281,10 +286,12 @@ class RegexParser:
         return out
 
     @staticmethod
-    def _first_word_of(sentence: str, tr: Transcript) -> Optional[int]:
+    def _first_word_of(sentence: str, tr: Transcript, start: int = 0) -> Optional[int]:
         s = sentence.lower().strip(" .!?")
-        for i, w in enumerate(tr.words):
-            if w.text.lower().strip(" .!?,").startswith(s.split()[0][:4]):
+        if not s:
+            return None
+        for i in range(start, len(tr.words)):
+            if tr.words[i].text.lower().strip(" .!?,").startswith(s.split()[0][:4]):
                 return i
         return None
 

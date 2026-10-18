@@ -74,6 +74,10 @@ class OBSController:
         # NOTE: not `self.scene` — that would shadow the scene() method.
         self.pinned_scene = str(cfg.get("scene", "") or "")
         self.scene_allow = [normalize(s) for s in (cfg.get("scenes") or []) if s]
+        # show/hide/toggle only these sources ([] = any). Lets OBS own e.g.
+        # "show lingualens" while the HUD keeps "show the compass".
+        self.visibility_allow = [normalize(s) for s in
+                                 (cfg.get("visibility_sources") or []) if s]
         self.allow_dangerous = bool(cfg.get("allow_dangerous", False))
         self.aliases = {normalize(k): v for k, v in
                         (cfg.get("aliases") or {}).items()}
@@ -222,6 +226,9 @@ class OBSController:
         src = self.resolve_source(name)
         if src is None:
             return OBSResult(False, intent, name, f"no source matching '{name}'")
+        if not self._visibility_allowed(src):
+            return OBSResult(False, intent, src, f"'{src}' is not voice-controllable "
+                                                 f"(see obs.voice.visibility_sources)")
         scene = self.active_scene()
         item = self._item_id(scene, src)
         if item is None:
@@ -231,6 +238,9 @@ class OBSController:
         verb = "shown" if visible else "hidden"
         return OBSResult(ok, intent, src, f"{verb} '{src}'" if ok
                          else f"could not {intent} '{src}'")
+
+    def _visibility_allowed(self, src: str) -> bool:
+        return not self.visibility_allow or normalize(src) in self.visibility_allow
 
     def show(self, name: str) -> OBSResult:
         return self._visibility(name, True, "show")
@@ -245,6 +255,9 @@ class OBSController:
         src = self.resolve_source(name)
         if src is None:
             return OBSResult(False, "toggle", name, f"no source matching '{name}'")
+        if not self._visibility_allowed(src):
+            return OBSResult(False, "toggle", src, f"'{src}' is not voice-controllable "
+                                                   f"(see obs.voice.visibility_sources)")
         scene = self.active_scene()
         item = self._item_id(scene, src)
         if item is None:

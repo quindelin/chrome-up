@@ -72,8 +72,35 @@ def normalize_text(text: str) -> str:
     return _PUNCT.sub("", text)
 
 
+_LATIN_WORD = re.compile(r"[^\W\d_]+", re.UNICODE)
+
+
+def _spaced(text: str) -> bool:
+    """A line written with spaces between Latin-script words (Spanish)."""
+    letters = [ch for ch in text if ch.isalpha()]
+    return bool(letters) and " " in text.strip() and all(ord(ch) < 0x0370 for ch in letters)
+
+
 def coverage_of(reference: str, recognized: str) -> float:
-    """Fraction of reference characters that actually made it into the audio."""
+    """Fraction of reference characters that actually made it into the audio.
+
+    For a space-delimited line the unit is the word: any two Spanish
+    sentences share most of their letters, so letter coverage passes almost
+    anything. Accents are kept - dictation that writes "si" for "sí" missed
+    the word.
+    """
+    if _spaced(reference or ""):
+        ref_w = _LATIN_WORD.findall(unicodedata.normalize("NFC", reference).casefold())
+        rec_w = _LATIN_WORD.findall(unicodedata.normalize("NFC", recognized or "").casefold())
+        if not ref_w:
+            return 1.0
+        pool = list(rec_w)
+        hits = 0
+        for w in ref_w:
+            if w in pool:
+                pool.remove(w)
+                hits += 1
+        return hits / len(ref_w)
     ref = normalize_text(reference)
     rec = normalize_text(recognized)
     if not ref:

@@ -3,6 +3,7 @@
 #
 #   ./run.sh          Mandarin  (HSK 1-6)   config.yaml
 #   ./run.sh ja       Japanese  (JLPT N5-N1) config.ja.yaml
+#   ./run.sh es       Spanish   (CEFR A1-)   config.es.yaml
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -10,6 +11,7 @@ LANG_CODE="${1:-zh}"
 case "$LANG_CODE" in
   zh|chinese|mandarin) CONFIG="config.yaml";   shift || true ;;
   ja|japanese)         CONFIG="config.ja.yaml"; shift || true ;;
+  es|spanish)          CONFIG="config.es.yaml"; shift || true ;;
   *)                   CONFIG="config.yaml" ;;
 esac
 
