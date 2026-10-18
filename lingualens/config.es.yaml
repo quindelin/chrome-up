@@ -88,6 +88,8 @@ listening:
     listen: 1.0
     drill: 0.85
     slow: 0.6
+    natural: 1.1       # blind listening from B2: no slowing down
+  natural_bands: [4, 5, 6]   # B2, C1, C2
 
 vocab:
   # The word bank (server/course/es/vocab_*.py), sized so that walking each
@@ -108,7 +110,7 @@ writing:
 
 free:
   enabled: true
-  per_lesson: 2
+  per_lesson: 4           # composing, not reciting (audit priority 3)
   asr: auto               # auto | client | azure | mock
   require_relevance: true
   min_chars: 0

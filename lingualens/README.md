@@ -30,8 +30,15 @@ A lesson runs in this order:
 4. **Characters** — 汉字 (or kanji) as an object in its own right: you meet the
    character, then you have to recognise it (§3h).
 5. **Reading** — a real passage, read aloud, then a comprehension question (§3i).
-6. **Listening** — the same passage again with the screen blank (§3i).
+6. **Listening** — the whole passage again with the screen blank (§3i). From
+   B2 (HSK 4, N2) it plays at natural speed (`listening.rate.natural`) with a
+   rotating voice; bands are set per course in `listening.natural_bands`.
 7. **缩写** — from HSK 6: say the passage back, shorter (§3j).
+8. **The dialogue, blind** — once every one of your lines is mastered, the whole
+   conversation plays again with a blank screen, one voice per speaker.
+9. **Role-play** (`converse`) — an LLM plays the other speaker in the scene for
+   three turns and replies to what you actually said; each turn is graded like a
+   free answer. Uses the `think` model and key, and is left out with no key.
 
 Steps 4–7 are on for Mandarin from HSK 1 (characters, reading, listening) and
 HSK 6 (缩写); the Japanese course runs reading and listening from N5.
