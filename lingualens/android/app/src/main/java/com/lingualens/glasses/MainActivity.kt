@@ -57,7 +57,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        client = LessonClient(serverUrl, clientId)
+        client = LessonClient(serverUrl, clientId, BuildConfig.LINGUALENS_KEY)
         capture = AudioCapture(this)
         bridge = GlassesBridge(this)
 
@@ -87,7 +87,9 @@ class MainActivity : AppCompatActivity() {
             fun stopDisplay() = runOnUiThread { bridge.stopDisplay() }
         }, "LinguaLensGlasses")
 
-        web.loadUrl("$serverUrl/?client_id=$clientId")
+        // the key goes in once; the server answers with a cookie for the rest
+        val key = BuildConfig.LINGUALENS_KEY
+        web.loadUrl("$serverUrl/?client_id=$clientId" + if (key.isNotEmpty()) "&key=$key" else "")
 
         val needed = listOf(Manifest.permission.RECORD_AUDIO, Manifest.permission.BLUETOOTH_CONNECT)
             .filter { ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED }
@@ -148,7 +150,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     companion object {
-        // replace with your HTTPS host before shipping to the glasses
-        private const val DEFAULT_URL = "http://10.0.0.10:8899"
+        // set lingualens_url in android/local.properties (Cloud Run URL);
+        // the default reaches a server on the dev machine from the emulator
+        private val DEFAULT_URL = BuildConfig.LINGUALENS_URL
     }
 }

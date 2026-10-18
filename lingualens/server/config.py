@@ -276,10 +276,10 @@ LANG_DEFAULTS: Dict[str, Any] = {
     "es": {
         "pronunciation": {
             "prefer": "azure",
-            # Latin American by default: it is what most learners in the
-            # Americas will hear. es-ES works the same way - set it in
-            # config.es.yaml (and the course accepts vosotros either way).
-            "language": "es-MX",
+            # The course lines are Peninsular (billete, zumo, ¿qué le pongo?),
+            # so the scorer and the voice are too. es-MX scores the same
+            # lines fine - set it in config.es.yaml for a Latin American voice.
+            "language": "es-ES",
             # iFlytek ISE has no Spanish evaluation. Without this, `auto`
             # with Chinese keys in the environment scores Spanish as Chinese.
             "iflytek": {"enabled": False},

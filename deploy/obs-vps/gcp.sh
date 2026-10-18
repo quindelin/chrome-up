@@ -37,6 +37,12 @@ upload() {
   # tracked files only: no venvs, no local secrets, no extracted game audio
   git -C ../.. archive --format=tar.gz -o "$tgz" HEAD
   "${G[@]}" compute scp --zone "$ZONE" "$tgz" "$NAME:~/chrome_up.tgz"
+  # the LinguaLens panel's URL (Cloud Run, read-only stream view), if deployed
+  local ll
+  ll="$(../lingualens/deploy.sh url 2>/dev/null | sed -n 's/^ *OBS browser source *\(https[^ ]*\).*/\1/p' || true)"
+  if [ -n "$ll" ]; then
+    ssh_ "printf '%s' '$ll&view=stream' > ~/lingualens_url"
+  fi
   # sfx you extracted yourself are gitignored; ship them separately if present
   if compgen -G "../../overlay/assets/sfx/*.[wom]*" >/dev/null; then
     "${G[@]}" compute scp --zone "$ZONE" ../../overlay/assets/sfx/*.{wav,ogg,mp3} "$NAME:~/" 2>/dev/null || true

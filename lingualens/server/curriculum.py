@@ -60,17 +60,38 @@ def _strip(text: str) -> str:
 # _JA_FUNCTION_WORDS does for です/ます.
 _ES_FUNCTION_WORDS = set("""
 el la los las un una unos unas lo le les me te se nos os mi mis tu tus su sus
-de del a al en con por para sin y o u e ni que qué si sí no pero como cómo
-es son soy eres está están estoy estás hay ser estar muy más ya también
+de del a al en con por para sin y o u e ni que qué si sí no pero como
+hay muy más ya también
 yo tú usted ustedes él ella nosotros nosotras vosotros ellos ellas
 hola gracias por favor bueno buena vale pues entonces bien este esta eso esto
 """.split())
 _WORD = re.compile(r"[^\W\d_]+", re.UNICODE)
 
+# The verbs a question and its answer most often share in different persons:
+# "¿de dónde eres?" - "soy de Canadá". Mapped to one lemma so they meet;
+# everything else is cut to a three-letter stem (trabajas / trabajo -> tra).
+_ES_LEMMA = {}
+for _lemma, _forms in {
+    "ser": "soy eres es somos sois son era",
+    "estar": "estoy estás está estamos estáis están",
+    "ir": "voy vas va vamos vais van",
+    "tener": "tengo tienes tiene tenemos tenéis tienen",
+    "hacer": "hago haces hace hacemos hacéis hacen",
+}.items():
+    for _form in _forms.split():
+        _ES_LEMMA[_form] = _lemma
+
 
 def _words(text: str) -> List[str]:
-    """Lower-cased words of a space-delimited line, accents kept (sí ≠ si)."""
+    """Lower-cased words of a space-delimited line, accents kept for display."""
     return _WORD.findall((text or "").casefold())
+
+
+def _stem(word: str) -> str:
+    from .pronunciation import _fold  # accents are the transcriber's, not yours
+    if word in _ES_LEMMA:
+        return _ES_LEMMA[word]
+    return _fold(word)[:3]
 
 
 def content_runs(text: str, lang: str = "zh", min_len: int = 2) -> List[str]:
@@ -110,7 +131,7 @@ def content_chars(text: str, lang: str = "zh") -> set:
     set would call every answer on-topic.
     """
     if course_pkg.is_spaced(lang):
-        return {w for w in _words(text) if w not in _ES_FUNCTION_WORDS}
+        return {_stem(w) for w in _words(text) if w not in _ES_FUNCTION_WORDS}
     s = _strip(text)
     if lang == "ja":
         return {ch for ch in _JA_FUNCTION_RE.sub("", s)}
@@ -121,7 +142,7 @@ def derive_keywords(question: str, answer: str, vocab: List[Phrase], lang: str =
     """Hints shown with the question, e.g. 最近 / 仕事. Not a hard gate."""
     if course_pkg.is_spaced(lang):
         q_words = set(_words(question))
-        hits = [v.text for v in vocab
+        hits = [" ".join(_words(v.text)) for v in vocab
                 if _words(v.text) and set(_words(v.text)) <= q_words
                 and not set(_words(v.text)) <= _ES_FUNCTION_WORDS]
         runs = content_runs(question, lang) or content_runs(answer, lang)

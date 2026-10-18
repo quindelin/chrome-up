@@ -1,50 +1,50 @@
 {
-  "player_level": 1544,
+  "player_level": 1562,
   "skills": {
     "speech": {
-      "level": 3442,
-      "xp": 37.653,
-      "total": 344137.653
+      "level": 3480,
+      "xp": 54.63,
+      "total": 347954.63
     },
     "speechcraft": {
-      "level": 1252,
-      "xp": 30.056,
-      "total": 125130.056
+      "level": 1271,
+      "xp": 13.013,
+      "total": 127013.013
     },
     "rizz": {
-      "level": 1646,
-      "xp": 26.101,
-      "total": 164526.101
+      "level": 1663,
+      "xp": 16.59,
+      "total": 166216.59
     },
     "agility": {
-      "level": 1387,
-      "xp": 66.986,
-      "total": 138666.986
+      "level": 1400,
+      "xp": 27.595,
+      "total": 139927.595
     },
     "sneak": {
-      "level": 1187,
-      "xp": 29.32,
-      "total": 118629.32
+      "level": 1202,
+      "xp": 51.66,
+      "total": 120151.66
     },
     "exploration": {
-      "level": 2494,
-      "xp": 30.0,
-      "total": 249330.0
+      "level": 2530,
+      "xp": 60.0,
+      "total": 252960.0
     },
     "bard": {
-      "level": 1895,
-      "xp": 38.397,
-      "total": 189438.397
+      "level": 1916,
+      "xp": 64.712,
+      "total": 191564.712
     },
     "strength": {
-      "level": 917,
-      "xp": 58.297,
-      "total": 91658.297
+      "level": 926,
+      "xp": 66.573,
+      "total": 92566.573
     },
     "combat": {
-      "level": 1224,
-      "xp": 94.312,
-      "total": 122394.312
+      "level": 1235,
+      "xp": 45.835,
+      "total": 123445.835
     },
     "intelligence": {
       "level": 1,

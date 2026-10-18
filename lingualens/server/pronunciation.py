@@ -75,6 +75,13 @@ def normalize_text(text: str) -> str:
 _LATIN_WORD = re.compile(r"[^\W\d_]+", re.UNICODE)
 
 
+def _fold(text: str) -> str:
+    """casefold + drop accents, keeping ñ (año and ano are different words)."""
+    text = unicodedata.normalize("NFD", (text or "").casefold().replace("ñ", "\x00"))
+    text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
+    return unicodedata.normalize("NFC", text).replace("\x00", "ñ")
+
+
 def _spaced(text: str) -> bool:
     """A line written with spaces between Latin-script words (Spanish)."""
     letters = [ch for ch in text if ch.isalpha()]
@@ -86,12 +93,12 @@ def coverage_of(reference: str, recognized: str) -> float:
 
     For a space-delimited line the unit is the word: any two Spanish
     sentences share most of their letters, so letter coverage passes almost
-    anything. Accents are kept - dictation that writes "si" for "sí" missed
-    the word.
+    anything. Accents are folded (ñ is kept): dictation that writes "si" for
+    "sí" is the transcriber's spelling, not the learner's pronunciation.
     """
     if _spaced(reference or ""):
-        ref_w = _LATIN_WORD.findall(unicodedata.normalize("NFC", reference).casefold())
-        rec_w = _LATIN_WORD.findall(unicodedata.normalize("NFC", recognized or "").casefold())
+        ref_w = _LATIN_WORD.findall(_fold(reference))
+        rec_w = _LATIN_WORD.findall(_fold(recognized or ""))
         if not ref_w:
             return 1.0
         pool = list(rec_w)

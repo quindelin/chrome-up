@@ -1,0 +1,132 @@
+# ---------------------------------------------------------------------------
+# LinguaLens - Pimsleur-style Spanish coach for Meta Ray-Ban Display glasses.
+# Same engine as config.yaml, same gate, same UI - `language: es` swaps in the
+# CEFR course (A1 written so far) and the es-ES speech engines.
+#
+#   ./run.sh es          # or: python -m server.main --config config.es.yaml
+# ---------------------------------------------------------------------------
+
+language: es              # es = Spanish (CEFR A1; A2-C1 being written)
+
+server:
+  host: 0.0.0.0
+  port: 8899          # glasses/phone UI: http://<your-ip>:8899/
+
+pronunciation:
+  # auto    -> picks the first configured engine (see `prefer`)
+  # azure   -> Azure AI Speech es-ES (or es-MX): accuracy / fluency /
+  #            completeness, plus word-level error types. The one to use.
+  # iflytek -> not available: ISE has no Spanish evaluation, so the Spanish
+  #            course never picks it even when IFLYTEK_* keys are set.
+  # mock    -> offline scorer for development (no key needed)
+  provider: auto
+  prefer: azure
+  language: es-ES        # es-MX for a Latin American voice and scorer
+  region: null           # e.g. westeurope / eastus. Or set AZURE_SPEECH_REGION.
+  key_env: AZURE_SPEECH_KEY
+  region_env: AZURE_SPEECH_REGION
+  enable_miscue: true    # azure: detects omitted / mispronounced words
+  granularity: phoneme
+  phoneme_nbest: 0
+  iflytek:
+    enabled: false       # no Spanish ISE
+
+gate:
+  # The A1 floor. Each unit tightens it (62 -> 66 across A1).
+  min_pron_score: 60.0
+  min_accuracy: 60.0
+  min_completeness: 75.0
+  # Spanish has no lexical tone. Stress is scored inside accuracy.
+  min_tone_score: 0.0
+  min_phone_score: 0.0
+  require_recognized_match: true
+  min_reference_coverage: 0.75   # word-level for Spanish, not letter-level
+  max_attempts: 0             # 0 = never auto-advance. Retry until correct.
+  reveal_after_attempts: 2    # after N failures, show the English help
+  slow_replay_after_attempts: 2
+
+think:
+  # English thought -> Spanish. auto = LLM if OPENAI_API_KEY is set, else the
+  # built-in offline Spanish phrasebook (~45 phrases + a pattern matcher).
+  provider: auto
+  base_url: https://api.openai.com/v1
+  model: gpt-4o-mini
+  api_key_env: OPENAI_API_KEY
+  timeout: 12
+
+audio:
+  target_sample_rate: 16000
+  min_seconds: 0.4
+  max_seconds: 15.0
+  noise_gate_rms: 0.005
+  seconds_per_char: 0.075   # ~12-14 letters a second in natural speech
+
+recall:
+  intervals: [10, 30, 75]
+  rounds: 3
+  anticipation_seconds: 5
+
+drills:
+  enabled: true
+  per_pattern: 3
+  rounds: 1
+
+# One graded passage per lesson (server/course/es/readings.py), read aloud,
+# then a question; the last line is replayed blind for listening.
+reading:
+  enabled: true
+  per_lesson: 1
+  read_aloud: true
+  comprehension: true
+
+listening:
+  enabled: true
+  rotate_voices: true
+  vary_pitch: true
+  rate:
+    model: 0.95
+    listen: 1.0
+    drill: 0.85
+    slow: 0.6
+
+vocab:
+  # The word bank (server/course/es/vocab_a1.py): 90 A1 words, sized so that
+  # 15 lessons x 6 reaches every one of them. Raise this and the bank wraps
+  # around; lower it and words go unreached.
+  enabled: true
+  inject_per_lesson: 6
+  recall_rounds: 2
+
+free:
+  enabled: true
+  per_lesson: 2
+  asr: auto               # auto | client | azure | mock
+  require_relevance: true
+  min_chars: 0
+  gate_relief: 6.0
+
+storage:
+  path: state.es.json
+
+ui:
+  show_english_default: false
+  display_size: 600
+  vocab_label: Vocabulario
+  # Spanish needs no reading line: the reading slot is empty in the course
+  # data, so this ladder only matters for lines an author gives a hint.
+  reading_mode: auto
+  reading_by_level:
+    1: always   # A1
+    2: fade     # A2
+    3: reveal   # B1
+    4: never    # B2
+    5: never    # C1
+  # The English scene before each conversation also tells you tú or usted.
+  scene_mode: auto
+  scene_by_level:
+    1: always   # A1
+    2: always   # A2
+    3: first    # B1
+    4: first    # B2
+    5: tip      # C1
+  scene_seconds: 6

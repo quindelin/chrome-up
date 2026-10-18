@@ -51,6 +51,15 @@ YOUTUBE_STREAM_KEY=
 KICK_STREAM_KEY=
 ENV
 fi
+# LinguaLens panel on stream: gcp.sh drops the Cloud Run link in ~/lingualens_url
+grep -q '^LINGUALENS_URL=' .env || echo 'LINGUALENS_URL=' >> .env
+if [ -s "$HOME/lingualens_url" ]; then
+  # escape sed's specials: the link is full of '&', which means "the match"
+  LL="$(sed 's/[&|\\]/\\&/g' "$HOME/lingualens_url")"
+  sed -i "s|^LINGUALENS_URL=.*|LINGUALENS_URL='${LL}'|" .env
+fi
+grep -q '^RUMBLE_URL=' .env || printf 'RUMBLE_URL=\nRUMBLE_STREAM_KEY=\n' >> .env
+
 # the IP is ephemeral: point the HTTPS hostname at whatever we got this boot
 sed -i "s/^DOMAIN=.*/DOMAIN=${IP//./-}.sslip.io/" .env
 set -a; . ./.env; set +a

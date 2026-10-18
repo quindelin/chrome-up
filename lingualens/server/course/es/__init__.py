@@ -17,6 +17,10 @@ from lesson 1:
     back in new frames (the Japanese N5/N4 lessons have none)
   * the learner, not the other speaker, says the lesson's target structure
   * tú and usted are both taught and both produced - register is not deferred
+  * one variety, stated: the lines are Peninsular (Spain) Spanish, and where
+    Latin America says it differently the vocab note says so (billete /
+    boleto, zumo / jugo, recto / derecho). Mixing them line to line is what
+    a teacher would mark down first.
   * the word bank is sized to what the lessons actually inject, so walking the
     band in order reaches every word (Japanese reaches ~7% of its bank)
 """
@@ -51,7 +55,7 @@ SCENES = getattr(scenes, "SCENES", {}) if scenes else {}
 
 LABEL = "CEFR"
 BAND_NAME = "cefr"
-SPEECH_LANG = "es-MX"   # TTS + dictation. es-ES works the same way.
+SPEECH_LANG = "es-ES"   # TTS + dictation. The course is Peninsular; es-MX works too.
 
 __all__ = ["LEVELS", "VOCAB", "PROMPTS", "SCENES", "LABEL", "BAND_NAME", "SPEECH_LANG",
            "freeform", "scenes"]

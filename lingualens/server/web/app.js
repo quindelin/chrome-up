@@ -22,6 +22,10 @@ const IS_PHONE = document.body.dataset.page === 'phone';
 // from the native wrapper's WebView (which plays through the glasses
 // speakers over Bluetooth). On the glasses the page only shows.
 const AUDIO_HOST = IS_PHONE || !!window.LinguaLensHaptics;
+// ?view=stream: the copy OBS shows on stream. Read-only (never advances the
+// lesson, never speaks) and drawn as a translucent panel instead of black.
+const STREAM_VIEW = params.get('view') === 'stream';
+if (STREAM_VIEW) document.body.classList.add('stream');
 
 let state = null;
 let course = null;
@@ -877,6 +881,7 @@ function startCountdown(seconds, node) {
 }
 
 async function maybeAdvance() {
+  if (STREAM_VIEW) return;
   const s = state.step;
   // Steps you do not speak move on by themselves or on a press. The server
   // refuses to skip anything gated, so asking is always safe here.
@@ -1086,6 +1091,7 @@ function buildLessonPicker() {
 function boot() {
   connect();
   loadCourse();
+  if (STREAM_VIEW) return;      // display only: no keys, no clicks
 
   document.addEventListener('keydown', (e) => {
     if (menu.open) {

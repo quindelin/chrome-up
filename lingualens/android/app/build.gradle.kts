@@ -27,13 +27,20 @@ android {
         versionCode = 1
         versionName = "0.1.0"
 
+        // LinguaLens server: the Cloud Run URL + key printed by
+        // deploy/lingualens/deploy.sh url (local.properties, never committed)
+        buildConfigField("String", "LINGUALENS_URL",
+            "\"${localProperties.getProperty("lingualens_url", "http://10.0.2.2:8899")}\"")
+        buildConfigField("String", "LINGUALENS_KEY",
+            "\"${localProperties.getProperty("lingualens_key", "")}\"")
+
         manifestPlaceholders["mwdat_application_id"] =
             localProperties.getProperty("mwdat_application_id", "0")
         manifestPlaceholders["mwdat_client_token"] =
             localProperties.getProperty("mwdat_client_token", "0")
     }
 
-    buildFeatures { viewBinding = true }
+    buildFeatures { viewBinding = true; buildConfig = true }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17

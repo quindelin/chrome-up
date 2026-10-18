@@ -29,7 +29,7 @@ print(next((e.get("value", "") for e in env if e.get("name") == "LINGUALENS_KEY"
 links() {
   local url key
   url="$("${G[@]}" run services describe "$SERVICE" --region "$REGION" --format='value(status.url)')"
-  key="$(current_key)"
+  key="$(current_key || true)"
   cat <<TXT
 
   phone (talk here)    $url/phone?key=$key&client_id=me
@@ -54,7 +54,7 @@ SA="$("${G[@]}" projects describe "$PROJECT" --format='value(projectNumber)')-co
 "${G[@]}" storage buckets add-iam-policy-binding "gs://$BUCKET" \
   --member "serviceAccount:$SA" --role roles/storage.objectUser >/dev/null
 
-KEY="$(current_key)"
+KEY="$(current_key || true)"
 [ -n "$KEY" ] || KEY="$(openssl rand -hex 12)"
 
 "${G[@]}" run deploy "$SERVICE" --source ../../lingualens --region "$REGION" \

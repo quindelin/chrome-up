@@ -2,26 +2,98 @@
   "name": "IRL",
   "current_scene": "IRL",
   "current_program_scene": "IRL",
-  "scene_order": [{"name": "IRL"}],
+  "scene_order": [
+    {
+      "name": "IRL"
+    }
+  ],
   "transitions": [],
   "sources": [
     {
-      "id": "scene", "versioned_id": "scene", "name": "IRL",
+      "id": "scene",
+      "versioned_id": "scene",
+      "name": "IRL",
       "uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0001",
       "settings": {
-        "id_counter": 2, "custom_size": false,
+        "id_counter": 3,
+        "custom_size": false,
         "items": [
-          {"name": "Glasses", "source_uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0002", "id": 1, "visible": true, "locked": false,
-           "pos": {"x": 0.0, "y": 0.0}, "rot": 0.0, "scale": {"x": 1.0, "y": 1.0}, "align": 5,
-           "bounds_type": 2, "bounds_align": 0, "bounds": {"x": 1920.0, "y": 1080.0}},
-          {"name": "Skyrim HUD", "source_uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0003", "id": 2, "visible": true, "locked": false,
-           "pos": {"x": 0.0, "y": 0.0}, "rot": 0.0, "scale": {"x": 1.0, "y": 1.0}, "align": 5,
-           "bounds_type": 0, "bounds_align": 0, "bounds": {"x": 0.0, "y": 0.0}}
+          {
+            "name": "Glasses",
+            "source_uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0002",
+            "id": 1,
+            "visible": true,
+            "locked": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "rot": 0.0,
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "align": 5,
+            "bounds_type": 2,
+            "bounds_align": 0,
+            "bounds": {
+              "x": 1920.0,
+              "y": 1080.0
+            }
+          },
+          {
+            "name": "Skyrim HUD",
+            "source_uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0003",
+            "id": 2,
+            "visible": true,
+            "locked": false,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "rot": 0.0,
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            }
+          },
+          {
+            "name": "LinguaLens",
+            "source_uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0004",
+            "id": 3,
+            "visible": false,
+            "locked": false,
+            "pos": {
+              "x": 1460.0,
+              "y": 110.0
+            },
+            "rot": 0.0,
+            "scale": {
+              "x": 0.68,
+              "y": 0.68
+            },
+            "align": 5,
+            "bounds_type": 0,
+            "bounds_align": 0,
+            "bounds": {
+              "x": 0.0,
+              "y": 0.0
+            }
+          }
         ]
       }
     },
     {
-      "id": "ffmpeg_source", "versioned_id": "ffmpeg_source", "name": "Glasses",
+      "id": "ffmpeg_source",
+      "versioned_id": "ffmpeg_source",
+      "name": "Glasses",
       "uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0002",
       "settings": {
         "is_local_file": false,
@@ -36,12 +108,33 @@
       }
     },
     {
-      "id": "browser_source", "versioned_id": "browser_source", "name": "Skyrim HUD",
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "name": "Skyrim HUD",
       "uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0003",
       "settings": {
         "url": "http://127.0.0.1:8787/overlay/index.html",
-        "width": 1920, "height": 1080, "fps": 30,
-        "reroute_audio": true, "shutdown": false, "restart_when_active": false
+        "width": 1920,
+        "height": 1080,
+        "fps": 30,
+        "reroute_audio": true,
+        "shutdown": false,
+        "restart_when_active": false
+      }
+    },
+    {
+      "id": "browser_source",
+      "versioned_id": "browser_source",
+      "name": "LinguaLens",
+      "uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0004",
+      "settings": {
+        "url": "${LINGUALENS_URL}",
+        "width": 600,
+        "height": 600,
+        "fps": 30,
+        "reroute_audio": true,
+        "shutdown": false,
+        "restart_when_active": false
       }
     }
   ]

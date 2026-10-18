@@ -4,7 +4,7 @@ set -euo pipefail
 CFG="$HOME/.config/obs-studio"
 if [ ! -f "$CFG/.seeded" ]; then
   mkdir -p "$CFG/basic/profiles/IRL" "$CFG/basic/scenes" "$CFG/plugin_config/obs-websocket"
-  export STREAM_KEY SRT_PASSPHRASE OBS_WS_PASSWORD OUT_SERVER OUT_KEY
+  export STREAM_KEY SRT_PASSPHRASE OBS_WS_PASSWORD OUT_SERVER OUT_KEY LINGUALENS_URL
   for f in global.ini; do envsubst < /opt/obs-seed/$f > "$CFG/$f"; cp "$CFG/$f" "$CFG/user.ini"; done
   envsubst < /opt/obs-seed/basic.ini    > "$CFG/basic/profiles/IRL/basic.ini"
   envsubst < /opt/obs-seed/IRL.json     > "$CFG/basic/scenes/IRL.json"

@@ -14,10 +14,17 @@ import java.util.concurrent.TimeUnit
  */
 class LessonClient(
     private val baseUrl: String,
-    private val clientId: String
+    private val clientId: String,
+    private val accessKey: String = "",
 ) {
     private val http = OkHttpClient.Builder()
         .callTimeout(60, TimeUnit.SECONDS)
+        // the cloud server's shared key (server/access.py)
+        .addInterceptor { chain ->
+            val req = chain.request()
+            chain.proceed(if (accessKey.isEmpty()) req
+                          else req.newBuilder().header("X-LinguaLens-Key", accessKey).build())
+        }
         .build()
 
     fun state(): JSONObject = get("/api/state")
