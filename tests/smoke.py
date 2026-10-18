@@ -714,6 +714,15 @@ def t_voice_once_and_rumble():
     finally:
         p.shutdown()
 
+    # typed/hotkey commands go through the same grammar as speech
+    p3 = _bare_pipeline()
+    try:
+        ev = p3.inject_command("show lingua lens")
+        assert (ev.intent, ev.target) == ("show", "lingua lens"), ev
+        assert p3.inject_command("hello there").intent == "manual"
+    finally:
+        p3.shutdown()
+
     rx = RegexParser()
     one = lambda text: rx.parse(Transcript(words=[Word(0, 1, text.split()[0])], text=text))[0]
     assert (one("start rumble.").intent, one("start rumble.").target) == ("stream", "rumble")
