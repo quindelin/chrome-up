@@ -234,7 +234,7 @@ UNIT_1 = {
             ],
             "patterns": [
                 {"text": "Trabajo en {x}.", "reading": E, "en": "I work in {x}.",
-                 "kind": "es-workplace",
+                 "kind": "es-indef-place",
                  "values": [("un hotel", E, "a hotel"), ("una oficina", E, "an office"),
                             ("un hospital", E, "a hospital"), ("una escuela", E, "a school")]},
                 {"text": "¿Cómo {x}?", "reading": E, "en": "How are you? ({x})",

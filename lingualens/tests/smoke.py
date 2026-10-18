@@ -284,6 +284,84 @@ def t_next_ignores_a_stale_step_index():
     assert sess.pos == at + 1
 
 
+# --------------------------------------------------------------- 4 Spanish
+# The first space-delimited course. Every heuristic above was built for 汉字
+# and かな, so these check the places where "one character = one unit of
+# meaning" would quietly be wrong for Spanish.
+def t_es_course_shape():
+    """Every A1 lesson carries what the audit says the Japanese N5 lacks."""
+    from server.course.es import readings as es_readings, grammar as es_grammar
+    c = Course("es")
+    assert len(c.lesson_ids) == 15, len(c.lesson_ids)
+    bad = []
+    for lid in c.lesson_ids:
+        l = c.lessons[lid]
+        if len(l.patterns) < 2 or any(not p.kind for p in l.patterns):
+            bad.append(f"L{lid}: needs 2+ patterns, all with a kind")
+        if sum(1 for t in l.dialogue if t.speaker == "you") < 3:
+            bad.append(f"L{lid}: fewer than 3 learner lines")
+        if len(l.prompts) < 2 or not l.scene or not es_grammar.for_lesson(lid):
+            bad.append(f"L{lid}: missing prompts / scene / grammar page")
+        if len(es_readings.get(lid).get("questions") or []) < 2:
+            bad.append(f"L{lid}: passage needs a read and a hear question")
+    assert not bad, bad[:5]
+    assert not es_readings.check(), es_readings.check()[:3]
+
+
+def t_es_bank_fully_reached():
+    """15 lessons x inject_per_lesson must meet every bank word, once."""
+    c = Course("es")
+    per = int(load_config("config.es.yaml")["vocab"]["inject_per_lesson"])
+    met = [w.text for l in c.lessons_of_band(1) for w in c.vocab_for_lesson(l, per)]
+    assert len(set(met)) == c.vocab_count() == len(met), (len(set(met)), c.vocab_count(), len(met))
+    lesson_words = {v.text for l in c.lessons.values() for v in l.vocab}
+    overlap = [w for w in met if w in lesson_words]
+    assert not overlap, overlap[:5]
+
+
+def t_es_drills_never_fall_back_to_mandarin():
+    c = Course("es")
+    from server import drills
+    for lid in c.lesson_ids:
+        for p in drills.generate(c.lessons[lid], load_config("config.es.yaml"), "es"):
+            assert not any("一" <= ch <= "鿿" for ch in p.text), (lid, p.text)
+    assert drills.base_patterns("es")[0].text.startswith("Quiero")
+
+
+def t_es_matching_is_word_level():
+    """Letter overlap between any two Spanish lines is near total."""
+    from server.curriculum import content_chars
+    from server.pronunciation import coverage_of
+    assert coverage_of("Me llamo Sam.", "me gusta el pan") < 0.5
+    assert coverage_of("Sí, gracias.", "si gracias") == 1.0      # ASR dropped accents
+    assert content_chars("¿De dónde eres?", "es") & content_chars("Soy de Canadá.", "es")
+    assert not content_chars("¿De dónde eres?", "es") & content_chars("Me gusta el café.", "es")
+
+
+def t_es_never_scored_by_iflytek():
+    """ISE has no Spanish: Chinese keys in the env must not route Spanish to it."""
+    import os
+    from server.config import course_config, resolve_provider
+    old = {k: os.environ.get(k) for k in ("IFLYTEK_APPID", "IFLYTEK_API_KEY")}
+    os.environ.update(IFLYTEK_APPID="x", IFLYTEK_API_KEY="y")
+    try:
+        cfg = load_config("config.yaml")
+        assert resolve_provider(course_config(cfg, "es")) != "iflytek"
+        assert resolve_provider(course_config(cfg, "zh")) == "iflytek"
+    finally:
+        for k, v in old.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+
+
+def t_es_session_every_lesson():
+    for lid in Course("es").lesson_ids:
+        st = _session("es", lid).state()
+        assert isinstance(st, dict) and st.get("grammar"), f"es L{lid}"
+
+
 def main() -> int:
     for name, fn in sorted(globals().items()):
         if name.startswith("t_"):

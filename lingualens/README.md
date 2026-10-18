@@ -5,18 +5,18 @@ say sits in front of your eyes with its reading above it (pinyin for Mandarin, k
 Japanese), audio models it for you, and **you do not move to the next line until your
 pronunciation passes** — tones included.
 
-**Two courses ship in one app.** `./run.sh` is Mandarin, `./run.sh ja` is Japanese. Same
+**Three courses ship in one app.** `./run.sh` is Mandarin, `./run.sh ja` is Japanese, `./run.sh es` is Spanish (CEFR A1 so far). Same
 server, same gate, same glasses UI — only the course data, the speech locale and the
 scoring engine change.
 
-| | Mandarin | Japanese |
-|---|---|---|
-| ladder | HSK 1 → HSK 7‑9 | JLPT N5 → N1, plus an above‑N1 band |
-| config | `config.yaml` | `config.ja.yaml` |
-| course data | `server/course/zh/` | `server/course/ja/` |
-| speech locale | `zh-CN` | `ja-JP` |
-| default scorer | iFlytek ISE (**tone aware**) | Azure AI Speech |
-| reading line | pinyin | kana (furigana) |
+| | Mandarin | Japanese | Spanish |
+|---|---|---|---|
+| ladder | HSK 1 → HSK 7‑9 | JLPT N5 → N1, plus an above‑N1 band | CEFR A1 (A2+ not written) |
+| config | `config.yaml` | `config.ja.yaml` | `config.es.yaml` |
+| course data | `server/course/zh/` | `server/course/ja/` | `server/course/es/` |
+| speech locale | `zh-CN` | `ja-JP` | `es-ES` |
+| default scorer | iFlytek ISE (**tone aware**) | Azure AI Speech | Azure AI Speech |
+| reading line | pinyin | kana (furigana) | none (spelled as said) |
 
 A lesson runs in this order:
 
@@ -55,6 +55,7 @@ Japanese, and drill it until you get it right.
 cd lingualens
 ./run.sh                 # Mandarin  — config.yaml     (HSK 1-7)
 ./run.sh ja              # Japanese  — config.ja.yaml  (JLPT N5-N1)
+./run.sh es              # Spanish   — config.es.yaml  (CEFR A1)
 ```
 
 Both create `.venv`, install deps and start on `:8899`. Pick the course with the first
