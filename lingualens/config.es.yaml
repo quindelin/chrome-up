@@ -1,12 +1,12 @@
 # ---------------------------------------------------------------------------
 # LinguaLens - Pimsleur-style Spanish coach for Meta Ray-Ban Display glasses.
 # Same engine as config.yaml, same gate, same UI - `language: es` swaps in the
-# CEFR course (A1 written so far) and the es-ES speech engines.
+# CEFR A1 -> C2 course (75 lessons) and the es-ES speech engines.
 #
 #   ./run.sh es          # or: python -m server.main --config config.es.yaml
 # ---------------------------------------------------------------------------
 
-language: es              # es = Spanish (CEFR A1; A2-C1 being written)
+language: es              # es = Spanish (CEFR A1, A2, B1, B2, C1, C2)
 
 server:
   host: 0.0.0.0
@@ -32,7 +32,7 @@ pronunciation:
     enabled: false       # no Spanish ISE
 
 gate:
-  # The A1 floor. Each unit tightens it (62 -> 66 across A1).
+  # The A1 floor. Every band and unit tightens it (62 at A1 -> 88 at C2).
   min_pron_score: 60.0
   min_accuracy: 60.0
   min_completeness: 75.0
@@ -90,12 +90,21 @@ listening:
     slow: 0.6
 
 vocab:
-  # The word bank (server/course/es/vocab_a1.py): 90 A1 words, sized so that
-  # 15 lessons x 6 reaches every one of them. Raise this and the bank wraps
-  # around; lower it and words go unreached.
+  # The word bank (server/course/es/vocab_*.py), sized so that walking each
+  # band in order reaches every word once: A1 15 x 6 = 90, A2 12 x 8 = 96,
+  # B1/B2 12 x 10 = 120, C1/C2 12 x 12 = 144. Change a number here and that
+  # bank either wraps around or leaves words unreached.
   enabled: true
   inject_per_lesson: 6
+  # later bands take more a lesson; each bank is sized to lessons x this
+  inject_by_band: {1: 6, 2: 8, 3: 10, 4: 10, 5: 12, 6: 12}
   recall_rounds: 2
+
+# Spoken summary of the passage ("Resumen"), from C1 - the DELE C1/C2 task.
+writing:
+  enabled: true
+  min_band: 5
+  min_chars: 80
 
 free:
   enabled: true
@@ -121,6 +130,7 @@ ui:
     3: reveal   # B1
     4: never    # B2
     5: never    # C1
+    6: never    # C2
   # The English scene before each conversation also tells you tú or usted.
   scene_mode: auto
   scene_by_level:
@@ -129,4 +139,5 @@ ui:
     3: first    # B1
     4: first    # B2
     5: tip      # C1
+    6: tip      # C2
   scene_seconds: 6

@@ -289,10 +289,11 @@ def t_next_ignores_a_stale_step_index():
 # and かな, so these check the places where "one character = one unit of
 # meaning" would quietly be wrong for Spanish.
 def t_es_course_shape():
-    """Every A1 lesson carries what the audit says the Japanese N5 lacks."""
+    """Every lesson, A1 to C2, carries what the audit says the Japanese N5 lacks."""
     from server.course.es import readings as es_readings, grammar as es_grammar
     c = Course("es")
-    assert len(c.lesson_ids) == 15, len(c.lesson_ids)
+    assert [lv.code for lv in c.levels] == ["A1", "A2", "B1", "B2", "C1", "C2"], [lv.code for lv in c.levels]
+    assert len(c.lesson_ids) == 75 and c.lesson_ids == list(range(1, 76)), len(c.lesson_ids)
     bad = []
     for lid in c.lesson_ids:
         l = c.lessons[lid]
@@ -304,16 +305,27 @@ def t_es_course_shape():
             bad.append(f"L{lid}: missing prompts / scene / grammar page")
         if len(es_readings.get(lid).get("questions") or []) < 2:
             bad.append(f"L{lid}: passage needs a read and a hear question")
+        if any("+" in v.text for v in l.vocab):
+            bad.append(f"L{lid}: a vocab item is a formula, not something you can say")
+        if any(t.speaker == "them" and t.text.startswith("(") for t in l.dialogue):
+            bad.append(f"L{lid}: a stage direction would be read aloud")
     assert not bad, bad[:5]
     assert not es_readings.check(), es_readings.check()[:3]
 
 
 def t_es_bank_fully_reached():
-    """15 lessons x inject_per_lesson must meet every bank word, once."""
+    """Each band's lessons x its inject count meet every bank word, once."""
+    from server.engine import inject_count
     c = Course("es")
-    per = int(load_config("config.es.yaml")["vocab"]["inject_per_lesson"])
-    met = [w.text for l in c.lessons_of_band(1) for w in c.vocab_for_lesson(l, per)]
-    assert len(set(met)) == c.vocab_count() == len(met), (len(set(met)), c.vocab_count(), len(met))
+    vocab_cfg = load_config("config.es.yaml")["vocab"]
+    assert not c.duplicate_words, c.duplicate_words[:5]
+    met = []
+    for band in c.vocab_by_band:
+        per = inject_count(vocab_cfg, band)
+        got = [w.text for l in c.lessons_of_band(band) for w in c.vocab_for_lesson(l, per)]
+        bank = len(c.vocab_words(band))
+        assert len(set(got)) == bank == len(got), (band, len(set(got)), bank, len(got))
+        met += got
     lesson_words = {v.text for l in c.lessons.values() for v in l.vocab}
     overlap = [w for w in met if w in lesson_words]
     assert not overlap, overlap[:5]
@@ -354,6 +366,32 @@ def t_es_never_scored_by_iflytek():
                 os.environ.pop(k, None)
             else:
                 os.environ[k] = v
+
+
+def t_es_summaries_from_c1():
+    """C1-C2 lessons end in a spoken summary; earlier bands never do."""
+    from server.course.es import summaries
+    c = Course("es")
+    assert sorted(summaries.SUMMARIES) == list(range(52, 76)), sorted(summaries.SUMMARIES)
+    cfg = load_config("config.es.yaml")
+    for lid in (51, 52, 75):
+        steps = Session(c, cfg, {"lesson_id": lid, "completed": [], "mastery": {},
+                                 "words": {}, "stats": {}}).steps
+        has = any(st.kind == "write" for st in steps)
+        assert has == (lid >= 52), (lid, has)
+
+
+def t_es_summary_keywords_match_spoken_words():
+    """Summary keywords are checked against speech that has lost its spaces."""
+    from types import SimpleNamespace
+    from server.free import grade_writing
+    from server.course.es import summaries
+    item = summaries.get(53)
+    step = SimpleNamespace(text=item["prompt"], sample_text=item["sample"],
+                           keywords=item["keywords"], min_chars=10)
+    s = _score(item["sample"].lower().replace("á", "a"))
+    ok, why = grade_writing(s, step, {"min_pron_score": 0}, load_config("config.es.yaml"), "es", 5)
+    assert ok, why
 
 
 def t_es_session_every_lesson():

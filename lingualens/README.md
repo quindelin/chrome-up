@@ -5,13 +5,13 @@ say sits in front of your eyes with its reading above it (pinyin for Mandarin, k
 Japanese), audio models it for you, and **you do not move to the next line until your
 pronunciation passes** — tones included.
 
-**Three courses ship in one app.** `./run.sh` is Mandarin, `./run.sh ja` is Japanese, `./run.sh es` is Spanish (CEFR A1 so far). Same
+**Three courses ship in one app.** `./run.sh` is Mandarin, `./run.sh ja` is Japanese, `./run.sh es` is Spanish. Same
 server, same gate, same glasses UI — only the course data, the speech locale and the
 scoring engine change.
 
 | | Mandarin | Japanese | Spanish |
 |---|---|---|---|
-| ladder | HSK 1 → HSK 7‑9 | JLPT N5 → N1, plus an above‑N1 band | CEFR A1 (A2+ not written) |
+| ladder | HSK 1 → HSK 7‑9 | JLPT N5 → N1, plus an above‑N1 band | CEFR A1 → C2 |
 | config | `config.yaml` | `config.ja.yaml` | `config.es.yaml` |
 | course data | `server/course/zh/` | `server/course/ja/` | `server/course/es/` |
 | speech locale | `zh-CN` | `ja-JP` | `es-ES` |
@@ -75,7 +75,7 @@ deploy/lingualens/deploy.sh url    # your phone / glasses / OBS links
 cd lingualens
 ./run.sh                 # Mandarin  — config.yaml     (HSK 1-7)
 ./run.sh ja              # Japanese  — config.ja.yaml  (JLPT N5-N1)
-./run.sh es              # Spanish   — config.es.yaml  (CEFR A1)
+./run.sh es              # Spanish   — config.es.yaml  (CEFR A1-C2)
 ```
 
 Both create `.venv`, install deps and start on `:8899`. Pick the course with the first

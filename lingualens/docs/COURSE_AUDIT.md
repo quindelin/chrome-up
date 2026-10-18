@@ -157,19 +157,34 @@ facts. Link graded readers (e.g. Tadoku) per band.
 
 ## Spanish: built against this audit
 
-`./run.sh es`, or pick Español in the course switcher. CEFR A1 is written:
-3 units × 5 lessons, 90 bank words, 30 free-response prompts, 15 passages,
-a grammar page and a scene for every lesson.
+`./run.sh es`, or pick Español in the course switcher. The full CEFR ladder
+is written, A1 to C2:
+
+| band | lessons | bank words (all reached) | what it adds |
+|---|---|---|---|
+| A1 | 1–15 | 90 (6 a lesson) | greetings, tú/usted, ser/estar/hay/ir, ordering, gustar |
+| A2 | 16–27 | 96 (8) | routine, **vosotros**, plans, both past tenses, doctor, shops, a polite complaint |
+| B1 | 28–39 | 120 (10) | present subjunctive by trigger (doubt, emotion, advice, time), pluperfect, reported speech |
+| B2 | 40–51 | 120 (10) | passive se, aunque, 2nd and 3rd conditionals, negotiation, formal complaints, idiom |
+| C1 | 52–63 | 144 (12) | argument and hedging, formal email, voseo and Latin American Spanish, irony, refranes; **spoken summaries** |
+| C2 | 64–75 | 144 (12) | headlines, editorials, legal and science Spanish, mediation, register switching, puns; summaries |
+
+In total: 75 lessons (Japanese 73, Mandarin 85), 714 bank words plus 450
+lesson words, 150 free-response prompts, 75 passages with read and listen
+questions, 75 grammar pages and 24 summaries. The Spanish bank is smaller
+than Japanese's 4,374 words on purpose: each band's bank is sized to what its
+lessons inject (`vocab.inject_by_band`), so every word is met inside a
+lesson, and the smoke tests fail if one isn't.
 
 | audit finding | what the Spanish course does instead |
 |---|---|
-| 1 overclaiming | it is labelled A1, and A1 is what it covers |
-| 2 one register | tú and usted are produced from lesson 2; lesson 5 switches between them mid-scene |
-| 3 unreachable bank | 90 words, 6 per lesson × 15 lessons: every word reached once (tested) |
-| 5 no beginner patterns | 2 tagged patterns in every lesson; old words recombine into lessons 7, 9, 10, 14, 15 |
-| 6 learner doesn't say it | the learner says the target structure in their own lines (rule in `a1.py`) |
-| 8 learner plays a character | free-response prompts ask about *you*; the notes say to drill your own name |
-| (variety) | one standard, Peninsular (es-ES voice and scorer); Latin American forms go in notes (boleto, jugo, derecho) |
+| 1 overclaiming | each band's grammar is that band's grammar, per the Instituto Cervantes curriculum (e.g. the present subjunctive at B1, not "C1") |
+| 2 one register | tú and usted from lesson 2, vosotros at A2, formal register at B2, register switching drilled at C2 (lesson 72) |
+| 3 unreachable bank | every bank word is reached once by walking each band in order (tested per band) |
+| 5 no beginner patterns | 2 tagged patterns in every lesson; old words recombine into 40 of 75 lessons |
+| 6 learner doesn't say it | the learner says the target structure in their own lines |
+| 8 learner plays a character | free-response prompts ask about *you* |
+| (variety) | one standard, Peninsular (es-ES voice and scorer); C1 lesson 60 then teaches the learner to *understand* voseo, ustedes and Latin American vocabulary |
 
 Engine changes needed for the first language written with spaces between words:
 - Answer relevance and coverage now compare **words**, not letters. Any two
@@ -183,13 +198,18 @@ Engine changes needed for the first language written with spaces between words:
 - Word ownership across bands follows the course's own level order, because
   CEFR counts up and JLPT counts down. Mandarin and Japanese ownership was
   checked and is unchanged.
+- `vocab.inject_by_band` lets later bands take more new words per lesson.
+- Spoken-summary keywords are matched word by word (the transcript has lost
+  its spaces by then), and fluency has Spanish fillers and a letters-per-second
+  floor (`LANG_DEFAULTS["es"]`).
 
 **Still open:**
-- A2 and up are not written.
-- There is no sound-system module (the five vowels, r/rr, b=v, the soft d,
-  stress and written accents). Those are covered only in notes, where
-  Japanese gets a kana module.
-- Recombination reaches only 5 of 15 lessons, because slot kinds rarely
-  repeat this early.
-- Vosotros is recognised but not taught.
-- A native-speaker editor should review the lines before learners use them.
+- No sound-system module (the five vowels, r/rr, b=v, the soft d, stress and
+  written accents). Those are covered only in A1 notes, where Japanese gets a
+  kana module.
+- 35 of 75 lessons get no recycled words from earlier lessons, mostly in A1–A2
+  where there is little to recycle yet.
+- Fluency grading (rate and fillers) is configured but, as for the other
+  courses, off by default until tuned on real recordings.
+- A native-speaker editor should review the lines before learners rely on
+  them; at C1–C2 especially, register and idiom need a human ear.
