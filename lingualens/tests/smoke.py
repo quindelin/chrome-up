@@ -119,6 +119,32 @@ def t_kana_check():
     assert not problems, problems[:5]
 
 
+def t_kana_every_row_reached():
+    """The kana slices must cover the whole table. 5 x 8 stopped at り, so
+    る-ん, every voiced kana and every yōon were never shown (audit #4)."""
+    from server.config import LANG_DEFAULTS
+    from server.course.ja import kana
+    for k in (LANG_DEFAULTS["ja"]["kana"], load_config("config.ja.yaml")["kana"]):
+        shown = [row for lid in range(1, int(k["through_lesson"]) + 1)
+                 for row in kana.kana_for_lesson(lid, int(k["per_lesson"]), int(k["through_lesson"]))]
+        missing = [row[0] for row in kana.KANA if row not in shown]
+        assert not missing, f"never taught: {''.join(missing)}"
+    first_steps = [s.text for lid in range(1, 14) for s in _session("ja", lid)._kana_steps(lid)]
+    assert len(first_steps) == len(kana.KANA), (len(first_steps), len(kana.KANA))
+
+
+def t_ja_beginner_patterns_recombine():
+    """N5/N4 lessons drill their own frames, not the generic fallback, and
+    old words come back in new frames from lesson 3 on (audit #5)."""
+    from server import drills
+    c = Course("ja")
+    bad = [lid for lid in range(1, 26)
+           if len(c.lessons[lid].patterns) < 2 or any(not p.kind for p in c.lessons[lid].patterns)]
+    assert not bad, f"lessons without 2 tagged patterns: {bad}"
+    recombined = [lid for lid in range(1, 26) if drills.recombine(c, c.lessons[lid])]
+    assert len(recombined) >= 15, recombined  # 17 today; 1, 2, 5 have nothing older to draw on
+
+
 def t_readings():
     assert not readings.check(), readings.check()[:5]
     assert readings.stats()["passages"] == 73, readings.stats()

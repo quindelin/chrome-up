@@ -219,8 +219,8 @@ class Session:
             return []
         rows = self._kana.kana_for_lesson(
             lesson_id,
-            int(cfg.get("per_lesson", 5) or 5),
-            int(cfg.get("through_lesson", 8) or 8),
+            int(cfg.get("per_lesson", 8) or 8),
+            int(cfg.get("through_lesson", 13) or 13),
         )
         out: List[Step] = []
         for hira, kata, romaji in rows:

@@ -90,8 +90,8 @@ drills:
 # server/course/ja/kanji.py) rather than assumed.
 kana:
   enabled: true
-  per_lesson: 5        # five a lesson; the table covers both syllabaries
-  through_lesson: 8
+  per_lesson: 8        # 8 x 13 = all 104 rows: seion, dakuten, handakuten, yoon
+  through_lesson: 13
 
 kanji:
   enabled: true

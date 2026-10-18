@@ -46,6 +46,30 @@ UNIT_1 = {
                 ("them", "さようなら。", "さようなら。", "Goodbye."),
                 ("you", "さようなら。またね。", "さようなら。またね。", "Goodbye. See you."),
             ],
+            "patterns": [
+                {
+                    "text": "{x}。お元気ですか。",
+                    "reading": "{x}。おげんきですか。",
+                    "en": "{x}. How are you?",
+                    "kind": "greeting",
+                    "values": [
+                        ("こんにちは", "こんにちは", "Hello"),
+                        ("おはようございます", "おはようございます", "Good morning"),
+                        ("こんばんは", "こんばんは", "Good evening"),
+                    ],
+                },
+                {
+                    "text": "{x}さん、さようなら。",
+                    "reading": "{x}さん、さようなら。",
+                    "en": "Goodbye, {x}-san.",
+                    "kind": "surname",
+                    "values": [
+                        ("田中", "たなか", "Tanaka"),
+                        ("鈴木", "すずき", "Suzuki"),
+                        ("山本", "やまもと", "Yamamoto"),
+                    ],
+                },
+            ],
             "notes": [
                 "こんにちは is written 今日は, but it is always spelled in hiragana "
                 "and the は is read 'wa'."
@@ -70,6 +94,30 @@ UNIT_1 = {
                 ("you", "すみません、おそくなりました。", "すみません、おそくなりました。", "Sorry, I'm late."),
                 ("them", "大丈夫ですよ。", "だいじょうぶですよ。", "It's fine."),
                 ("you", "どうも、ありがとうございます。", "どうも、ありがとうございます。", "Thanks very much."),
+            ],
+            "patterns": [
+                {
+                    "text": "{x}、お願いします。",
+                    "reading": "{x}、おねがいします。",
+                    "en": "{x}, please.",
+                    "kind": "drink",
+                    "values": [
+                        ("コーヒー", "コーヒー", "coffee"),
+                        ("お水", "おみず", "water"),
+                        ("紅茶", "こうちゃ", "black tea"),
+                    ],
+                },
+                {
+                    "text": "どうぞ、{x}ください。",
+                    "reading": "どうぞ、{x}ください。",
+                    "en": "Go ahead and {x}.",
+                    "kind": "te-request",
+                    "values": [
+                        ("すわって", "すわって", "sit down"),
+                        ("入って", "はいって", "come in"),
+                        ("使って", "つかって", "use it"),
+                    ],
+                },
             ],
             "notes": [
                 "おねがいします turns any noun into a request: コーヒー、おねがいします."
@@ -98,6 +146,30 @@ UNIT_1 = {
                  "Then let's speak English."),
                 ("you", "はい、お願いします。", "はい、おねがいします。", "Yes, please."),
             ],
+            "patterns": [
+                {
+                    "text": "{x}が分かりますか。",
+                    "reading": "{x}がわかりますか。",
+                    "en": "Do you understand {x}?",
+                    "kind": "language",
+                    "values": [
+                        ("英語", "えいご", "English"),
+                        ("中国語", "ちゅうごくご", "Chinese"),
+                        ("スペイン語", "スペインご", "Spanish"),
+                    ],
+                },
+                {
+                    "text": "もう一度、{x}ください。",
+                    "reading": "もういちど、{x}ください。",
+                    "en": "Once more - please {x}.",
+                    "kind": "te-request",
+                    "values": [
+                        ("言って", "いって", "say it"),
+                        ("ゆっくり言って", "ゆっくりいって", "say it slowly"),
+                        ("書いて", "かいて", "write it down"),
+                    ],
+                },
+            ],
             "notes": [
                 "もう一度、ゆっくりおねがいします = 'once more, slowly, please' - "
                 "the single most useful phrase at N5."
@@ -125,6 +197,30 @@ UNIT_1 = {
                 ("them", "わたしは日本です。", "わたしはにほんです。", "I'm from Japan."),
                 ("you", "そうですか。", "そうですか。", "I see."),
             ],
+            "patterns": [
+                {
+                    "text": "{x}から来ました。",
+                    "reading": "{x}からきました。",
+                    "en": "I'm from {x}.",
+                    "kind": "country",
+                    "values": [
+                        ("アメリカ", "アメリカ", "America"),
+                        ("イギリス", "イギリス", "the UK"),
+                        ("カナダ", "カナダ", "Canada"),
+                    ],
+                },
+                {
+                    "text": "{x}さんですか。",
+                    "reading": "{x}さんですか。",
+                    "en": "Are you {x}-san?",
+                    "kind": "surname",
+                    "values": [
+                        ("佐藤", "さとう", "Sato"),
+                        ("高橋", "たかはし", "Takahashi"),
+                        ("伊藤", "いとう", "Ito"),
+                    ],
+                },
+            ],
             "notes": [
                 "よろしくおねがいします has no single English equivalent - it is the "
                 "politeness that closes an introduction."
@@ -150,6 +246,30 @@ UNIT_1 = {
                 ("you", "高いですね。", "たかいですね。", "That's expensive."),
                 ("them", "これは千円です。", "これはせんえんです。", "This one is a thousand yen."),
                 ("you", "じゃあ、これをください。", "じゃあ、これをください。", "Then I'll take this one."),
+            ],
+            "patterns": [
+                {
+                    "text": "{x}はいくらですか。",
+                    "reading": "{x}はいくらですか。",
+                    "en": "How much is {x}?",
+                    "kind": "this-that",
+                    "values": [
+                        ("これ", "これ", "this one"),
+                        ("それ", "それ", "that one"),
+                        ("あれ", "あれ", "that one over there"),
+                    ],
+                },
+                {
+                    "text": "{x}ですね。",
+                    "reading": "{x}ですね。",
+                    "en": "That's {x}, isn't it.",
+                    "kind": "i-adj",
+                    "values": [
+                        ("高い", "たかい", "expensive"),
+                        ("安い", "やすい", "cheap"),
+                        ("大きい", "おおきい", "big"),
+                    ],
+                },
             ],
             "notes": ["ください after a noun means 'give me that': これをください。"],
         },
@@ -187,6 +307,30 @@ UNIT_2 = {
                 ("you", "ありがとうございます。", "ありがとうございます。", "Thank you."),
                 ("them", "どういたしまして。", "どういたしまして。", "You're welcome."),
             ],
+            "patterns": [
+                {
+                    "text": "すみません、{x}はどこですか。",
+                    "reading": "すみません、{x}はどこですか。",
+                    "en": "Excuse me, where is {x}?",
+                    "kind": "spot",
+                    "values": [
+                        ("トイレ", "トイレ", "the restroom"),
+                        ("駅", "えき", "the station"),
+                        ("銀行", "ぎんこう", "the bank"),
+                    ],
+                },
+                {
+                    "text": "{x}にあります。",
+                    "reading": "{x}にあります。",
+                    "en": "It's on the {x}.",
+                    "kind": "side",
+                    "values": [
+                        ("右", "みぎ", "right"),
+                        ("左", "ひだり", "left"),
+                        ("駅の右", "えきのみぎ", "right of the station"),
+                    ],
+                },
+            ],
             "notes": [],
         },
         {
@@ -211,6 +355,30 @@ UNIT_2 = {
                  "The taxi is eight thousand yen, the train twelve hundred."),
                 ("you", "じゃあ、電車に乗ります。", "じゃあ、でんしゃにのります。", "Then I'll take the train."),
                 ("them", "駅はあそこです。", "えきはあそこです。", "The station is over there."),
+            ],
+            "patterns": [
+                {
+                    "text": "{x}に行きたいです。",
+                    "reading": "{x}にいきたいです。",
+                    "en": "I want to go to {x}.",
+                    "kind": "spot",
+                    "values": [
+                        ("空港", "くうこう", "the airport"),
+                        ("コンビニ", "コンビニ", "a convenience store"),
+                        ("病院", "びょういん", "the hospital"),
+                    ],
+                },
+                {
+                    "text": "{x}に乗ります。",
+                    "reading": "{x}にのります。",
+                    "en": "I'll take the {x}.",
+                    "kind": "vehicle",
+                    "values": [
+                        ("電車", "でんしゃ", "train"),
+                        ("バス", "バス", "bus"),
+                        ("タクシー", "タクシー", "taxi"),
+                    ],
+                },
             ],
             "notes": [],
         },
@@ -238,6 +406,30 @@ UNIT_2 = {
                  "Got it, thank you."),
                 ("them", "いいえ、どういたしまして。", "いいえ、どういたしまして。", "Not at all."),
             ],
+            "patterns": [
+                {
+                    "text": "{x}へはどうやって行きますか。",
+                    "reading": "{x}へはどうやっていきますか。",
+                    "en": "How do I get to {x}?",
+                    "kind": "spot",
+                    "values": [
+                        ("郵便局", "ゆうびんきょく", "the post office"),
+                        ("デパート", "デパート", "the department store"),
+                        ("美術館", "びじゅつかん", "the art museum"),
+                    ],
+                },
+                {
+                    "text": "{x}で降ります。",
+                    "reading": "{x}でおります。",
+                    "en": "I'll get off {x}.",
+                    "kind": "stop-at",
+                    "values": [
+                        ("次の駅", "つぎのえき", "at the next station"),
+                        ("新宿", "しんじゅく", "at Shinjuku"),
+                        ("渋谷", "しぶや", "at Shibuya"),
+                    ],
+                },
+            ],
             "notes": [],
         },
         {
@@ -264,6 +456,30 @@ UNIT_2 = {
                  "Then please stop here."),
                 ("them", "はい、二千円です。", "はい、にせんえんです。", "Sure - two thousand yen."),
             ],
+            "patterns": [
+                {
+                    "text": "{x}までお願いします。",
+                    "reading": "{x}までおねがいします。",
+                    "en": "To {x}, please.",
+                    "kind": "landmark",
+                    "values": [
+                        ("このホテル", "このホテル", "this hotel"),
+                        ("東京駅", "とうきょうえき", "Tokyo Station"),
+                        ("羽田空港", "はねだくうこう", "Haneda Airport"),
+                    ],
+                },
+                {
+                    "text": "{x}で止めてください。",
+                    "reading": "{x}でとめてください。",
+                    "en": "Please stop {x}.",
+                    "kind": "stop-at",
+                    "values": [
+                        ("ここ", "ここ", "here"),
+                        ("あそこ", "あそこ", "over there"),
+                        ("あの信号", "あのしんごう", "at that traffic light"),
+                    ],
+                },
+            ],
             "notes": [],
         },
         {
@@ -289,6 +505,30 @@ UNIT_2 = {
                 ("you", "次の電車は何時ですか。", "つぎのでんしゃはなんじですか。",
                  "What time is the next train?"),
                 ("them", "十時五分です。", "じゅうじごふんです。", "Ten oh five."),
+            ],
+            "patterns": [
+                {
+                    "text": "{x}までの切符を一枚ください。",
+                    "reading": "{x}までのきっぷをいちまいください。",
+                    "en": "One ticket to {x}, please.",
+                    "kind": "place",
+                    "values": [
+                        ("京都", "きょうと", "Kyoto"),
+                        ("名古屋", "なごや", "Nagoya"),
+                        ("広島", "ひろしま", "Hiroshima"),
+                    ],
+                },
+                {
+                    "text": "次の{x}は何時ですか。",
+                    "reading": "つぎの{x}はなんじですか。",
+                    "en": "What time is the next {x}?",
+                    "kind": "vehicle",
+                    "values": [
+                        ("急行", "きゅうこう", "express"),
+                        ("新幹線", "しんかんせん", "bullet train"),
+                        ("地下鉄", "ちかてつ", "subway train"),
+                    ],
+                },
             ],
             "notes": [],
         },
@@ -327,6 +567,30 @@ UNIT_3 = {
                  "Good choice. It's delicious."),
                 ("you", "楽しみです。", "たのしみです。", "I'm looking forward to it."),
             ],
+            "patterns": [
+                {
+                    "text": "{x}を食べましょう。",
+                    "reading": "{x}をたべましょう。",
+                    "en": "Let's eat {x}.",
+                    "kind": "dish",
+                    "values": [
+                        ("カレー", "カレー", "curry"),
+                        ("うどん", "うどん", "udon"),
+                        ("天ぷら", "てんぷら", "tempura"),
+                    ],
+                },
+                {
+                    "text": "{x}で食べましょう。",
+                    "reading": "{x}でたべましょう。",
+                    "en": "Let's eat at {x}.",
+                    "kind": "eatery",
+                    "values": [
+                        ("レストラン", "レストラン", "a restaurant"),
+                        ("そば屋", "そばや", "the soba shop"),
+                        ("うち", "うち", "home"),
+                    ],
+                },
+            ],
             "notes": [],
         },
         {
@@ -349,6 +613,30 @@ UNIT_3 = {
                  "No, please don't make it spicy."),
                 ("them", "お飲み物は？", "おのみものは？", "And to drink?"),
                 ("you", "お茶をください。", "おちゃをください。", "Tea please."),
+            ],
+            "patterns": [
+                {
+                    "text": "{x}をお願いします。",
+                    "reading": "{x}をおねがいします。",
+                    "en": "{x}, please.",
+                    "kind": "dish",
+                    "values": [
+                        ("ラーメン", "ラーメン", "ramen"),
+                        ("餃子", "ぎょうざ", "dumplings"),
+                        ("焼き鳥", "やきとり", "yakitori"),
+                    ],
+                },
+                {
+                    "text": "{x}をください。",
+                    "reading": "{x}をください。",
+                    "en": "Could I have {x}?",
+                    "kind": "drink",
+                    "values": [
+                        ("お茶", "おちゃ", "tea"),
+                        ("ビール", "ビール", "a beer"),
+                        ("ジュース", "ジュース", "juice"),
+                    ],
+                },
             ],
             "notes": [
                 "〜ないでください = 'please don't …'. 辛くしないでください is how you "
@@ -375,6 +663,30 @@ UNIT_3 = {
                  "That's two thousand five hundred yen in total."),
                 ("you", "カードは使えますか。", "カードはつかえますか。", "Can I use a card?"),
                 ("them", "はい、使えます。", "はい、つかえます。", "Yes, you can."),
+            ],
+            "patterns": [
+                {
+                    "text": "{x}は使えますか。",
+                    "reading": "{x}はつかえますか。",
+                    "en": "Can I use {x}?",
+                    "kind": "payment",
+                    "values": [
+                        ("カード", "カード", "a card"),
+                        ("クーポン", "クーポン", "a coupon"),
+                        ("電子マネー", "でんしマネー", "e-money"),
+                    ],
+                },
+                {
+                    "text": "全部で{x}です。",
+                    "reading": "ぜんぶで{x}です。",
+                    "en": "That's {x} in total.",
+                    "kind": "price",
+                    "values": [
+                        ("二千五百円", "にせんごひゃくえん", "2,500 yen"),
+                        ("千円", "せんえん", "1,000 yen"),
+                        ("三百円", "さんびゃくえん", "300 yen"),
+                    ],
+                },
             ],
             "notes": [],
         },
@@ -403,6 +715,30 @@ UNIT_3 = {
                 ("them", "いいですよ。ありがとうございます。", "いいですよ。ありがとうございます。",
                  "Fine with me. Thank you."),
             ],
+            "patterns": [
+                {
+                    "text": "一緒に{x}を食べに行きませんか。",
+                    "reading": "いっしょに{x}をたべにいきませんか。",
+                    "en": "Shall we go out for {x} together?",
+                    "kind": "dish",
+                    "values": [
+                        ("寿司", "すし", "sushi"),
+                        ("そば", "そば", "soba"),
+                        ("焼肉", "やきにく", "yakiniku"),
+                    ],
+                },
+                {
+                    "text": "{x}はどうですか。",
+                    "reading": "{x}はどうですか。",
+                    "en": "How about {x}?",
+                    "kind": "clock",
+                    "values": [
+                        ("十二時", "じゅうにじ", "twelve o'clock"),
+                        ("一時", "いちじ", "one o'clock"),
+                        ("六時半", "ろくじはん", "half past six"),
+                    ],
+                },
+            ],
             "notes": [],
         },
         {
@@ -430,6 +766,30 @@ UNIT_3 = {
                  "Yes - dumplings and water please."),
                 ("them", "はい、少々お待ちください。", "はい、しょうしょうおまちください。",
                  "Certainly, one moment please."),
+            ],
+            "patterns": [
+                {
+                    "text": "{x}です。",
+                    "reading": "{x}です。",
+                    "en": "There are {x} of us.",
+                    "kind": "party-size",
+                    "values": [
+                        ("二人", "ふたり", "two"),
+                        ("三人", "さんにん", "three"),
+                        ("四人", "よにん", "four"),
+                    ],
+                },
+                {
+                    "text": "{x}とお水をお願いします。",
+                    "reading": "{x}とおみずをおねがいします。",
+                    "en": "{x} and water, please.",
+                    "kind": "dish",
+                    "values": [
+                        ("唐揚げ", "からあげ", "fried chicken"),
+                        ("天丼", "てんどん", "a tempura rice bowl"),
+                        ("カツ丼", "カツどん", "a pork cutlet rice bowl"),
+                    ],
+                },
             ],
             "notes": [],
         },
@@ -469,6 +829,30 @@ UNIT_4 = {
                  "Nice. Do you have other colours?"),
                 ("them", "黒と白があります。", "くろとしろがあります。", "We have black and white."),
             ],
+            "patterns": [
+                {
+                    "text": "この{x}を着てみてもいいですか。",
+                    "reading": "この{x}をきてみてもいいですか。",
+                    "en": "May I try on this {x}?",
+                    "kind": "clothes",
+                    "values": [
+                        ("シャツ", "シャツ", "shirt"),
+                        ("セーター", "セーター", "sweater"),
+                        ("コート", "コート", "coat"),
+                    ],
+                },
+                {
+                    "text": "少し{x}です。",
+                    "reading": "すこし{x}です。",
+                    "en": "It's a little {x}.",
+                    "kind": "i-adj",
+                    "values": [
+                        ("小さい", "ちいさい", "small"),
+                        ("長い", "ながい", "long"),
+                        ("短い", "みじかい", "short"),
+                    ],
+                },
+            ],
             "notes": [
                 "〜てもいいですか = 'may I …?'. 着てみる is 'to try on' for anything "
                 "you wear on the body."
@@ -496,6 +880,30 @@ UNIT_4 = {
                  "Please take a bit more off."),
                 ("them", "じゃあ、九千円で。", "じゃあ、きゅうせんえんで。", "Then nine thousand."),
             ],
+            "patterns": [
+                {
+                    "text": "{x}になりませんか。",
+                    "reading": "{x}になりませんか。",
+                    "en": "Could you make it {x}?",
+                    "kind": "price",
+                    "values": [
+                        ("一万円", "いちまんえん", "10,000 yen"),
+                        ("九千円", "きゅうせんえん", "9,000 yen"),
+                        ("八千円", "はっせんえん", "8,000 yen"),
+                    ],
+                },
+                {
+                    "text": "この{x}を買います。",
+                    "reading": "この{x}をかいます。",
+                    "en": "I'll buy this {x}.",
+                    "kind": "clothes",
+                    "values": [
+                        ("ジャケット", "ジャケット", "jacket"),
+                        ("ブラウス", "ブラウス", "blouse"),
+                        ("着物", "きもの", "kimono"),
+                    ],
+                },
+            ],
             "notes": [],
         },
         {
@@ -520,6 +928,30 @@ UNIT_4 = {
                  "Got it, I'll come back."),
                 ("them", "ありがとうございます。お待ちしています。",
                  "ありがとうございます。おまちしています。", "Thank you, we'll expect you."),
+            ],
+            "patterns": [
+                {
+                    "text": "{x}はありますか。",
+                    "reading": "{x}はありますか。",
+                    "en": "Do you have {x}?",
+                    "kind": "goods",
+                    "values": [
+                        ("充電器", "じゅうでんき", "chargers"),
+                        ("傘", "かさ", "umbrellas"),
+                        ("電池", "でんち", "batteries"),
+                    ],
+                },
+                {
+                    "text": "次の入荷は{x}です。",
+                    "reading": "つぎのにゅうかは{x}です。",
+                    "en": "The next delivery is {x}.",
+                    "kind": "day",
+                    "values": [
+                        ("明日の午後", "あしたのごご", "tomorrow afternoon"),
+                        ("金曜日", "きんようび", "Friday"),
+                        ("月曜日の朝", "げつようびのあさ", "Monday morning"),
+                    ],
+                },
             ],
             "notes": [],
         },
@@ -547,6 +979,30 @@ UNIT_4 = {
                  "はい、りょうしゅうしょです。ありがとうございます。",
                  "Here's your receipt. Thank you."),
             ],
+            "patterns": [
+                {
+                    "text": "{x}で払ってもいいですか。",
+                    "reading": "{x}ではらってもいいですか。",
+                    "en": "May I pay with {x}?",
+                    "kind": "payment",
+                    "values": [
+                        ("現金", "げんきん", "cash"),
+                        ("スマホ", "スマホ", "my phone"),
+                        ("ドル", "ドル", "dollars"),
+                    ],
+                },
+                {
+                    "text": "{x}は要りません。",
+                    "reading": "{x}はいりません。",
+                    "en": "I don't need {x}.",
+                    "kind": "goods",
+                    "values": [
+                        ("袋", "ふくろ", "a bag"),
+                        ("レシート", "レシート", "a receipt"),
+                        ("ポイントカード", "ポイントカード", "a loyalty card"),
+                    ],
+                },
+            ],
             "notes": [],
         },
         {
@@ -571,6 +1027,30 @@ UNIT_4 = {
                  "Yes please. How much in total?"),
                 ("them", "六百八十円です。", "ろっぴゃくはちじゅうえんです。",
                  "Six hundred and eighty yen."),
+            ],
+            "patterns": [
+                {
+                    "text": "{x}を温めてください。",
+                    "reading": "{x}をあたためてください。",
+                    "en": "Please heat up {x}.",
+                    "kind": "dish",
+                    "values": [
+                        ("お弁当", "おべんとう", "the bento"),
+                        ("肉まん", "にくまん", "a meat bun"),
+                        ("グラタン", "グラタン", "the gratin"),
+                    ],
+                },
+                {
+                    "text": "{x}もください。",
+                    "reading": "{x}もください。",
+                    "en": "{x} too, please.",
+                    "kind": "goods",
+                    "values": [
+                        ("お箸", "おはし", "chopsticks"),
+                        ("スプーン", "スプーン", "a spoon"),
+                        ("おしぼり", "おしぼり", "a hand towel"),
+                    ],
+                },
             ],
             "notes": [],
         },
@@ -609,6 +1089,30 @@ UNIT_5 = {
                  "Then I'll come at six."),
                 ("them", "わかりました。また後で。", "わかりました。またあとで。", "Right. See you later."),
             ],
+            "patterns": [
+                {
+                    "text": "今{x}です。",
+                    "reading": "いま{x}です。",
+                    "en": "It's {x} now.",
+                    "kind": "clock",
+                    "values": [
+                        ("三時半", "さんじはん", "half past three"),
+                        ("九時", "くじ", "nine o'clock"),
+                        ("十時十五分", "じゅうじじゅうごふん", "quarter past ten"),
+                    ],
+                },
+                {
+                    "text": "わたしは{x}に来ます。",
+                    "reading": "わたしは{x}にきます。",
+                    "en": "I'll come at {x}.",
+                    "kind": "clock",
+                    "values": [
+                        ("六時", "ろくじ", "six o'clock"),
+                        ("五時", "ごじ", "five o'clock"),
+                        ("七時半", "しちじはん", "half past seven"),
+                    ],
+                },
+            ],
             "notes": ["半 = half, so 三時半 is 3:30. Minutes are 〜分 (ふん / ぷん)."],
         },
         {
@@ -636,6 +1140,30 @@ UNIT_5 = {
                 ("you", "わかりました。土曜日に会いましょう。", "わかりました。どようびにあいましょう。",
                  "Right, see you Saturday."),
             ],
+            "patterns": [
+                {
+                    "text": "{x}はどうですか。",
+                    "reading": "{x}はどうですか。",
+                    "en": "How about {x}?",
+                    "kind": "day",
+                    "values": [
+                        ("土曜日", "どようび", "Saturday"),
+                        ("日曜日の午後", "にちようびのごご", "Sunday afternoon"),
+                        ("金曜日の夜", "きんようびのよる", "Friday night"),
+                    ],
+                },
+                {
+                    "text": "{x}に会いましょう。",
+                    "reading": "{x}にあいましょう。",
+                    "en": "Let's meet {x}.",
+                    "kind": "day",
+                    "values": [
+                        ("月曜日", "げつようび", "Monday"),
+                        ("日曜日", "にちようび", "Sunday"),
+                        ("来週の火曜日", "らいしゅうのかようび", "next Tuesday"),
+                    ],
+                },
+            ],
             "notes": [],
         },
         {
@@ -662,6 +1190,30 @@ UNIT_5 = {
                 ("you", "ありがとうございます。急ぎます。", "ありがとうございます。いそぎます。",
                  "Thanks, I'll hurry."),
             ],
+            "patterns": [
+                {
+                    "text": "あと{x}で着きます。",
+                    "reading": "あと{x}でつきます。",
+                    "en": "I'll be there in {x}.",
+                    "kind": "duration",
+                    "values": [
+                        ("五分", "ごふん", "five minutes"),
+                        ("十分", "じゅっぷん", "ten minutes"),
+                        ("十五分", "じゅうごふん", "fifteen minutes"),
+                    ],
+                },
+                {
+                    "text": "すみません、{x}ぐらい遅れます。",
+                    "reading": "すみません、{x}ぐらいおくれます。",
+                    "en": "Sorry, I'll be about {x} late.",
+                    "kind": "duration",
+                    "values": [
+                        ("二十分", "にじゅっぷん", "twenty minutes"),
+                        ("三十分", "さんじゅっぷん", "thirty minutes"),
+                        ("一時間", "いちじかん", "an hour"),
+                    ],
+                },
+            ],
             "notes": [],
         },
         {
@@ -687,6 +1239,30 @@ UNIT_5 = {
                  "I like ramen. But I don't like spicy things."),
                 ("them", "どうしてですか。", "どうしてですか。", "Why is that?"),
                 ("you", "辛すぎるからです。", "からすぎるからです。", "Because they're too spicy."),
+            ],
+            "patterns": [
+                {
+                    "text": "{x}が好きです。",
+                    "reading": "{x}がすきです。",
+                    "en": "I like {x}.",
+                    "kind": "dish",
+                    "values": [
+                        ("刺身", "さしみ", "sashimi"),
+                        ("おでん", "おでん", "oden"),
+                        ("親子丼", "おやこどん", "chicken-and-egg rice bowls"),
+                    ],
+                },
+                {
+                    "text": "とても{x}と思います。",
+                    "reading": "とても{x}とおもいます。",
+                    "en": "I think it's very {x}.",
+                    "kind": "i-adj",
+                    "values": [
+                        ("おいしい", "おいしい", "good"),
+                        ("面白い", "おもしろい", "interesting"),
+                        ("難しい", "むずかしい", "difficult"),
+                    ],
+                },
             ],
             "notes": [
                 "Plain form + とおもいます = 'I think that …'. から at the end of a "
@@ -726,6 +1302,30 @@ UNIT_5 = {
                  "Three months. I'm not good yet."),
                 ("them", "上手ですよ！", "じょうずですよ！", "You're good!"),
                 ("you", "いいえ、まだまだです。", "いいえ、まだまだです。", "No, not yet."),
+            ],
+            "patterns": [
+                {
+                    "text": "{x}の出身です。",
+                    "reading": "{x}のしゅっしんです。",
+                    "en": "I'm from {x}.",
+                    "kind": "country",
+                    "values": [
+                        ("オーストラリア", "オーストラリア", "Australia"),
+                        ("中国", "ちゅうごく", "China"),
+                        ("韓国", "かんこく", "Korea"),
+                    ],
+                },
+                {
+                    "text": "{x}を勉強しています。",
+                    "reading": "{x}をべんきょうしています。",
+                    "en": "I'm studying {x}.",
+                    "kind": "language",
+                    "values": [
+                        ("日本語", "にほんご", "Japanese"),
+                        ("韓国語", "かんこくご", "Korean"),
+                        ("フランス語", "フランスご", "French"),
+                    ],
+                },
             ],
             "notes": [
                 "まだまだです is the standard way to deflect a compliment - accepting "
