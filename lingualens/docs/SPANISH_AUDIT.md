@@ -115,8 +115,8 @@ Checked against a list of the core items in the Instituto Cervantes
 curriculum (*Plan curricular*). "Learner says" is the first lesson where a
 learner line uses the item.
 
-**Update, 2026-10-18 — gaps closed.** Every gap below except the three marked
-"not in scope" is now taught: the learner says it in at least two of their own lines,
+**Update, 2026-10-18 — gaps closed.** Every gap below is now taught (the
+last three rows in a second pass the same day): the learner says it in at least two of their own lines,
 it has a pattern with its own `kind`, and it has a grammar page. Thirteen
 lessons were revised in place and **one was added** (A1 lesson 5, *¿Cómo
 es?*), so A1 now has 16 lessons, the course has **76**, and every lesson
@@ -134,14 +134,14 @@ The numbers table above predates this change.
 | A2 | **imperative** (tú, usted, negative) | incidental; negative never said | usted **L7** (siga, gire, cruce) and L15 (póngame); tú and negative **L20** (trae, no traigas, no llegues) | L7, L20 | closed |
 | A2 | **por vs para** | L10, incidental | **L22** (para ver, pasamos por, por noche, para ti) | L22 | closed |
 | A2 | possessive pronouns (el mío) | never | **L19** (la mía, la tuya, ¿es tuya?) | L19 | closed |
-| A2 | soler, ordinals | L59 / L16 | — | none | not in scope; still incidental |
+| A2 | soler, ordinals | L59 / L16 | soler **L17** (suelo desayunar en casa); ordinals **L8** (la segunda) and **L27** (la primera planta, el tercer piso) | L17; L8, L27 | closed |
 | B1 | ser / estar meaning change (es listo / está listo) | never | **L34** (no eres aburrida, estás aburrida) | L34 | closed |
 | B1 | accidental se (se me olvidó) | never | **L37** (se me ha perdido, se me olvidó) | L37 | closed |
 | B1 | verbs of change (ponerse, volverse, hacerse) | L52 note only | **L38** (se ha vuelto, se ha hecho, se puso) | L38 | closed |
 | B1 | future of probability (estará en casa) | L31 note only | **L31** (estará en un atasco, serán unos treinta mil) | L31 | closed |
 | B2 | relatives el cual / cuyo / lo cual | never | **L50** (cuyos clientes, lo cual, sin la cual) | L50 | closed |
-| B2 | diminutives (-ito) | incidental | — | none | not in scope; still open |
-| C2 | future subjunctive in legal texts (recognition) | never | — | none | not in scope; minor |
+| B2 | diminutives (-ito) | incidental | **L51** (un ratito, un momentito, pequeñito) | L51 | closed |
+| C2 | future subjunctive in legal texts (recognition) | never | **L69** (si el arrendatario abandonare...) — read aloud and explained, recognition only | L69 | closed |
 
 Topics that had no lesson at all:
 - ~~the phone, as its own lesson~~ — **L30** *Al teléfono en la oficina*:
@@ -149,15 +149,17 @@ Topics that had no lesson at all:
   message.
 - ~~emergencies: police, a theft, lost luggage, an urgent pharmacy~~ —
   **L24** *Repaso: en la comisaría* (reporting a theft, 112) and **L37**
-  *Mi maleta no ha llegado* (the lost-luggage desk). An urgent pharmacy is
-  still only the doctor's visit at L25.
+  *Mi maleta no ha llegado* (the lost-luggage desk). The urgent pharmacy is
+  **L8** (la farmacia de guardia on a Sunday).
 - ~~renting a flat and the bank~~ — **L19** *Un piso de alquiler* (rent,
   bills, deposit) and **L31** (asking the bank for a loan).
-- appointments and dates — dates at **L20**; booking an appointment by
-  phone is still open.
+- ~~appointments and dates~~ — dates at **L20**; booking a doctor's
+  appointment by phone at **L25** (quería pedir cita, ¿le va bien...?).
 - ~~the weather~~ — **L18**.
 - ~~describing people and appearance~~ — **L5**, and **L24** in the past.
-- technology and the internet — still open.
+- ~~technology and the internet~~ — **L28**: the wifi won't connect, the
+  password is wrong, no signal (no puedo conectarme, cargar, descargar).
+  Still everyday trouble only; there is no lesson *about* technology.
 - ~~food shopping by weight and quantity (un kilo de, media docena)~~ —
   **L15** *En el mercado*, which replaced the old bill-paying lesson; the
   bill moved into the restaurant review (L16).
@@ -180,6 +182,13 @@ What changed where:
 | L37 | a missed flight, pluperfect | *Mi maleta no ha llegado*: lost luggage, + accidental se |
 | L38 | reported speech | + verbs of change |
 | L50 | subjunctive relatives | + cuyo, el cual, lo cual |
+| L8 | is there a... ? | + the duty pharmacy, ordinals |
+| L17 | routine, reflexives | + soler |
+| L25 | at the doctor's | + booking the appointment by phone |
+| L27 | hotel check-in | + ordinals for floors |
+| L28 | complaining at the hotel | + the wifi, passwords, no signal |
+| L51 | idioms | + diminutives |
+| L69 | a lease read aloud | + the future subjunctive (recognition) |
 
 Also still open from the first audit: there is **no sound-system module**
 (vowels, r/rr, b=v, soft d, stress and written accents). Japanese gets a
@@ -204,7 +213,7 @@ kana module.
    - From B2, a 1–2 minute monologue step graded on coverage, like the
      summary step.
 4. **Fill the grammar gaps (content, about 10 lessons or lesson revisions)** —
-   *done 2026-10-18: one new lesson and thirteen revisions, see the gaps table.*
+   *done 2026-10-18: one new lesson and twenty revisions, see the gaps table.*
    - imperative, por/para, present progressive, weather, people description,
      possessives and dates at A1–A2;
    - ser/estar meaning change, accidental se, verbs of change and future of

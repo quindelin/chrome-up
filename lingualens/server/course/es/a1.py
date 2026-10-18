@@ -372,21 +372,28 @@ UNIT_2 = {
         {
             "id": 8,
             "title": "¿Hay un... por aquí?",
-            "goal": "Ask whether there is something nearby, and tell hay from está.",
+            "goal": "Ask whether there is something nearby - even on a Sunday - and tell hay from está.",
             "vocab": [
                 ("¿hay...?", E, "is there / are there...?", "the h is silent: 'ai'"),
                 ("por aquí", E, "around here", ""),
                 ("una farmacia", E, "a pharmacy", ""),
+                ("de guardia", E, "on duty (open when the rest are shut)",
+                 "every closed pharmacy lists la farmacia de guardia on its door"),
+                ("la segunda", E, "the second (one)", "primera, segunda, tercera: ordinals agree"),
                 ("un cajero", E, "a cash machine", ""),
                 ("un supermercado", E, "a supermarket", ""),
                 ("la calle", E, "the street", ""),
             ],
             "dialogue": [
                 ("you", "Disculpe, ¿hay una farmacia por aquí?", E, "Excuse me, is there a pharmacy around here?"),
-                ("them", "Sí, hay una en la calle Sol.", E, "Yes, there's one on Sol Street."),
+                ("them", "Sí, hay una en la calle Sol. Pero hoy es domingo.", E,
+                 "Yes, there's one on Sol Street. But it's Sunday today."),
+                ("you", "Es urgente. ¿Hay una farmacia de guardia?", E, "It's urgent. Is there a duty pharmacy?"),
+                ("them", "Sí, la de la calle Sol está de guardia hoy.", E, "Yes, the one on Sol Street is on duty today."),
                 ("you", "¿Y dónde está la calle Sol?", E, "And where is Sol Street?"),
                 ("them", "Es la segunda a la izquierda.", E, "It's the second on the left."),
-                ("you", "Gracias. ¿Hay un cajero también?", E, "Thanks. Is there a cash machine too?"),
+                ("you", "¿La segunda? Gracias. ¿Hay un cajero también?", E,
+                 "The second? Thanks. Is there a cash machine too?"),
                 ("them", "Hay dos, enfrente del supermercado.", E, "There are two, opposite the supermarket."),
                 ("you", "¿El supermercado está en la calle Sol?", E, "Is the supermarket on Sol Street?"),
                 ("them", "No, está aquí, en esta calle.", E, "No, it's here, on this street."),
@@ -406,6 +413,9 @@ UNIT_2 = {
                 "You ask with hay when you do not know one exists, with está when "
                 "you do. 'Hay el banco' is the classic beginner slip.",
                 "Hay never changes: hay una farmacia, hay dos cajeros.",
+                "On Sundays and at night only one pharmacy in the area opens: la "
+                "farmacia de guardia. Its address is posted on every other "
+                "pharmacy's door.",
             ],
         },
         {

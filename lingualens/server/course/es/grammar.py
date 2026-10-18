@@ -127,6 +127,14 @@ GRAMMAR = {
         "contrast": "Hay introduces something new; está locates something already "
                     "known. The article follows: un/una with hay, el/la with está.",
         "watch": "×Hay el banco. ×¿Dónde hay la farmacia?",
+    }, {
+        "point": "ordinals 1st-5th",
+        "en": "the first, the second...",
+        "formula": "primero · segundo · tercero · cuarto · quinto  (agree: la segunda, los primeros)",
+        "examples": [("Es la segunda a la izquierda.", E, "It's the second on the left.")],
+        "contrast": "Primero and tercero drop the -o before a masculine noun: el primer piso, "
+                    "el tercer día - but la tercera calle.",
+        "watch": "After the tenth, Spanish mostly uses plain numbers: el piso doce.",
     }],
     9: [{
         "point": "ir a",

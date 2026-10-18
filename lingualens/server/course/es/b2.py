@@ -489,7 +489,7 @@ UNIT_12 = {
         {
             "id": 51,
             "title": "Hablar como en la calle",
-            "goal": "Understand and use common idioms with a friend - and know when not to.",
+            "goal": "Understand and use common idioms and diminutives with a friend - and know when not to.",
             "vocab": [
                 ("tomar el pelo", E, "to pull someone's leg", ""),
                 ("estar hecho polvo", E, "to be exhausted", ""),
@@ -497,6 +497,8 @@ UNIT_12 = {
                 ("ser pan comido", E, "to be a piece of cake", ""),
                 ("meter la pata", E, "to put your foot in it", ""),
                 ("estar en las nubes", E, "to be daydreaming", ""),
+                ("un momentito", E, "just a sec", "-ito shrinks, softens or warms; Mexico: ahorita"),
+                ("un ratito", E, "a little while", ""),
             ],
             "dialogue": [
                 ("them", "¡Tío, qué cara! ¿Qué te pasa?", E, "Mate, look at your face! What's up?"),
@@ -508,6 +510,12 @@ UNIT_12 = {
                  "Because I put my foot in it with the teacher. I called her 'mum'."),
                 ("them", "¡Me estás tomando el pelo!", E, "You're pulling my leg!"),
                 ("you", "Te lo juro. Estaba en las nubes.", E, "I swear. I was miles away."),
+                ("them", "¡Qué fuerte! Venga, ¿nos tomamos un cafecito?", E, "No way! Come on, shall we grab a quick coffee?"),
+                ("you", "Vale, pero solo un ratito, que estoy hecho polvo.", E,
+                 "OK, but just for a bit, I'm shattered."),
+                ("them", "¿Y un bocadillo? Seguro que no has comido.", E, "And a sandwich? I bet you haven't eaten."),
+                ("you", "Uno pequeñito. Espérame un momentito, que llamo a mi madre.", E,
+                 "A little one. Give me a sec, I'm calling my mum."),
             ],
             "patterns": [
                 {"text": "Estoy {x}.", "reading": E, "en": "I'm {x}.",
@@ -518,6 +526,10 @@ UNIT_12 = {
                  "kind": "es-idiom-you",
                  "values": [("tomando el pelo", E, "pulling my leg (with)"), ("volviendo loco", E, "driving (crazy)"),
                             ("dejando de piedra", E, "stunning (leaving stunned)")]},
+                {"text": "¿Nos tomamos {x}?", "reading": E, "en": "Shall we have {x}?",
+                 "kind": "es-diminutive",
+                 "values": [("un cafecito", E, "a quick coffee"), ("una cervecita", E, "a quick beer"),
+                            ("unas tapitas", E, "a few tapas"), ("un vinito", E, "a glass of wine")]},
             ],
             "notes": [
                 "These are Peninsular and informal - fine with friends, wrong in a "
@@ -734,7 +746,17 @@ GRAMMAR = {
           "formula": "estar hecho polvo · tomar el pelo · meter la pata · ser pan comido",
           "examples": [("Me estás tomando el pelo.", E, "You're pulling my leg.")],
           "contrast": "Register: these are for friends. In a meeting: estoy muy cansado, me he equivocado.",
-          "watch": "They still agree: está hecha polvo."}],
+          "watch": "They still agree: está hecha polvo."},
+         {"point": "diminutives", "en": "-ito / -ita: small, quick, friendly",
+          "formula": "-o / -a → -ito / -ita (ratito, casita) · -e, -n, -r → -cito (cafecito, jovencito) · "
+                     "one syllable → -ecito (panecito)",
+          "examples": [("Espérame un momentito.", E, "Give me a sec."),
+                       ("¿Nos tomamos un cafecito?", E, "Shall we grab a quick coffee?")],
+          "contrast": "Often not about size: un cafecito is a friendly invitation, cerquita means 'really "
+                      "close'. Andalusia says -illo, Aragon -ico; Latin America uses -ito far more, even on "
+                      "adverbs (ahorita, despacito).",
+          "watch": "Spelling keeps the sound: poco → poquito, amigo → amiguito. Not in a meeting: "
+                   "'un momentito' to a client sounds over-familiar in Spain."}],
     52: [{"point": "verbal periphrases", "en": "aspect with a preposition",
           "formula": "acabar de · volver a · dejar de · ponerse a + infinitive · seguir / llevar + gerund",
           "examples": [("Acabo de ver tu mensaje.", E, "I've just seen your message."),
@@ -885,6 +907,8 @@ PASSAGES = {
                     ("Llegó a la facultad hecho polvo, pero el examen fue pan comido.", E,
                      "He got to university shattered, but the exam was a piece of cake."),
                     ("Lo peor fue que metió la pata con la profesora.", E, "The worst part was he put his foot in it with the teacher."),
+                    ("Después se tomó un cafecito con un amigo, solo un ratito.", E,
+                     "Afterwards he had a quick coffee with a friend, just for a bit."),
                     ("Estaba tan en las nubes que la llamó mamá delante de todos.", E,
                      "He was so miles away he called her mum in front of everyone.")],
          "questions": [_q("¿Qué tal fue el examen?", "How was the exam?",

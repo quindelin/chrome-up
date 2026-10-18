@@ -107,6 +107,7 @@ PASSAGES = {
                    ("Hay una farmacia, un supermercado y dos cafés.", E,
                     "There's a pharmacy, a supermarket and two cafés."),
                    ("El supermercado está enfrente de mi casa.", E, "The supermarket is opposite my house."),
+                   ("Los domingos, la farmacia está de guardia.", E, "On Sundays, the pharmacy is on duty."),
                    ("Pero no hay un cajero; está en la calle Sol.", E,
                     "But there's no cash machine; it's on Sol Street.")],
         "questions": [_q("¿Cuántos cafés hay en la calle?", "How many cafés are there on the street?",

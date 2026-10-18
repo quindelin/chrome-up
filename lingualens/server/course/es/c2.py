@@ -212,7 +212,7 @@ UNIT_17 = {
         {
             "id": 69,
             "title": "La letra del contrato",
-            "goal": "Read legal-administrative Spanish aloud and explain it in plain words.",
+            "goal": "Read legal-administrative Spanish aloud - future subjunctive included - and explain it in plain words.",
             "vocab": [
                 ("en virtud de", E, "under, by virtue of", ""),
                 ("el arrendatario / el arrendador", E, "the tenant / the landlord", ""),
@@ -220,6 +220,7 @@ UNIT_17 = {
                 ("dará lugar a", E, "shall give rise to", "future of obligation"),
                 ("la cláusula", E, "the clause", ""),
                 ("en lo sucesivo", E, "hereinafter, from now on", ""),
+                ("si abandonare", E, "should (he) leave", "future subjunctive: law and set phrases only"),
             ],
             "dialogue": [
                 ("them", "No entiendo esta cláusula del contrato de alquiler. ¿Me la lees?", E,
@@ -235,6 +236,11 @@ UNIT_17 = {
                 ("them", "Eso suena mal.", E, "That sounds bad."),
                 ("you", "Significa que, si no pagas dos meses, el dueño puede terminar el contrato en virtud de esta cláusula.", E,
                  "It means that if you don't pay for two months, the owner can end the contract under this clause."),
+                ("them", "¿Y 'abandonare'? Eso no lo he oído en mi vida.", E, "And 'abandonare'? I've never heard that in my life."),
+                ("you", "'Si el arrendatario abandonare la vivienda, se entenderá resuelto el contrato.'", E,
+                 "'Should the tenant abandon the property, the contract shall be deemed terminated.'"),
+                ("you", "Abandonare es futuro de subjuntivo. Hoy diríamos 'si abandona'; solo queda en las leyes.", E,
+                 "Abandonare is the future subjunctive. Today we'd say 'si abandona'; it only survives in law."),
             ],
             "patterns": [
                 {"text": "El arrendatario se compromete a {x}.", "reading": E, "en": "The tenant undertakes to {x}.",
@@ -246,12 +252,21 @@ UNIT_17 = {
                  "values": [("tienes que pagar antes del día cinco", E, "you have to pay before the fifth"),
                             ("no puedes alquilar una habitación a otro", E, "you can't rent a room to someone else"),
                             ("si no pagas, te pueden echar", E, "if you don't pay, they can evict you")]},
+                {"text": "Si el arrendatario {x}, se entenderá resuelto el contrato.", "reading": E,
+                 "en": "Should the tenant {x}, the contract shall be deemed terminated.",
+                 "kind": "es-future-subj",
+                 "values": [("abandonare la vivienda", E, "abandon the property"),
+                            ("no abonare la renta", E, "fail to pay the rent"),
+                            ("subarrendare la vivienda", E, "sublet the property")]},
             ],
             "notes": [
                 "Legal Spanish uses the future for obligation ('dará lugar', 'deberá') "
                 "and nouns for actions ('el impago', 'la resolución'). Explaining it "
                 "means turning nouns back into verbs.",
                 "Abonar = pagar in contracts and banks.",
+                "The future subjunctive (abandonare, hubiere, fuere) is recognition "
+                "only: you will read it in laws and contracts and hear it in 'adonde "
+                "fueres, haz lo que vieres'. Never use it in speech.",
             ],
         },
         {
@@ -706,7 +721,16 @@ GRAMMAR = {
           "formula": "se compromete a + infinitive · dará lugar a · deberá · el impago / la resolución",
           "examples": [("El impago dará lugar a la resolución del contrato.", E, "Non-payment shall lead to termination.")],
           "contrast": "To explain it, turn nouns into verbs: el impago → si no pagas.",
-          "watch": "Abonar = pay; la renta = the rent; la fianza = the deposit."}],
+          "watch": "Abonar = pay; la renta = the rent; la fianza = the deposit."},
+         {"point": "the future subjunctive (recognition)", "en": "should..., whoever... in legal Spanish",
+          "formula": "preterite ellos stem + -re, -res, -re, -remos, -reis, -ren: abandonaron → abandonare, "
+                     "hubieron → hubiere, fueron → fuere",
+          "examples": [("Si el arrendatario abandonare la vivienda...", E, "Should the tenant abandon the property..."),
+                       ("Adonde fueres, haz lo que vieres.", E, "When in Rome, do as the Romans do.")],
+          "contrast": "Read it as the present indicative after si (si abandona) or the present "
+                      "subjunctive after quien / cuando (quien no pague).",
+          "watch": "Don't confuse it with the imperfect subjunctive in -ra: abandonara (past) vs "
+                   "abandonare (future, legal)."}],
     70: [{"point": "es como si + imperfect subjunctive", "en": "analogy",
           "formula": "es como si + imperfect subjunctive (even about the present)",
           "examples": [("Es como si tuvieran un escudo.", E, "It's as if they had a shield.")],
@@ -810,6 +834,8 @@ PASSAGES = {
                      "Likewise, they must keep the property in good condition and may not sublet it."),
                     ("La fianza, equivalente a una mensualidad, se devolverá al finalizar el contrato.", E,
                      "The deposit, equal to one month, will be returned at the end of the contract."),
+                    ("Si el arrendatario abandonare la vivienda, se entenderá resuelto el contrato.", E,
+                     "Should the tenant abandon the property, the contract shall be deemed terminated."),
                     ("El impago de dos mensualidades dará lugar a la resolución del contrato.", E,
                      "Non-payment of two months shall give rise to termination of the contract.")],
          "questions": [_q("¿Cuándo se devuelve la fianza?", "When is the deposit returned?",

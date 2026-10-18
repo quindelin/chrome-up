@@ -29,7 +29,7 @@ UNIT_4 = {
         {
             "id": 17,
             "title": "Mi rutina",
-            "goal": "Say what you do every day and when, with reflexive verbs.",
+            "goal": "Say what you do every day and when, with reflexive verbs and soler.",
             "vocab": [
                 ("me levanto", E, "I get up", ""),
                 ("me ducho", E, "I have a shower", ""),
@@ -37,17 +37,18 @@ UNIT_4 = {
                 ("desayuno", E, "I have breakfast", ""),
                 ("temprano", E, "early", ""),
                 ("normalmente", E, "usually", ""),
+                ("suelo", E, "I usually (do)", "soler + infinitive: suelo desayunar en casa"),
             ],
             "dialogue": [
                 ("them", "¿A qué hora te levantas normalmente?", E, "What time do you usually get up?"),
                 ("you", "Me levanto a las siete, pero los lunes, a las seis.", E,
                  "I get up at seven, but on Mondays at six."),
                 ("them", "¡Qué temprano! ¿Y desayunas en casa?", E, "So early! And do you have breakfast at home?"),
-                ("you", "Sí, me ducho, desayuno y salgo a las ocho.", E,
-                 "Yes, I shower, have breakfast and leave at eight."),
+                ("you", "Sí, suelo desayunar en casa. Salgo a las ocho.", E,
+                 "Yes, I usually have breakfast at home. I leave at eight."),
                 ("them", "¿Y por la tarde, qué haces?", E, "And in the afternoon, what do you do?"),
-                ("you", "Vuelvo a casa a las seis y voy al gimnasio.", E,
-                 "I come home at six and go to the gym."),
+                ("you", "Suelo volver a las seis y voy al gimnasio.", E,
+                 "I usually get back at six and go to the gym."),
                 ("them", "¿Y a qué hora te acuestas?", E, "And what time do you go to bed?"),
                 ("you", "Normalmente me acuesto a las once y media.", E, "I usually go to bed at half past eleven."),
             ],
@@ -60,12 +61,18 @@ UNIT_4 = {
                  "kind": "es-routine",
                  "values": [("me ducho", E, "have a shower"), ("desayuno", E, "have breakfast"),
                             ("voy al gimnasio", E, "go to the gym"), ("leo el periódico", E, "read the paper")]},
+                {"text": "Los domingos suelo {x}.", "reading": E, "en": "On Sundays I usually {x}.",
+                 "kind": "es-infinitive",
+                 "values": [("desayunar fuera", E, "have breakfast out"), ("ir al gimnasio", E, "go to the gym"),
+                            ("leer el periódico", E, "read the paper"), ("ver a mis padres", E, "see my parents")]},
             ],
             "notes": [
                 "Reflexive verbs carry a little pronoun that matches the subject: "
                 "me levanto, te levantas, se levanta. Things you do to yourself.",
                 "Spain eats late: lunch at two, dinner at nine or ten. 'Por la "
                 "tarde' runs until dark.",
+                "Soler + infinitive is 'usually do': suelo volver a las seis. It "
+                "lives in two tenses only - suelo (I usually) and solía (I used to).",
             ],
         },
         {
@@ -458,14 +465,17 @@ UNIT_5 = {
 UNIT_6 = {
     "id": 6,
     "title": "Services & Problems",
-    "focus": "Explain what is wrong at the doctor's, shop for clothes, check in, and complain politely.",
+    "focus": "Book the doctor and explain what is wrong, shop for clothes, check in, and complain politely - "
+             "including about the wifi.",
     "gate": {"min_pron_score": 72.0, "min_accuracy": 72.0, "min_completeness": 84.0},
     "lessons": [
         {
             "id": 25,
             "title": "En el médico",
-            "goal": "Say what hurts, since when, and understand what you have to do.",
+            "goal": "Book an appointment by phone, then say what hurts, since when, and understand what to do.",
             "vocab": [
+                ("pedir cita", E, "to make an appointment", "Latin America also: sacar turno, hacer una cita"),
+                ("me va bien", E, "it suits me", "¿le va bien a las cinco? = does five suit you?"),
                 ("me duele", E, "it hurts me", "me duelen for plural: me duelen los pies"),
                 ("la cabeza", E, "the head", ""),
                 ("la garganta", E, "the throat", ""),
@@ -474,18 +484,21 @@ UNIT_6 = {
                 ("tiene que", E, "you have to (usted)", ""),
             ],
             "dialogue": [
-                ("them", "Buenos días. ¿Qué le pasa?", E, "Good morning. What's the matter?"),
-                ("you", "Me duele mucho la garganta y tengo fiebre.", E,
-                 "My throat hurts a lot and I have a temperature."),
+                ("them", "Centro de salud, buenos días.", E, "Health centre, good morning."),
+                ("you", "Hola, quería pedir cita con el médico, por favor.", E,
+                 "Hello, I'd like to make an appointment with the doctor, please."),
+                ("them", "¿Le va bien mañana a las once?", E, "Does tomorrow at eleven suit you?"),
+                ("you", "¿No hay nada para hoy? Me duele mucho la garganta.", E,
+                 "Is there nothing for today? My throat really hurts."),
+                ("them", "Hoy a las cinco y media. ¿Le va bien?", E, "Today at half past five. Does that suit you?"),
+                ("you", "Sí, a las cinco y media me va bien. Gracias.", E, "Yes, half past five suits me. Thanks."),
+                ("them", "Buenas tardes. ¿Qué le pasa?", E, "Good afternoon. What's the matter?"),
+                ("you", "Me duele la garganta y tengo fiebre.", E, "My throat hurts and I have a temperature."),
                 ("them", "¿Desde cuándo?", E, "Since when?"),
                 ("you", "Desde hace tres días. Y me duele la cabeza.", E, "For three days. And my head hurts."),
-                ("them", "A ver... Tiene una infección. ¿Es alérgico a algún medicamento?", E,
-                 "Let's see... You have an infection. Are you allergic to any medicine?"),
-                ("you", "No, que yo sepa no.", E, "No, not that I know of."),
-                ("them", "Tiene que tomar esto cada ocho horas durante una semana.", E,
-                 "You have to take this every eight hours for a week."),
-                ("you", "Cada ocho horas, una semana. ¿Puedo ir a trabajar?", E,
-                 "Every eight hours, one week. Can I go to work?"),
+                ("them", "Tiene una infección. Tome esto cada ocho horas.", E,
+                 "You have an infection. Take this every eight hours."),
+                ("you", "Cada ocho horas. ¿Puedo ir a trabajar?", E, "Every eight hours. Can I go to work?"),
                 ("them", "Mejor descanse dos días.", E, "Better to rest for two days."),
             ],
             "patterns": [
@@ -496,11 +509,18 @@ UNIT_6 = {
                 {"text": "Me duelen {x}.", "reading": E, "en": "My {x} hurt.",
                  "kind": "es-body-many",
                  "values": [("los pies", E, "feet"), ("los ojos", E, "eyes"), ("las piernas", E, "legs")]},
+                {"text": "Quería pedir cita para {x}.", "reading": E, "en": "I'd like an appointment for {x}.",
+                 "kind": "es-when-day",
+                 "values": [("hoy", E, "today"), ("mañana por la mañana", E, "tomorrow morning"),
+                            ("el lunes", E, "Monday"), ("esta tarde", E, "this afternoon")]},
             ],
             "notes": [
                 "Doler works like gustar: the thing that hurts is the subject. "
                 "Spanish uses 'la' not 'mi' for your own body: me duele la cabeza.",
-                "The doctor speaks usted to you: ¿qué le pasa?, tiene que...",
+                "The doctor speaks usted to you: ¿qué le pasa?, tiene que..., tome "
+                "esto (lesson 7's command form).",
+                "Quería (I wanted) is the polite way to open any request on the "
+                "phone or at a counter: quería pedir cita.",
             ],
         },
         {
@@ -565,9 +585,11 @@ UNIT_6 = {
                 ("you", "No, todavía no. Lo siento.", E, "No, not yet. Sorry."),
                 ("them", "No pasa nada. ¿Me deja su pasaporte?", E, "No problem. Could I have your passport?"),
                 ("you", "Aquí tiene. ¿El desayuno está incluido?", E, "Here you are. Is breakfast included?"),
-                ("them", "Sí, de siete a diez. Aquí tiene la llave, habitación 305.", E,
-                 "Yes, from seven to ten. Here's your key, room 305."),
-                ("you", "Gracias. ¿Ha llegado un paquete para mí?", E, "Thanks. Has a parcel arrived for me?"),
+                ("them", "Sí, de siete a diez, en la primera planta.", E, "Yes, from seven to ten, on the first floor."),
+                ("you", "¿En la primera planta? ¿Y mi habitación?", E, "On the first floor? And my room?"),
+                ("them", "La 305, en el tercer piso. Aquí tiene la llave.", E, "305, on the third floor. Here's the key."),
+                ("you", "Tercer piso, gracias. ¿Ha llegado un paquete para mí?", E,
+                 "Third floor, thanks. Has a parcel arrived for me?"),
                 ("them", "Sí, ya ha llegado. Se lo subimos ahora.", E, "Yes, it's already arrived. We'll bring it up now."),
             ],
             "patterns": [
@@ -579,12 +601,19 @@ UNIT_6 = {
                  "kind": "es-participle",
                  "values": [("visto la ciudad", E, "seen the city"), ("deshecho la maleta", E, "unpacked"),
                             ("cenado", E, "had dinner")]},
+                {"text": "Mi habitación está en el {x} piso.", "reading": E, "en": "My room is on the {x} floor.",
+                 "kind": "es-ordinal",
+                 "values": [("primer", E, "first"), ("segundo", E, "second"), ("tercer", E, "third"),
+                            ("quinto", E, "fifth")]},
             ],
             "notes": [
                 "In Spain the present perfect covers today and recent time: hoy he "
                 "comido tarde. Most of Latin America uses the preterite there.",
                 "Participles: -ar → -ado, -er/-ir → -ido. Irregular: hecho, visto, "
                 "puesto, escrito, dicho, vuelto.",
+                "Floors: la planta baja is the ground floor, la primera planta the "
+                "next one up. Primero and tercero shorten before a masculine noun: "
+                "el primer piso, el tercer piso.",
             ],
         },
         {
@@ -598,6 +627,9 @@ UNIT_6 = {
                 ("hace mucho ruido", E, "it's very noisy", ""),
                 ("cambiar de habitación", E, "to change rooms", ""),
                 ("lo antes posible", E, "as soon as possible", ""),
+                ("conectarme", E, "to connect, get online (me)", "no me puedo conectar = I can't get online"),
+                ("la contraseña", E, "the password", "Latin America also: la clave"),
+                ("la cobertura", E, "phone signal", "no tengo cobertura = I've got no signal"),
             ],
             "dialogue": [
                 ("you", "Perdone, tengo un problema en la habitación 305.", E,
@@ -606,6 +638,12 @@ UNIT_6 = {
                 ("you", "El aire acondicionado no funciona y hace mucho calor.", E,
                  "The air conditioning doesn't work and it's very hot."),
                 ("them", "Lo siento mucho. Mando a alguien ahora.", E, "I'm very sorry. I'll send someone now."),
+                ("you", "Y el wifi tampoco funciona. No me puedo conectar.", E,
+                 "And the wifi doesn't work either. I can't get online."),
+                ("them", "¿Ha probado la contraseña de la tarjeta?", E, "Have you tried the password on the card?"),
+                ("you", "Sí, pero dice que es incorrecta. Y no tengo cobertura.", E,
+                 "Yes, but it says it's wrong. And I've got no signal."),
+                ("them", "Perdone, la han cambiado. Le doy la nueva.", E, "Sorry, it's been changed. I'll give you the new one."),
                 ("you", "Gracias. Además, la habitación da a la calle y hay mucho ruido.", E,
                  "Thank you. Also, the room faces the street and it's very noisy."),
                 ("them", "Entiendo. ¿Quiere cambiar de habitación?", E, "I understand. Would you like to change rooms?"),
@@ -623,12 +661,19 @@ UNIT_6 = {
                  "kind": "es-polite-ask",
                  "values": [("cambiarme de habitación", E, "move me to another room"),
                             ("mandar a alguien", E, "send someone"), ("darme otra toalla", E, "give me another towel")]},
+                {"text": "No puedo {x}.", "reading": E, "en": "I can't {x}.",
+                 "kind": "es-tech",
+                 "values": [("conectarme al wifi", E, "connect to the wifi"), ("cargar el móvil", E, "charge my phone"),
+                            ("descargar la app", E, "download the app"), ("abrir el correo", E, "open my email")]},
             ],
             "notes": [
                 "¿Podría...? is the polite way to ask staff for anything: softer than "
                 "¿puede...?, and it is how a complaint stays friendly.",
                 "Lo / la replace the thing: se la preparo = I'll prepare it (the room) "
                 "for you. Le becomes se before lo/la.",
+                "Tech words are mostly English said the Spanish way - el wifi ('wi-fi' "
+                "or 'gui-fi'), la app, el router - but the verbs are Spanish: "
+                "conectarse, cargar, descargar.",
             ],
         },
     ],
@@ -656,7 +701,7 @@ SCENES = {
     22: "Back at work, a colleague asks about your trip to Granada.",
     23: "A new friend in a bar asks where you grew up.",
     24: "Your phone has just been stolen; you are at the police station with an older officer.",
-    25: "You are at the doctor's, sitting across the desk from an older doctor.",
+    25: "You phone your health centre for an appointment, then sit across the desk from an older doctor.",
     26: "You are in a clothes shop in Madrid; the assistant is about your age.",
     27: "You arrive at a hotel reception desk with your suitcase.",
     28: "It is your first night at the hotel and you go down to reception to complain.",
@@ -741,7 +786,14 @@ GRAMMAR = {
                        ("¿A qué hora te acuestas?", E, "What time do you go to bed?")],
           "contrast": "Without the pronoun the verb acts on something else: levanto la mano (I raise my "
                       "hand) vs me levanto (I get up).",
-          "watch": "×Yo levanto a las siete. The pronoun is not optional."}],
+          "watch": "×Yo levanto a las siete. The pronoun is not optional."},
+         {"point": "soler + infinitive", "en": "what you usually do",
+          "formula": "suelo · sueles · suele · solemos · soléis · suelen + infinitive",
+          "examples": [("Suelo desayunar en casa.", E, "I usually have breakfast at home."),
+                       ("¿A qué hora sueles volver?", E, "What time do you usually get back?")],
+          "contrast": "Normalmente + present says the same thing; soler is shorter and very common. "
+                      "Past habit: solía (= I used to), never a preterite.",
+          "watch": "o → ue: suelo, not ×solo. A reflexive keeps its pronoun: suelo levantarme / me suelo levantar."}],
     18: [{"point": "vosotros", "en": "informal 'you' plural (Spain)",
           "formula": "-áis · -éis · -ís  (habláis, hacéis, vivís)",
           "examples": [("¿Qué hacéis este finde?", E, "What are you doing this weekend?")],
@@ -840,6 +892,12 @@ GRAMMAR = {
                        ("Me duelen los pies.", E, "My feet hurt.")],
           "contrast": "Desde hace + time = for how long, still true: me duele desde hace tres días.",
           "watch": "×Mi cabeza duele. Use the article and the pronoun."},
+         {"point": "asking for an appointment", "en": "on the phone, politely",
+          "formula": "quería + infinitive · ¿le va bien + time? · (no) me va bien",
+          "examples": [("Quería pedir cita con el médico.", E, "I'd like to make an appointment with the doctor."),
+                       ("A las cinco y media me va bien.", E, "Half past five suits me.")],
+          "contrast": "Ir bien works like gustar: the time suits you - ¿te va bien el lunes?",
+          "watch": "×Quiero una cita sounds blunt; quería... is the expected opener."},
          {"point": "tener que + infinitive", "en": "having to",
           "formula": "tengo / tiene que + infinitive",
           "examples": [("Tiene que tomar esto.", E, "You have to take this.")],
@@ -857,7 +915,13 @@ GRAMMAR = {
                        ("Todavía no he cenado.", E, "I haven't had dinner yet.")],
           "contrast": "Spain: hoy he comido (today, perfect) vs ayer comí (yesterday, preterite). "
                       "Latin America mostly uses comí for both.",
-          "watch": "Nothing goes between he and the participle: ×he ya comido → ya he comido."}],
+          "watch": "Nothing goes between he and the participle: ×he ya comido → ya he comido."},
+         {"point": "ordinals for floors and rooms", "en": "first, second, third...",
+          "formula": "primer(o) · segundo · tercer(o) · cuarto · quinto · sexto · séptimo · octavo · noveno · décimo",
+          "examples": [("Mi habitación está en el tercer piso.", E, "My room is on the third floor."),
+                       ("El desayuno es en la primera planta.", E, "Breakfast is on the first floor.")],
+          "contrast": "Ordinals agree like adjectives: la primera planta, los primeros días.",
+          "watch": "×El tercero piso → el tercer piso. But: el piso tercero (after the noun) keeps -o."}],
     28: [{"point": "polite requests: podría", "en": "could you...?",
           "formula": "¿podría + infinitive? (usted) · ¿podrías...? (tú)",
           "examples": [("¿Podría darme otra toalla?", E, "Could you give me another towel?")],
@@ -868,7 +932,13 @@ GRAMMAR = {
           "examples": [("Se la preparo.", E, "I'll get it (the room) ready for you.")],
           "contrast": "Pronouns go before a conjugated verb or on the end of an infinitive: "
                       "¿podría hacerlo?",
-          "watch": "×Le lo doy → se lo doy."}],
+          "watch": "×Le lo doy → se lo doy."},
+         {"point": "tech trouble", "en": "saying what you can't do",
+          "formula": "no puedo + infinitive (+ pronoun) · no funciona · no tengo cobertura",
+          "examples": [("No me puedo conectar.", E, "I can't get online."),
+                       ("No puedo cargar el móvil.", E, "I can't charge my phone.")],
+          "contrast": "The reflexive pronoun moves freely: no me puedo conectar = no puedo conectarme.",
+          "watch": "Tampoco is 'either' after a negative: el wifi tampoco funciona, not ×también no."}],
 }
 
 def _q(q, q_en, a, a_en, keywords, min_chars=8):
@@ -982,7 +1052,8 @@ PASSAGES = {
                           ["comisaría", "denuncia"])]},
     25: {"title": "Enfermo", "title_en": "Ill",
          "chunks": [("Desde hace tres días me duele la garganta.", E, "My throat has hurt for three days."),
-                    ("Esta mañana tenía fiebre y fui al médico.", E, "This morning I had a temperature and went to the doctor."),
+                    ("Esta mañana tenía fiebre y pedí cita en el centro de salud.", E,
+                     "This morning I had a temperature and made an appointment at the health centre."),
                     ("La médica me dijo que tengo una infección.", E, "The doctor told me I have an infection."),
                     ("Tengo que tomar unas pastillas cada ocho horas.", E, "I have to take some pills every eight hours.")],
          "questions": [_q("¿Qué le duele?", "What hurts?",
@@ -1014,6 +1085,8 @@ PASSAGES = {
                      "The first night, the air conditioning wasn't working."),
                     ("Además, la habitación daba a una calle con mucho ruido.", E,
                      "Also, the room faced a very noisy street."),
+                    ("El wifi tampoco funcionaba: la contraseña era incorrecta.", E,
+                     "The wifi didn't work either: the password was wrong."),
                     ("Bajé a recepción y hablé con el recepcionista.", E, "I went down to reception and spoke to the receptionist."),
                     ("Fue muy amable y me dio una habitación interior.", E,
                      "He was very kind and gave me an inside room.")],
