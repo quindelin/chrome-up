@@ -14,6 +14,8 @@ data class GlassesCard(
     val reading: String = "",
     val english: String = "",
     val footer: String = "",
+    /** Recording in progress: the Start / Stop button reads "Stop". */
+    val playing: Boolean = false,
 ) {
     companion object {
         fun parse(json: String): GlassesCard = try {
@@ -25,6 +27,7 @@ data class GlassesCard(
                 reading = o.optString("reading"),
                 english = o.optString("english"),
                 footer = o.optString("footer"),
+                playing = o.optBoolean("playing"),
             )
         } catch (e: Exception) {
             GlassesCard(target = " ")

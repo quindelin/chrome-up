@@ -121,7 +121,12 @@ function mirrorToGlasses() {
   try {
     // The server decides the card for every step kind (engine.glasses_card):
     // a recall shows its English cue, never a bare "…".
-    if (g.showCard && state.glasses) { g.showCard(JSON.stringify(state.glasses)); return; }
+    if (g.showCard && state.glasses) {
+      // `playing` labels the Start / Stop button drawn on the glasses
+      g.showCard(JSON.stringify(Object.assign({}, state.glasses, { playing: recording })));
+      // (the Android wrapper's native glasses-mic take sets its own label)
+      return;
+    }
     const s = state.step;
     if (!s) return;
     const hidden = s.kind === 'hear';
@@ -129,6 +134,20 @@ function mirrorToGlasses() {
                hidden || s.show_reading === false ? '' : s.reading || '', s.en || s.prompt_en || '');
   } catch (_) { /* wrapper not ready */ }
 }
+
+// The Redo / Start / Skip buttons drawn on the glasses (Android wrapper,
+// GlassesBridge) call back in here: the same actions as the phone controls.
+window.glassesCommand = (cmd) => {
+  const s = state && state.step;
+  if (cmd === 'repeat') {
+    if (s && s.kind === 'hear') playHidden(s);
+    else if (s && s.text) speak(s.text, 0.6);
+  } else if (cmd === 'playPause') {
+    toggleRecord();
+  } else if (cmd === 'next') {
+    maybeAdvance();
+  }
+};
 
 /* ---------- text to speech (native model audio) ---------- */
 // A course that only ever plays one voice is teaching you to understand one
@@ -1041,6 +1060,7 @@ async function toggleRecord() {
   recorder.start();
   startDictation();
   recording = true;
+  mirrorToGlasses();
   el('mic').textContent = 'Stop & grade';
   el('mic').disabled = false;
   haptic('select');
@@ -1053,6 +1073,7 @@ function stopRecording() {
   if (recorder && recording) {
     recording = false;
     recorder.stop();
+    mirrorToGlasses();
   }
   if (stream) stream.getTracks().forEach((t) => t.stop());
   if (el('mic')) {
