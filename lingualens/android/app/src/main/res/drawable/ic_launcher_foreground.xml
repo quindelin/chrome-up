@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- LinguaLens icon foreground: a pair of glasses; the left lens holds a sound
+     wave (you hear it), the right lens is a speech bubble holding 言, "speech /
+     language" in both Chinese and Japanese (you say it). Drawn in the 1024-unit
+     space of branding/icon.svg and scaled so the whole frame sits inside the
+     66dp adaptive-icon safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.0708" android:scaleY="0.0708"
+        android:translateX="17.75" android:translateY="16.05">
+        <path android:strokeColor="#FFFFFF" android:strokeWidth="52"
+            android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M126,444a100,100 0,0 1,100,-100h140a100,100 0,0 1,100,100v100a100,100 0,0 1,-100,100H226a100,100 0,0 1,-100,-100z" />
+        <path android:strokeColor="#FFFFFF" android:strokeWidth="52"
+            android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M558,444a100,100 0,0 1,100,-100h140a100,100 0,0 1,100,100v100a100,100 0,0 1,-100,100h-30l24,84l-98,-84h-36a100,100 0,0 1,-100,-100z" />
+        <path android:strokeColor="#FFFFFF" android:strokeWidth="52"
+            android:strokeLineCap="round"
+            android:pathData="M466,430q46,-34 92,0" />
+        <path android:strokeWidth="34" android:strokeLineCap="round"
+            android:pathData="M222,494c26,0 32,-54 58,-54s32,108 58,108 32,-54 58,-54">
+            <aapt:attr name="android:strokeColor"><gradient android:type="linear" android:startX="210" android:startY="430" android:endX="400" android:endY="560" android:startColor="#FFC24B" android:endColor="#FF6B5A" /></aapt:attr>
+        </path>
+        <path android:strokeWidth="26" android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M716,374l22,16M638,418h172M670,458h108M670,496h108M670,534h108v70H670z">
+            <aapt:attr name="android:strokeColor"><gradient android:type="linear" android:startX="640" android:startY="370" android:endX="810" android:endY="620" android:startColor="#FFC24B" android:endColor="#FF6B5A" /></aapt:attr>
+        </path>
+    </group>
+</vector>
