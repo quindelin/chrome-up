@@ -564,11 +564,80 @@ def t_never_asked_for_what_you_have_not_heard():
                                  "words": {}, "stats": {}})
             heard = set()
             for st in s.steps:
+                if st.prior:
+                    continue
                 if st.kind == "recall" and s._units(st.text) - heard:
                     bad.append((lid, st.text))
                 if st.kind in heard_kinds:
                     heard |= s._units(st.text or getattr(st, "audio_text", "") or "")
         assert not bad, f"{lang}: {len(bad)} unheard recalls, e.g. {bad[:3]}"
+
+
+def _play(s, fail_first=()):
+    """Drive one lesson: listen steps advance, spoken steps pass first try
+    (or fail once first, for keys in fail_first). Returns visited steps."""
+    from server.pronunciation import simulated_score
+    lid, seen = s.lesson_id, []
+    while s.current() and s.lesson_id == lid and len(seen) < 1000:
+        st = s.current()
+        seen.append(st)
+        if st.kind in ("listen", "info", "kana", "kanji", "hanzi", "hear"):
+            s.advance_non_speech()
+            continue
+        txt = st.text or st.sample_text or st.prompt_en or "x"
+        if st.key in fail_first and st.round:
+            bad = simulated_score(txt, "bad")
+            bad.recognized = ""
+            s.submit(bad)
+        ok = simulated_score(txt, "good")
+        ok.recognized = txt
+        if not s.submit(ok).get("advanced"):
+            s.pos, s.attempts = s.pos + 1, 0
+    return seen
+
+
+def t_review_rounds_drop_out_at_criterion():
+    """Rounds 1-2 always run (re-testing after a first success consolidates:
+    Karpicke & Roediger 2008); round 3 only brings back lines that have not
+    yet had two lagged first-try recalls this lesson."""
+    c = Course("zh")
+    s = Session(c, load_config("config.yaml"),
+                {"lesson_id": 1, "completed": [], "mastery": {}, "words": {}, "stats": {}})
+    s.start_lesson(1)
+    rounds = [st.round for st in _play(s) if st.kind == "recall" and st.round]
+    assert rounds.count(1) and rounds.count(2) == rounds.count(1), rounds
+    assert rounds.count(3) == 0, "a clean run should skip round 3"
+    s2 = Session(c, load_config("config.yaml"),
+                 {"lesson_id": 1, "completed": [], "mastery": {}, "words": {}, "stats": {}})
+    s2.start_lesson(1)
+    missed = next(st.key for st in s2.steps if st.kind == "recall" and st.round == 1)
+    r3 = [st.key for st in _play(s2, fail_first={missed}) if st.round == 3 and st.kind == "recall"]
+    assert r3 == [missed], r3
+
+
+def t_spacing_promotes_only_when_due_and_reviews_hit_the_real_line():
+    """Five passes in one sitting are one review, not five; a pass after a
+    day jumps past a day; the Review button and the warm-up update the line's
+    own schedule instead of minting "review:" copies."""
+    import time as _time
+    from unittest import mock
+    c = Course("zh")
+    prog = {"lesson_id": 1, "completed": [], "mastery": {}, "words": {}, "stats": {}}
+    t0 = _time.time()
+    with mock.patch("time.time", return_value=t0):
+        s = Session(c, load_config("config.yaml"), prog)
+        s.start_lesson(1)
+        _play(s)
+    assert {e["stage"] for e in prog["mastery"].values()} == {1}, "same-sitting passes promoted"
+    with mock.patch("time.time", return_value=t0 + 26 * 3600):
+        s.start_lesson(2)
+        warm = [st for st in s.steps if st.prior]
+        assert warm, "no warm-up of yesterday's lines"
+        assert s.steps[1] is warm[0], "a warm-up line was modelled first"
+        _play(s)
+        assert prog["mastery"][warm[0].key]["stage"] == 5   # 1 day survived -> 3 days
+        assert s.start_review(5) >= 0
+        assert not [k for k in prog["mastery"] if k.startswith("review:")]
 
 
 def main() -> int:

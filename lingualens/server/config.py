@@ -83,7 +83,16 @@ DEFAULTS: Dict[str, Any] = {
     # anticipation": the silent pause at the top of a recall item, BEFORE the
     # English cue appears. You try to retrieve with nothing on the screen; if
     # you draw a blank the English arrives and rescues you. 0 = cue at once.
-    "recall": {"intervals": [10, 30, 75], "rounds": 3, "anticipation_seconds": 5.0},
+    #
+    # criterion: a line drops out of rounds 2+ once it has this many lagged,
+    # first-try correct recalls in the lesson. Its next recall belongs on a
+    # later day: with spaced relearning, extra same-day recalls stop adding
+    # retention (Rawson & Dunlosky 2011; Vaughn, Dunlosky & Rawson 2016).
+    # 0 = every round runs in full.
+    # warmup: due lines from earlier lessons that open each lesson
+    # (successive relearning). 0 = off; the Review button still works.
+    "recall": {"intervals": [10, 30, 75], "rounds": 3, "anticipation_seconds": 5.0,
+               "criterion": 2, "warmup": 6},
     # --- literacy -----------------------------------------------------------
     # Japanese is the one major language you cannot read without being taught
     # the writing system explicitly: two 46-character syllabaries get you

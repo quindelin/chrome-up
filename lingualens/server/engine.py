@@ -102,6 +102,12 @@ class Step:
     # mastery keys that must all be mastered for this step to be played at
     # all; when they are not, the walk-through steps over it
     requires: List[str] = field(default_factory=list)
+    # A recall-round step that is skipped once its line has reached the
+    # session's criterion (recall.criterion lagged first-try passes).
+    dropout: bool = False
+    # A line from an earlier session (the warm-up): it was heard back then,
+    # so it is retrieval, not new material, and must not be modelled first.
+    prior: bool = False
     # role-play only: which learner turn this is, of how many, and what has
     # been said so far ([{"who": "them"|"you", "text", "en"}])
     turn: int = 0
@@ -179,6 +185,9 @@ class Session:
         self.pos: int = 0
         self.attempts: int = 0
         self.history: List[dict] = []
+        # lagged, first-try correct recalls of each line in this lesson; a
+        # round-2+ step drops out once its line reaches recall.criterion
+        self.session_correct: Dict[str, int] = {}
         self.last_score: Optional[dict] = None
         # the line you just got right, so the glasses can show it in full on
         # the next screen: a recall is answered from the English alone, and
@@ -212,6 +221,7 @@ class Session:
         self.attempts = 0
         self.thought = None
         self._saved = None
+        self.session_correct = {}
         self.steps = self._build_steps(lesson_id)
         self.progress["lesson_id"] = lesson_id
         self.message = f"Unit {lesson.unit} · Lesson {lesson.id}: {lesson.title}"
@@ -605,6 +615,15 @@ class Session:
         assert lesson is not None
         steps: List[Step] = []
 
+        # 00. warm-up: lines from earlier lessons that are due today. This is
+        #     successive relearning (Rawson & Dunlosky): what decides whether a
+        #     line is still there next month is recalling it again on later
+        #     days, not recalling it more times today. It used to sit behind a
+        #     "Review" button that a learner has to remember to press; Pimsleur
+        #     opens every lesson this way, and so does this.
+        for row in self._warmup_steps(lesson_id):
+            steps.append(row)
+
         # 0. where you are standing. Pimsleur has to speak this in English
         #    because audio is all it has; we print it, so the whole audio track
         #    stays in the target language. The scene is a signpost: it tells
@@ -803,6 +822,7 @@ class Session:
         intervals = list(self.cfg["recall"].get("intervals") or [10, 30, 75])
         rounds = int(self.cfg["recall"].get("rounds") or 3)
         anticipation = float((self.cfg.get("recall") or {}).get("anticipation_seconds", 0.0) or 0.0)
+        criterion = int((self.cfg.get("recall") or {}).get("criterion", 2) or 0)
         for r in range(rounds):
             wait = 0.0 if r == 0 else float(intervals[min(r - 1, len(intervals) - 1)])
             steps.append(
@@ -831,9 +851,50 @@ class Session:
                         wait_seconds=anticipation,
                         round=r + 1,
                         key=f"{lesson_id}:{item.text}",
+                        # Round 1 always runs: re-testing a line after its
+                        # first success is what consolidates it (Karpicke &
+                        # Roediger 2008). From round 2 a line drops out once
+                        # it has `criterion` lagged first-try recalls this
+                        # session; the next recall belongs on a later day.
+                        dropout=r >= 1 and criterion > 0,
                     )
                 )
         return self._model_before_recall(steps)
+
+    # -- spaced relearning ---------------------------------------------------
+    def _warmup_steps(self, lesson_id: int) -> List["Step"]:
+        """Lines from earlier lessons that are due today, most overdue first."""
+        limit = int((self.cfg.get("recall") or {}).get("warmup", 6) or 0)
+        if limit <= 0 or self.mode != "lesson":
+            return []
+        own = f"{lesson_id}:"
+        due = [(k, p) for k, p in drills.due_entries(self.progress, limit * 2, include_fresh=False)
+               if not k.startswith(own)][:limit]
+        if not due:
+            return []
+        out = [Step(kind="info", en=f"Warm-up · {len(due)} lines from earlier lessons",
+                    wait_seconds=3.0, key=f"warmup:{lesson_id}")]
+        anticipation = float((self.cfg.get("recall") or {}).get("anticipation_seconds", 0.0) or 0.0)
+        for key, item in due:
+            out.append(Step(kind="recall", text=item.text, reading=item.reading, en=item.en,
+                            prompt_en=item.en, note="review", wait_seconds=anticipation,
+                            key=key, prior=True))
+        return out
+
+    def _dropped(self, step: "Step") -> bool:
+        criterion = int((self.cfg.get("recall") or {}).get("criterion", 2) or 0)
+        return bool(step.dropout and criterion > 0
+                    and self.session_correct.get(step.key, 0) >= criterion)
+
+    def _round_empty(self, at: int) -> bool:
+        """Every recall in the round that starts after the info step at `at`
+        has dropped out, so its "Recall round N" header is noise."""
+        i = at + 1
+        while i < len(self.steps) and self.steps[i].kind == "recall" and self.steps[i].round:
+            if not self._dropped(self.steps[i]):
+                return False
+            i += 1
+        return i > at + 1
 
     # -- the hear-it-first rule -----------------------------------------------
     def _norm(self, text: str) -> str:
@@ -864,6 +925,10 @@ class Session:
                        "hear", "converse")
         out: List[Step] = []
         for step in steps:
+            if step.prior:
+                heard |= self._units(step.text)   # met in an earlier lesson
+                out.append(step)
+                continue
             if step.kind == "recall" and step.text:
                 missing = self._units(step.text) - heard
                 if missing:
@@ -1049,10 +1114,18 @@ class Session:
         return True
 
     def _settle(self) -> None:
-        """Step over anything whose prerequisites are not mastered yet."""
-        while (self.pos < len(self.steps) and self.steps[self.pos].requires
-               and not self._mastered(self.steps[self.pos].requires)):
-            self.pos += 1
+        """Step over anything whose prerequisites are not mastered yet, and
+        over recall-round lines that have already reached the criterion."""
+        while self.pos < len(self.steps):
+            step = self.steps[self.pos]
+            if step.requires and not self._mastered(step.requires):
+                self.pos += 1
+            elif self._dropped(step):
+                self.pos += 1
+            elif step.kind == "info" and step.round >= 2 and self._round_empty(self.pos):
+                self.pos += 1
+            else:
+                break
 
     def _converse_next(self, step: Step, said: str) -> bool:
         """Record the learner's turn and fetch the partner's reply.
@@ -1192,6 +1265,10 @@ class Session:
 
         # a role-play line is never the same twice, so it is not a line to
         # schedule for review
+        if passed and step.kind == "recall" and (step.round >= 1 or step.prior) \
+                and self.attempts == 1 and step.key:
+            self.session_correct[step.key] = self.session_correct.get(step.key, 0) + 1
+
         if step.key and step.kind != "converse":
             mastery = self.progress.setdefault("mastery", {})
             prev = mastery.get(step.key)
@@ -1203,18 +1280,39 @@ class Session:
                 # that makes spaced repetition work.
                 stage = prev.get("stage", 0) if isinstance(prev, dict) else int(prev or 0)
                 entry = dict(prev) if isinstance(prev, dict) else {}
-                entry.update(
-                    {
-                        "text": step.text,
-                        "reading": step.reading,
-                        "en": step.en or step.prompt_en,
-                        "ts": time.time(),
-                    }
-                )
-                entry["stage"] = (
-                    min(drills.MAX_STAGE, stage + 1) if passed else max(0, stage - 2)
-                )
+                now = time.time()
+                last = float(entry.get("ts", 0) or 0)
+                due = prev is None or now - last >= drills.STAGE_INTERVALS[
+                    min(stage, drills.MAX_STAGE)]
+                entry.update({"text": step.text, "reading": step.reading,
+                              "en": step.en or step.prompt_en})
+                if not passed:
+                    # a lapse sends it back, and the clock restarts
+                    entry["stage"], entry["ts"] = max(0, stage - 2), now
+                elif due:
+                    # Promote only a recall that was due. Every pass used to
+                    # promote, so a line said five times in one 20-minute
+                    # lesson reached a multi-day interval without ever being
+                    # recalled after a delay - the opposite of spacing.
+                    # And credit the gap actually survived: recalled after a
+                    # day, the next gap is the step past a day (3 days), not
+                    # one rung up from wherever the line happened to sit.
+                    elapsed = now - last if prev is not None else 0.0
+                    new = stage + 1
+                    while (new < drills.MAX_STAGE
+                           and drills.STAGE_INTERVALS[new] <= elapsed):
+                        new += 1
+                    entry["stage"], entry["ts"] = min(drills.MAX_STAGE, new), now
+                else:
+                    entry.setdefault("ts", now)   # an early pass: no change
+                    entry.setdefault("stage", stage)
                 mastery[step.key] = entry
+                # The same line learned in two lessons (or drilled under a
+                # vocab key) is one memory: keep one schedule for it.
+                for other_key, other in mastery.items():
+                    if (other_key != step.key and isinstance(other, dict)
+                            and other.get("text") == step.text):
+                        other["stage"], other["ts"] = entry["stage"], entry["ts"]
 
         if step.kind == "converse" and passed and not forced_advance:
             if self._converse_next(step, (score.recognized or "").strip()):
@@ -1320,13 +1418,15 @@ class Session:
         # Respect the intervals: a line you aced a minute ago is not due.  Only
         # pad with not-yet-due lines when the queue is short, because an empty
         # review is worse than a slightly early one.
-        items = drills.due_items(self.progress, limit, include_fresh=False)
+        # The original mastery key, not "review:<text>": passing a review used
+        # to schedule a new entry and leave the real one due forever.
+        items = drills.due_entries(self.progress, limit, include_fresh=False)
         if len(items) < limit:
-            seen = {i.text for i in items}
+            seen = {p.text for _, p in items}
             items += [
-                i
-                for i in drills.due_items(self.progress, limit, include_fresh=True)
-                if i.text not in seen
+                (k, p)
+                for k, p in drills.due_entries(self.progress, limit, include_fresh=True)
+                if p.text not in seen
             ][: limit - len(items)]
         if not items:
             self.message = "Nothing due for review yet - finish a lesson first."
@@ -1335,6 +1435,7 @@ class Session:
             self._saved = (self.steps, self.pos)
         self.mode = "review"
         self.attempts = 0
+        self.session_correct = {}
         self.steps = [
             Step(
                 kind="recall",
@@ -1342,9 +1443,10 @@ class Session:
                 reading=item.reading,
                 en=item.en,
                 prompt_en=item.en,
-                key=f"review:{item.text}",
+                key=key,
+                prior=True,
             )
-            for item in items
+            for key, item in items
         ]
         self.pos = 0
         self.message = f"Review: {len(items)} lines are due."
