@@ -514,6 +514,37 @@ def t_es_four_free_prompts_a_lesson():
     assert sum(1 for st in sess.steps if st.kind == "answer" and st.key.startswith("free:")) == 4
 
 
+def t_glasses_card_never_blank():
+    """Every step of every course gives the glasses something to show.
+
+    The phone apps used to mirror step.text/reading/en, which a recall step
+    leaves empty on purpose - so three steps in four drew a bare "…" on the
+    waveguide. The server's card must always have a target, and a recall
+    must show its English cue.
+    """
+    from server.pronunciation import simulated_score
+    for lang, cfg_path, lid in (("zh", "config.yaml", 3), ("ja", "config.ja.yaml", 3),
+                                ("es", "config.es.yaml", 3)):
+        c = Course(lang)
+        s = Session(c, load_config(cfg_path),
+                    {"lesson_id": lid, "completed": [], "mastery": {}, "words": {}, "stats": {}})
+        for i, step in enumerate(s.steps):
+            s.pos, s.attempts = i, 0
+            g = s.state()["glasses"]
+            assert g["target"].strip(), f"{lang} step {i} ({step.kind}): blank card"
+            assert g["header"], f"{lang} step {i}: no header"
+            if step.kind == "recall":
+                assert g["target"] == (step.prompt_en or step.en), (lang, i, g)
+                assert step.text not in (g["target"], g["reading"]), "recall gave the answer away"
+        # a pass brings the line back in full on the next screen
+        i = next(i for i, st in enumerate(s.steps) if st.kind == "recall")
+        s.pos, s.attempts = i, 0
+        sc = simulated_score(s.steps[i].text, "good")
+        sc.recognized = s.steps[i].text
+        assert s.submit(sc)["passed"]
+        assert s.steps[i].text in s.state()["glasses"]["footer"], lang
+
+
 def main() -> int:
     for name, fn in sorted(globals().items()):
         if name.startswith("t_"):

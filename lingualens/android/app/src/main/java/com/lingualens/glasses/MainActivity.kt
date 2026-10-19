@@ -79,6 +79,9 @@ class MainActivity : AppCompatActivity() {
             @JavascriptInterface
             fun showLine(target: String, reading: String, english: String) =
                 bridge.showLine(target, reading, english)
+            /** The server's glasses card for the current step, as JSON. */
+            @JavascriptInterface
+            fun showCard(json: String) = bridge.showCard(GlassesCard.parse(json))
             @JavascriptInterface
             fun register() = runOnUiThread { bridge.register(this@MainActivity) }
             @JavascriptInterface
