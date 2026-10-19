@@ -183,6 +183,9 @@ class App:
             "listening_vary_pitch": bool(
                 (sess.cfg.get("listening") or {}).get("vary_pitch", True)
             ),
+            "listening_rotate_voices": bool(
+                (sess.cfg.get("listening") or {}).get("rotate_voices", True)
+            ),
         }
         return payload
 
@@ -516,7 +519,7 @@ def build_app(cfg: Dict) -> FastAPI:
 
         step = sess.current()
         result: Dict[str, object] = {}
-        if step and step.kind == "answer":
+        if step and step.kind in ("answer", "converse"):
             # listen first: we cannot grade what we have not heard
             heard, asr_name = asr.transcribe(pcm, sr, sess.cfg, client_text=recognized)
             result["asr"] = asr_name
@@ -551,7 +554,7 @@ def build_app(cfg: Dict) -> FastAPI:
         if not sess.needs_speech():
             sess.advance_non_speech()
         step = sess.current()
-        if step and step.kind == "answer":
+        if step and step.kind in ("answer", "converse"):
             reference = step.sample_text or (step.text or "")
         else:
             reference = sess.reference_text() or (step.text if step else "") or "你好"

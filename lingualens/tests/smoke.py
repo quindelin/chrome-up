@@ -23,9 +23,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from server.config import load_config  # noqa: E402
+from server.config import course_config, load_config  # noqa: E402
 from server.curriculum import Course  # noqa: E402
-from server.engine import Session  # noqa: E402
+from server.engine import Session, Step  # noqa: E402
 from server.models import Score  # noqa: E402
 from server.course.ja import kana_check, kanji, readings, grammar  # noqa: E402
 
@@ -44,7 +44,9 @@ def check(name: str, fn):
 
 def _session(lang: str, lesson_id: int) -> Session:
     course = Course(lang)
-    return Session(course, load_config(lang),
+    # the course's own config, the way the server builds it - load_config(lang)
+    # finds no file called "es" and quietly hands every course Mandarin's
+    return Session(course, course_config(load_config(), lang),
                    {"lesson_id": lesson_id, "completed": [], "mastery": {},
                     "words": {}, "stats": {}})
 
@@ -398,6 +400,118 @@ def t_es_session_every_lesson():
     for lid in Course("es").lesson_ids:
         st = _session("es", lid).state()
         assert isinstance(st, dict) and st.get("grammar"), f"es L{lid}"
+
+
+# --------------------------------------------------------------- 5 listening and role-play
+# Audit priorities 2 and 3 (docs/SPANISH_AUDIT.md): blind listening is the
+# whole passage, not its last line; the dialogue comes back blind once it is
+# mastered; and a role-play step talks back - or is left out with no key.
+def _walk_to(sess: Session, pred) -> Step:
+    """Pass every gated step until `pred(step)` holds - no audio, no network."""
+    for _ in range(2000):
+        st = sess.current()
+        if st is None or pred(st):
+            return st
+        if not sess.advance_non_speech():
+            sess.submit(_score(st.sample_text if st.kind in ("answer", "converse") else st.text))
+    raise AssertionError("never reached the step")
+
+
+def t_hear_plays_the_whole_passage():
+    from server.course import module_for
+    for lang, lid in (("es", 40), ("ja", 30), ("zh", 5)):
+        sess = _session(lang, lid)
+        chunks = module_for(lang, "readings").get(lid)["chunks"]
+        hear = next(st for st in sess.steps if st.key == f"hear:{lid}")
+        assert hear.audio_parts == [c[0] for c in chunks], (lang, hear.audio_parts)
+        assert chunks[0][0] in hear.audio_text and chunks[-1][0] in hear.audio_text, lang
+        d = hear.to_dict()
+        assert d["hide_text"] and not d["text"] and not d["en"], lang
+        assert d["audio_parts"] == hear.audio_parts, lang
+        # the question after it may draw on any part of the passage
+        nxt = sess.steps[sess.steps.index(hear) + 1]
+        assert nxt.kind == "answer" and nxt.key == f"hear-q:{lid}", (lang, nxt.kind)
+
+
+def t_natural_speed_from_b2():
+    assert next(s for s in _session("es", 41).steps if s.kind == "hear").natural      # B2
+    assert not next(s for s in _session("es", 30).steps if s.kind == "hear").natural  # B1
+    ja = _session("ja", 1)
+    assert not ja._natural()
+    ja.band = 2
+    assert ja._natural()                                       # JLPT counts down
+
+
+def t_dialogue_replay_waits_for_mastery():
+    sess = _session("es", 20)
+    replay = next(st for st in sess.steps if st.key == "hear-dialogue:20")
+    lesson = sess.course.lesson(20)
+    assert replay.hide_text and len(replay.audio_parts) == len(lesson.dialogue)
+    assert set(replay.audio_voices) == {0, 1}, replay.audio_voices
+    # not mastered: walked straight over
+    at = sess.steps.index(replay)
+    sess.pos = at - 1
+    sess.progress["mastery"] = {}
+    sess.steps[at - 1] = Step(kind="info", en="x")
+    sess.advance_non_speech()
+    assert sess.current() is not replay, "replayed before the lines were mastered"
+    # mastered: it plays
+    sess.pos = at - 1
+    sess.progress["mastery"] = {k: {"stage": 3} for k in replay.requires}
+    sess.advance_non_speech()
+    assert sess.current() is replay
+
+
+def t_converse_left_out_without_a_key():
+    import os
+    env = load_config("config.es.yaml")["think"].get("api_key_env") or "OPENAI_API_KEY"
+    saved = os.environ.pop(env, None)
+    try:
+        for lang in ("es", "ja", "zh"):
+            assert not any(st.kind == "converse" for st in _session(lang, 5).steps), lang
+    finally:
+        if saved is not None:
+            os.environ[env] = saved
+
+
+def t_converse_talks_back_then_ends():
+    import os
+    from server import converse
+    env = load_config("config.es.yaml")["think"].get("api_key_env") or "OPENAI_API_KEY"
+    saved, real = os.environ.get(env), converse.reply
+    os.environ[env] = "test-key"
+    replies = iter([
+        {"reply": "¿Y de qué parte de Boston eres?", "reply_en": "Which part?",
+         "hint": "Soy del centro.", "hint_en": "", "done": False},
+        None,  # the model goes away mid-scene: the scene ends, not the lesson
+    ])
+    converse.reply = lambda *a, **k: next(replies)
+    try:
+        sess = _session("es", 3)
+        st = _walk_to(sess, lambda s: s.kind == "converse")
+        assert st is not None and st.turns >= 3 and sess.needs_speech()
+        assert sess.state()["step"]["kind"] == "converse"
+        r = sess.submit(_score(st.sample_text))
+        assert r["passed"] and not r["advanced"] and r.get("converse_turn") == 1, r
+        assert st.text.startswith("¿Y de qué parte") and len(st.conversation) == 3
+        r = sess.submit(_score("Soy del centro de Boston, cerca del parque."))
+        assert r["passed"] and r["advanced"], r
+        assert "converse:3" not in sess.progress["mastery"]
+    finally:
+        converse.reply = real
+        if saved is None:
+            os.environ.pop(env, None)
+        else:
+            os.environ[env] = saved
+
+
+def t_es_four_free_prompts_a_lesson():
+    c = Course("es")
+    assert load_config("config.es.yaml")["free"]["per_lesson"] >= 4
+    short = [lid for lid in c.lesson_ids if len(c.lessons[lid].prompts) < 4]
+    assert not short, short
+    sess = _session("es", 50)
+    assert sum(1 for st in sess.steps if st.kind == "answer" and st.key.startswith("free:")) == 4
 
 
 def main() -> int:
