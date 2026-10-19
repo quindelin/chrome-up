@@ -152,6 +152,10 @@ class Session:
         self.attempts: int = 0
         self.history: List[dict] = []
         self.last_score: Optional[dict] = None
+        # the line you just got right, so the glasses can show it in full on
+        # the next screen: a recall is answered from the English alone, and
+        # without this you never see the characters of a line you passed
+        self.last_line: Optional[dict] = None
         self.message: str = ""
         self.thought: Optional[Target] = None
         self.think_done: int = 0
@@ -883,6 +887,11 @@ class Session:
         self.last_score = score.to_dict()
         self.last_score["passed"] = passed
         self.last_score["reasons"] = reasons
+        # Only a pass (or a give-up advance) reveals the line: showing it after
+        # a miss would hand over the answer before the second try.
+        if (passed or forced_advance) and step.kind in ("speak", "recall", "read"):
+            self.last_line = {"text": step.text, "reading": step.reading,
+                              "en": step.en or step.prompt_en, "passed": bool(passed)}
 
         # feed the per-course ledger: every attempt counts, and a real pass
         # (not a give-up advance) adds the line to the word list the phone shows
@@ -1151,4 +1160,91 @@ class Session:
             # the grammar page for this lesson, if the course has written one
             "grammar": (self._grammar.for_lesson(self.lesson_id)
                         if self._grammar else []),
+            # what the glasses waveguide should show for this step
+            "glasses": self.glasses_card(),
         }
+
+    def glasses_card(self) -> dict:
+        """What the glasses display shows for the current step, ready to draw.
+
+        The phone apps used to build this themselves from `step`, and got it
+        wrong in a way that hid most of every lesson: a recall step sends no
+        `text` or `en` (only `prompt_en`, so you answer from memory), so
+        recall - three steps in four - came out as a bare "…". Info and
+        listening steps did the same. Deciding it here gives every client
+        (iOS, Android, the web page) one rule set, and a test.
+
+            header   where you are: lesson and position
+            cue      what to do, small: "Say it in Mandarin", "Listen"
+            target   the big line: characters, or the English cue on a recall
+            reading  pinyin / kana, when this step may show it
+            english  the meaning, when this step may show it
+            footer   the line you just passed, in full; or why you missed
+        """
+        step = self.current()
+        lesson = self.course.lesson(self.lesson_id) if self.mode == "lesson" else None
+        total = len(self.steps)
+        index = min(self.pos, total)
+        if lesson:
+            where = f"L{lesson.id} · {lesson.title}"
+        elif self.mode == "vocab" and self.course.topic(self.topic_id):
+            where = self.course.topic(self.topic_id).title
+        else:
+            where = {"review": "Review", "think": "Think"}.get(self.mode, "LinguaLens")
+        header = f"{where} · {min(index + 1, total)}/{total}" if total else where
+        card = {"header": header, "cue": "", "target": "", "reading": "", "english": "",
+                "footer": ""}
+        if not step:
+            card["target"] = "Lesson complete"
+            card["cue"] = "Swipe forward for the next lesson"
+            return card
+
+        lang = course_pkg.LANG_NAMES.get(self.lang, "the language")
+        shown = self.show_target() and not step.hide_text
+        reading_ok = self.show_reading(step)
+        kind = step.kind
+
+        def full(cue: str) -> None:
+            card.update(cue=cue, target=step.text,
+                        reading=step.reading if reading_ok else "", english=step.en)
+
+        if kind == "info":
+            card.update(cue="", target=step.en or step.text or step.note)
+        elif kind == "listen":
+            full("Listen")
+        elif kind == "speak":
+            full("Say it")
+        elif kind == "recall":
+            if shown:
+                full("Say it")
+                card["english"] = step.en or step.prompt_en
+            else:
+                card.update(cue=f"Say it in {lang}", target=step.prompt_en or step.en)
+        elif kind == "read":
+            n = f" · {step.chunk_index}/{step.chunk_total}" if step.chunk_total else ""
+            full("Read aloud" + n)
+        elif kind == "answer":
+            full(f"Answer in {lang}")
+            if self.show_sample() and step.sample_text:
+                card["footer"] = "e.g. " + step.sample_text
+        elif kind == "write":
+            full("Say it shorter")
+        elif kind == "hear":
+            card.update(cue="Listen", target=step.note or "Nothing on screen - just listen")
+        elif kind in ("kana", "kanji", "hanzi"):
+            full({"kana": "Kana", "kanji": "Kanji", "hanzi": "Character"}[kind])
+            if not card["reading"] and step.reading:
+                card["reading"] = step.reading      # a character is taught with its sound
+        else:
+            full("")
+
+        if not card["footer"]:
+            score = self.last_score or {}
+            if self.attempts and score and not score.get("passed"):
+                reasons = score.get("reasons") or []
+                card["footer"] = "Try again" + (f" - {reasons[0]}" if reasons else "")
+            elif self.last_line and self.last_line.get("text") != step.text:
+                ll = self.last_line
+                card["footer"] = "✓ " + " · ".join(
+                    x for x in (ll["text"], ll["reading"], ll["en"]) if x)
+        return card

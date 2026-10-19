@@ -65,7 +65,7 @@ class GlassesBridge(private val context: Context) {
     private var display: Display? = null
     private var sessionJob: Job? = null
     private var displayJob: Job? = null
-    private var lastLine: Triple<String, String, String>? = null
+    private var lastCard: GlassesCard? = null
 
     /** Call once per process, before anything else touches DAT. */
     fun connect() {
@@ -135,7 +135,7 @@ class GlassesBridge(private val context: Context) {
                         _displayActive.value = st == DisplayState.STARTED
                         // The display can restart after a disconnect or a wake;
                         // the glasses keep nothing, so send the current line again.
-                        if (st == DisplayState.STARTED) lastLine?.let { (a, b, c) -> showLine(a, b, c) }
+                        if (st == DisplayState.STARTED) lastCard?.let { send(it) }
                     }
                 }
             },
@@ -157,21 +157,35 @@ class GlassesBridge(private val context: Context) {
         _displayActive.value = false
     }
 
+    /** Older pages that only know the three-field line. */
+    fun showLine(target: String, reading: String, english: String) =
+        showCard(GlassesCard(target = target, reading = reading, english = english))
+
     /**
-     * Mirror the current line onto the glasses. A no-op unless native display
-     * mode is running - in Web App mode the page already shows it.
+     * Draw the server's card for the current step. A no-op unless native
+     * display mode is running - in Web App mode the page already shows it.
      */
-    fun showLine(target: String, reading: String, english: String) {
-        lastLine = Triple(target, reading, english)
+    fun showCard(card: GlassesCard) {
+        if (card == lastCard) return
+        lastCard = card
+        send(card)
+    }
+
+    private fun send(card: GlassesCard) {
         val d = display ?: return
         if (!_displayActive.value) return
         scope.launch(Dispatchers.IO + onError) {
+            // Primary colour only: SECONDARY is close to invisible on the
+            // waveguide, and it was hiding the pinyin and the English.
             d.sendContent {
-                flexBox(direction = Direction.COLUMN, gap = 12) {
-                    flexBox(padding = 24, background = FlexBoxBackground.CARD) {
-                        if (reading.isNotBlank()) text(reading, style = TextStyle.META, color = TextColor.SECONDARY)
-                        text(target, style = TextStyle.HEADING)
-                        if (english.isNotBlank()) text(english, style = TextStyle.BODY, color = TextColor.SECONDARY)
+                flexBox(direction = Direction.COLUMN, gap = 10) {
+                    flexBox(direction = Direction.COLUMN, padding = 24, gap = 8, background = FlexBoxBackground.CARD) {
+                        if (card.header.isNotBlank()) text(card.header, style = TextStyle.META)
+                        if (card.cue.isNotBlank()) text(card.cue, style = TextStyle.BODY)
+                        text(card.target.ifBlank { " " }, style = TextStyle.HEADING)
+                        if (card.reading.isNotBlank()) text(card.reading, style = TextStyle.BODY)
+                        if (card.english.isNotBlank()) text(card.english, style = TextStyle.BODY)
+                        if (card.footer.isNotBlank()) text(card.footer, style = TextStyle.META)
                     }
                 }
             }.fold(

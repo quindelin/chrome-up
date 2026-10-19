@@ -117,12 +117,16 @@ function connect() {
 // Web App. A no-op everywhere else.
 function mirrorToGlasses() {
   const g = window.LinguaLensGlasses;
-  const s = state && state.step;
-  if (!g || !s) return;
-  // `hear` is the step that must not show its line
-  const hidden = s.kind === 'hear';
+  if (!g || !state) return;
   try {
-    g.showLine(hidden ? '' : s.text || '', hidden || s.show_reading === false ? '' : s.reading || '', s.en || '');
+    // The server decides the card for every step kind (engine.glasses_card):
+    // a recall shows its English cue, never a bare "…".
+    if (g.showCard && state.glasses) { g.showCard(JSON.stringify(state.glasses)); return; }
+    const s = state.step;
+    if (!s) return;
+    const hidden = s.kind === 'hear';
+    g.showLine(hidden ? '' : s.text || s.prompt_en || '',
+               hidden || s.show_reading === false ? '' : s.reading || '', s.en || s.prompt_en || '');
   } catch (_) { /* wrapper not ready */ }
 }
 
