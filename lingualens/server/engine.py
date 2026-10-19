@@ -647,6 +647,20 @@ class Session:
         #    only fails the gate. So the order is target language first
         #    (heard), English second (as the cue), target language last (said
         #    by you) - which is Pimsleur's anticipation.
+        # 2a. the lesson's own word list comes first. It used to appear only in
+        #     the recall rounds, so 谢谢 / 不客气 were first met as "say it in
+        #     Mandarin" - and 不客气 is in no line of the dialogue at all.
+        dialogue_lines = {self._norm(t.text) for t in lesson.dialogue}
+        for word in lesson.vocab:
+            if self._norm(word.text) in dialogue_lines:
+                continue  # already heard and said whole in the conversation
+            steps.append(Step(kind="listen", text=word.text, reading=word.reading,
+                              en=word.en, speaker="them", note=f"new word · {word.en}",
+                              key=f"{lesson_id}:{word.text}"))
+            steps.append(Step(kind="recall", text=word.text, reading=word.reading,
+                              en=word.en, prompt_en=word.en, note=f"new word · {word.en}",
+                              round=0, key=f"{lesson_id}:{word.text}"))
+
         new_words = self._new_words(lesson)
         for word in new_words:
             steps.append(
@@ -819,7 +833,51 @@ class Session:
                         key=f"{lesson_id}:{item.text}",
                     )
                 )
-        return steps
+        return self._model_before_recall(steps)
+
+    # -- the hear-it-first rule -----------------------------------------------
+    def _norm(self, text: str) -> str:
+        from .pronunciation import normalize_text
+        return normalize_text(text).casefold()
+
+    def _units(self, text: str) -> set:
+        """What has to have been heard before a line can be asked for:
+        words for a spaced language, characters for Chinese and Japanese."""
+        if is_spaced(self.lang):
+            from .pronunciation import _LATIN_WORD, _fold
+            return set(_LATIN_WORD.findall(_fold(text or "")))
+        return {ch for ch in self._norm(text) if not ch.isascii()}
+
+    def _model_before_recall(self, steps: List["Step"]) -> List["Step"]:
+        """Never ask for a line containing a word or character not yet heard.
+
+        A recall is answered from the English alone. That is retrieval when
+        the line is made of things you have met, and guessing when it is not
+        - which fails the gate and teaches nothing. This walks the finished
+        lesson and, before any recall with an unheard unit, inserts the line
+        modelled ("listen") and repeated ("speak"): Pimsleur's order. It is a
+        safety net under every content module, so a drill frame, an injected
+        bank word or a recycled line can never skip it.
+        """
+        heard: set = set()
+        heard_kinds = ("listen", "speak", "read", "hanzi", "kanji", "kana", "answer",
+                       "hear", "converse")
+        out: List[Step] = []
+        for step in steps:
+            if step.kind == "recall" and step.text:
+                missing = self._units(step.text) - heard
+                if missing:
+                    out.append(Step(kind="listen", text=step.text, reading=step.reading,
+                                    en=step.en or step.prompt_en, speaker="them",
+                                    note="new line", key=f"model:{step.text}"))
+                    out.append(Step(kind="speak", text=step.text, reading=step.reading,
+                                    en=step.en or step.prompt_en, speaker="you",
+                                    note="say it after the model", key=step.key))
+                    heard |= self._units(step.text)
+            if step.kind in heard_kinds:
+                heard |= self._units(step.text or getattr(step, "audio_text", "") or "")
+            out.append(step)
+        return out
 
     # -- vocabulary sessions -----------------------------------------------
     def start_vocab(self, topic_id: str) -> int:

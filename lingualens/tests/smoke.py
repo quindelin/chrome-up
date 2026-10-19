@@ -545,6 +545,32 @@ def t_glasses_card_never_blank():
         assert s.steps[i].text in s.state()["glasses"]["footer"], lang
 
 
+def t_never_asked_for_what_you_have_not_heard():
+    """A recall is answered from the English alone, so every character (zh,
+    ja) or word (es) in it must have been heard earlier in the lesson.
+
+    HSK 1 lesson 1 used to ask for 我要茶 / 厕所在哪里 / 太贵了 from generic
+    fallback drills, and for 不客气 before it was ever modelled.
+    """
+    heard_kinds = ("listen", "speak", "read", "hanzi", "kanji", "kana", "answer",
+                   "hear", "converse")
+    for lang, cfg_path in (("zh", "config.yaml"), ("ja", "config.ja.yaml"),
+                           ("es", "config.es.yaml")):
+        c = Course(lang)
+        cfg = load_config(cfg_path)
+        bad = []
+        for lid in c.lesson_ids:
+            s = Session(c, cfg, {"lesson_id": lid, "completed": [], "mastery": {},
+                                 "words": {}, "stats": {}})
+            heard = set()
+            for st in s.steps:
+                if st.kind == "recall" and s._units(st.text) - heard:
+                    bad.append((lid, st.text))
+                if st.kind in heard_kinds:
+                    heard |= s._units(st.text or getattr(st, "audio_text", "") or "")
+        assert not bad, f"{lang}: {len(bad)} unheard recalls, e.g. {bad[:3]}"
+
+
 def main() -> int:
     for name, fn in sorted(globals().items()):
         if name.startswith("t_"):

@@ -184,7 +184,12 @@ def generate(lesson: Lesson, cfg: Dict, lang: str = "zh") -> List[Phrase]:
     if not drills_cfg.get("enabled", True):
         return []
     per = int(drills_cfg.get("per_pattern", 3) or 3)
-    patterns = lesson.patterns or base_patterns(lang)
+    # Only the lesson's own frames. The generic BASE_PATTERNS used to fill in
+    # for lessons that had none, which put 我要咖啡 / 厕所在哪里 / 太贵了 into
+    # HSK 1 lesson 1 - words the learner had never heard - and asked for them
+    # from the English four times over. A lesson without frames gets no
+    # drills; it does not get somebody else's.
+    patterns = lesson.patterns
     out: List[Phrase] = []
     for pattern in patterns:
         for value in pattern.values[:per]:
