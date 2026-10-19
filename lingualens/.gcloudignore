@@ -1,0 +1,15 @@
+# What `gcloud run deploy --source` uploads to Cloud Build. Only the server
+# image's inputs (see Dockerfile) - never the phone apps, whose folders hold
+# signing and API secrets (ios/Config/Secrets.xcconfig, android/local.properties).
+.gcloudignore
+.git
+.gitignore
+.venv/
+**/__pycache__/
+android/
+ios/
+tests/
+docs/
+branding/
+state*.json
+*.tmp
