@@ -311,14 +311,18 @@ class Runtime:
             cam_act = vision.activity or "idle"
             imu_act = imu_info.get("activity", "idle") if imu_info.get("fresh") else "idle"
             from_camera = True
-            if imu_act != "idle" and imu_info.get("fresh"):
-                # IMU wins for running / lifting / boxing when it has fresh data
-                if imu_act in ("running", "lifting", "boxing"):
-                    activity = imu_act
-                    cadence = imu_info.get("cadence", 0.0) or 0.0
-                    from_camera = False
-                else:
+            if imu_info.get("fresh"):
+                # the phone in a pocket feels footfalls: with fresh data it
+                # decides the gait outright, and "idle" means no walking even
+                # when the head-worn camera sees motion (boxing / lifting from
+                # the camera still count: the pocket can't see your arms)
+                from_camera = False
+                if imu_act != "idle":
+                    activity, cadence = imu_act, imu_info.get("cadence", 0.0) or 0.0
+                elif cam_act in ("boxing", "lifting"):
                     activity, cadence = cam_act, vision.cadence
+                else:
+                    activity, cadence = "idle", 0.0
             else:
                 activity, cadence = cam_act, vision.cadence
             # the camera is on your head: head turns and sitting aren't a gait,
