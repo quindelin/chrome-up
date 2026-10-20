@@ -72,18 +72,6 @@ enum Settings {
         set { defaults.set(newValue.rawValue, forKey: "transport") }
     }
 
-    enum AudioSource: String, CaseIterable, Identifiable {
-        case phone, glasses
-        var id: String { rawValue }
-        var label: String { self == .phone ? "Phone mic" : "Glasses mic" }
-    }
-
-    static var audioSource: AudioSource {
-        // the glasses: the phone mic also hears the stream playing back nearby
-        get { defaults.string(forKey: "audioSource").flatMap(AudioSource.init) ?? .glasses }
-        set { defaults.set(newValue.rawValue, forKey: "audioSource") }
-    }
-
     /// DAT's Mock Device Kit instead of real glasses: a simulated Ray-Ban
     /// Display whose camera plays a bundled test pattern. Works in the Simulator.
     static var mockGlasses: Bool {

@@ -94,7 +94,7 @@ final class GlassesStreamer {
     @ObservationIgnored private var tasks: [Task<Void, Never>] = []
     @ObservationIgnored private let up = Uplink()
     @ObservationIgnored private let pump = MediaPump()
-    @ObservationIgnored private let mic = PhoneMic()
+    @ObservationIgnored private let keepAlive = BackgroundAudio()
     @ObservationIgnored private var meter: Task<Void, Never>?
     @ObservationIgnored private var batteryLoop: Task<Void, Never>?
     @ObservationIgnored private var connectAfterRegistration = false
@@ -268,13 +268,10 @@ final class GlassesStreamer {
         }
         wantsStream = true
         startedAt = nil
-        let useGlassesMic = Settings.audioSource == .glasses
-        if !(await AVAudioApplication.requestRecordPermission()) {
-            lastError = "Microphone access is off (Settings > LiveVision): streaming video only."
-        }
         LocalNetworkProbe.shared.trigger()
-        micForward = !useGlassesMic
+        keepAlive.start()
         glassesAudioSeen = 0
+        glassesAudioBroken = false
         cameraStreamingSince = nil
         cameraTier = 0
         cameraAttempts = 0
@@ -294,7 +291,7 @@ final class GlassesStreamer {
         camera = nil
         await tokens.cancelAll()
         pump.stop()
-        mic.stop()
+        keepAlive.stop()
         await up.stop()
         meter?.cancel()
         meter = nil
@@ -306,49 +303,54 @@ final class GlassesStreamer {
 
     /// Resolution / fps to ask for, best first. DAT's own sample starts at low/24.
     private static let cameraTiers: [(StreamingResolution, UInt)] = [(.high, 30), (.medium, 24), (.low, 24)]
-    @ObservationIgnored private var micForward = true
     @ObservationIgnored private var glassesAudioSeen = 0
-    /// DAT 1.0.1 ends the whole camera stream with audioStreamingError when
-    /// asked for the glasses mic (in-stream audio is beta-channel only), so
-    /// after one failure this run streams video only, with the phone mic.
+    @ObservationIgnored private var cameraStreamingSince: Date?
+    /// The glasses refused audio in this stream: video only from here on.
     @ObservationIgnored private var glassesAudioBroken = false
 
+    /// The only microphone is the glasses' (the phone's also hears the stream
+    /// playing on nearby speakers and repeats it). In-stream audio needs the
+    /// wearer's MICROPHONE grant in Meta AI, separate from the camera's.
+    private func requestGlassesMic() async {
+        do {
+            var status = try await Wearables.shared.checkPermissionStatus(.microphone)
+            log.notice("glasses mic permission: \(String(describing: status))")
+            if status != .granted {
+                status = try await Wearables.shared.requestPermission(.microphone)
+                log.notice("glasses mic permission after request: \(String(describing: status))")
+            }
+            if status != .granted {
+                lastError = "Microphone access for LiveVision is off in the Meta AI app - streaming without sound."
+            }
+        } catch {
+            log.error("glasses mic permission check failed: \(String(describing: error))")
+        }
+    }
+
+    /// DAT ended the camera stream with audioStreamingError: restart it video
+    /// only, so the stream keeps its picture, and say why there is no sound.
     private func glassesAudioFailed() async {
         guard wantsStream, !glassesAudioBroken else { return }
         glassesAudioBroken = true
-        log.notice("glasses mic unavailable (audioStreamingError): camera without audio + phone mic")
+        log.notice("glasses mic: audioStreamingError; \(deviceSummary()) - restarting the camera without audio")
         cam?.stop()
         cam = nil
         camera = nil
         let old = tokens
         tokens = ListenerTokenBag()
         await old.cancelAll()
-        micForward = true
-        mic.forward = true
-        lastError = "Glasses mic isn't available yet (DAT beta) - using the phone mic. Mute speakers near the phone to avoid an echo."
+        lastError = "The glasses refused to send their mic (audioStreamingError) - streaming without sound."
         try? await Task.sleep(for: .seconds(1))
         if wantsStream, link == .connected { await attachCamera() }
     }
-    @ObservationIgnored private var cameraStreamingSince: Date?
 
-    /// The glasses mic rides in DAT's camera stream (beta in DAT 1.0). If none
-    /// has arrived 6 s after the camera started, send the phone mic instead so
-    /// the stream is not silent.
+    /// Camera streaming for 6 s with audio requested but none arriving.
     private func checkGlassesMic() {
-        guard wantsStream, !micForward, glassesAudioSeen == 0,
+        guard wantsStream, !glassesAudioBroken, glassesAudioSeen == 0,
               let since = cameraStreamingSince, Date().timeIntervalSince(since) > 6 else { return }
-        micForward = true
-        mic.forward = true
-        log.notice("no glasses audio after 6 s: falling back to the phone mic")
-        lastError = "Glasses mic sent no audio - using the phone mic (it hears speakers nearby)."
-    }
-
-    /// The phone mic starts once the camera streams: claiming the audio
-    /// session first is one suspect for the camera never reaching the glasses.
-    private func startMicIfNeeded() {
-        guard wantsStream, !mic.running else { return }
-        do { try mic.start(forward: micForward, into: pump) }
-        catch { lastError = "Mic: \(error.localizedDescription)" }
+        glassesAudioBroken = true   // report once
+        log.notice("glasses mic: no audio 6 s into the stream")
+        lastError = "The glasses' mic sends no audio - streaming without sound."
     }
 
     private func deviceSummary() -> String {
@@ -401,14 +403,18 @@ final class GlassesStreamer {
         } catch {
             log.error("camera permission check failed: \(String(describing: error))")
         }
-        let glassesMic = Settings.audioSource == .glasses && !glassesAudioBroken
+        let glassesMic = !glassesAudioBroken
+        if glassesMic { await requestGlassesMic() }
         let config = StreamConfiguration(
             // HEVC from the glasses, as in all of Meta's samples: with .raw a
             // Ray-Ban Display sat in waitingForDevice and timed out with
             // deviceNotConnected. MediaPump decodes it to pixels for the H.264
             // encoder (the mock only plays hvc1 anyway).
             videoCodec: .hvc1,
-            audioCodec: glassesMic ? .pcm(sampleRate: .rate48000, numberOfChannels: 1) : nil,
+            // the glasses mic, inside the camera stream (DAT beta: development
+            // channel / Developer Mode). 16 kHz mono as in Meta's examples;
+            // the AAC encoder resamples.
+            audioCodec: glassesMic ? .pcm(sampleRate: .rate16000, numberOfChannels: 1) : nil,
             // 720x1280@30 first; DAT also steps down by itself on a weak link
             resolution: Self.cameraTiers[cameraTier].0,
             frameRate: Self.cameraTiers[cameraTier].1)
@@ -425,7 +431,6 @@ final class GlassesStreamer {
                     self?.camera = state
                     if state == .streaming {
                         if self?.cameraStreamingSince == nil { self?.cameraStreamingSince = Date() }
-                        self?.startMicIfNeeded()
                         if self?.isMock == true { MockRig.refeed() }
                     }
                 }
@@ -467,10 +472,10 @@ final class GlassesStreamer {
                 self.fpsIn = c.framesIn
                 self.droppedFrames += c.dropped
                 tick += 1
-                if tick % 5 == 0 {
-                    self.glassesAudioSeen += c.glassesAudio
+                self.glassesAudioSeen += c.glassesAudio
                 self.checkGlassesMic()
-                log.notice("meter rx \(c.received)/s queued \(c.framesIn)/s glasses-audio \(c.glassesAudio)/s dropped \(self.droppedFrames) camera \(self.camera.map { String(describing: $0) } ?? "nil") uplink \(String(describing: self.uplink)) link \(String(describing: self.link))")
+                if tick % 5 == 0 {
+                    log.notice("meter rx \(c.received)/s queued \(c.framesIn)/s glasses-audio \(c.glassesAudio)/s dropped \(self.droppedFrames) camera \(self.camera.map { String(describing: $0) } ?? "nil") uplink \(String(describing: self.uplink)) link \(String(describing: self.link))")
                 }
             }
         }

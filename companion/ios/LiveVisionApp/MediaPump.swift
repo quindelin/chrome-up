@@ -5,8 +5,8 @@ import VideoToolbox
 
 /// Puts the glasses' frames on the phone's clock (docs/AUDIO_VIDEO_SYNC.md ①).
 ///
-/// DAT stamps video (and glasses audio) on the glasses' clock; the phone mic
-/// and HaishinKit's audio timeline run on the host clock, sample-accurate and
+/// DAT stamps video and glasses audio on the glasses' clock; HaishinKit's
+/// encoders run on the host clock, sample-accurate and
 /// gap-free. Each frame gives `arrival - pts` = clock offset + Bluetooth delay.
 /// The delay only ever adds, so the smallest value over the last ~10 s is the
 /// best estimate of the offset (and follows the slow drift between the two
@@ -164,12 +164,6 @@ final class MediaPump: @unchecked Sendable {
         guard videoFlowing, let host = clock.mapAudio(pts.seconds) else { return }
         audio?.yield((buffer, AVAudioTime(hostTime: AVAudioTime.hostTime(forSeconds: host))))
     }
-
-    /// Phone mic audio: already on the host clock.
-    func pushPhoneAudio(_ buffer: AVAudioPCMBuffer, hostTime: UInt64) {
-        guard videoFlowing else { return }
-        audio?.yield((buffer, AVAudioTime(hostTime: hostTime)))
-    }
 }
 
 /// Compressed frames (the mock's HEVC) -> pixel buffers, so the mock goes
@@ -199,54 +193,39 @@ final class FrameDecoder: @unchecked Sendable {
     }
 }
 
-/// The phone's own microphone. Also what keeps the app running with the
-/// screen off: an active recording session is iOS's licence for the "audio"
-/// background mode, so the stream survives the phone going in a pocket.
-final class PhoneMic {
+/// Keeps the app running with the screen off: iOS only grants the "audio"
+/// background mode to an app with an active audio session, so this plays
+/// silence (mixed with others, no microphone) while streaming.
+final class BackgroundAudio {
     private let engine = AVAudioEngine()
+    private let player = AVAudioPlayerNode()
     private(set) var running = false
 
-    /// false keeps the session alive (background) but sends nothing: the
-    /// glasses mic is in use. Flipped on if the glasses send no audio.
-    var forward: Bool {
-        get { forwardFlag.withLock { $0 } }
-        set { forwardFlag.withLock { $0 = newValue } }
-    }
-    private let forwardFlag = OSAllocatedUnfairLock(initialState: false)
-
-    func start(forward: Bool, into pump: MediaPump) throws {
-        self.forward = forward
+    func start() {
         guard !running else { return }
-        let session = AVAudioSession.sharedInstance()
-        // No .allowBluetooth (HFP): that would turn the glasses into a phone
-        // headset and squeeze their camera link. A2DP output is harmless.
-        try session.setCategory(.playAndRecord, mode: .videoRecording,
-                                options: [.mixWithOthers, .allowBluetoothA2DP, .defaultToSpeaker])
-        try session.setPreferredSampleRate(48_000)
-        try session.setActive(true)
-        let input = engine.inputNode
-        let format = input.outputFormat(forBus: 0)
-        guard format.sampleRate > 0 else { throw PhoneMicError.noInput }
-        let flag = forwardFlag
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak pump] buffer, time in
-            guard flag.withLock({ $0 }), let pump, time.isHostTimeValid, let copy = buffer.copy() as? AVAudioPCMBuffer else { return }
-            pump.pushPhoneAudio(copy, hostTime: time.hostTime)
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, options: [.mixWithOthers])
+            try session.setActive(true)
+            let format = AVAudioFormat(standardFormatWithSampleRate: 44_100, channels: 1)!
+            engine.attach(player)
+            engine.connect(player, to: engine.mainMixerNode, format: format)
+            let silence = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 44_100)!
+            silence.frameLength = silence.frameCapacity   // zero-filled
+            player.scheduleBuffer(silence, at: nil, options: .loops)
+            try engine.start()
+            player.play()
+            running = true
+        } catch {
+            log.error("background audio: \(String(describing: error))")
         }
-        engine.prepare()
-        try engine.start()
-        running = true
     }
 
     func stop() {
         guard running else { return }
-        engine.inputNode.removeTap(onBus: 0)
+        player.stop()
         engine.stop()
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         running = false
     }
-}
-
-enum PhoneMicError: LocalizedError {
-    case noInput
-    var errorDescription: String? { "No microphone available." }
 }

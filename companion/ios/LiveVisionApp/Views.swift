@@ -314,7 +314,6 @@ struct SettingsView: View {
     @State private var streamKey = Settings.streamKey
     @State private var srtPassphrase = Settings.srtPassphrase
     @State private var transport = Settings.transport
-    @State private var audioSource = Settings.audioSource
     @State private var mock = Settings.mockGlasses
     var onSave: () -> Void
 
@@ -348,13 +347,10 @@ struct SettingsView: View {
                     Picker("Send over", selection: $transport) {
                         ForEach(Settings.Transport.allCases) { Text($0.label).tag($0) }
                     }
-                    Picker("Audio", selection: $audioSource) {
-                        ForEach(Settings.AudioSource.allCases) { Text($0.label).tag($0) }
-                    }
                 } header: {
                     Text("Glasses stream")
                 } footer: {
-                    Text("STREAM_KEY / SRT_PASSPHRASE from the VM's .env. RTMP is the tested path; SRT is experimental (the VM drops it after a few seconds). The glasses mic needs DAT's beta audio; the phone mic always works. Applies the next time you start streaming.")
+                    Text("STREAM_KEY / SRT_PASSPHRASE from the VM's .env. RTMP is the tested path; SRT is experimental (the VM drops it after a few seconds). Applies the next time you start streaming.")
                 }
                 Section {
                     Toggle("Mock glasses", isOn: $mock)
@@ -374,7 +370,6 @@ struct SettingsView: View {
                         Settings.streamKey = streamKey
                         Settings.srtPassphrase = srtPassphrase
                         Settings.transport = transport
-                        Settings.audioSource = audioSource
                         if mock != Settings.mockGlasses {
                             Task { await glasses.setMock(mock) }
                         }

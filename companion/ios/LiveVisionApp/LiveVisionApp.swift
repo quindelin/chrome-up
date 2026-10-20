@@ -27,7 +27,7 @@ struct LiveVisionApp: App {
         }
         .onChange(of: phase, initial: true) { _, p in
             // no background polling: iOS would suspend it anyway. The glasses
-            // stream keeps going (audio background mode, see PhoneMic).
+            // stream keeps going (audio background mode, see BackgroundAudio).
             if p == .active { store.start(); sensors.start() } else { store.stop(); sensors.stop() }
         }
     }
