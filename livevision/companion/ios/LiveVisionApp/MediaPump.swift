@@ -74,6 +74,9 @@ final class MediaPump: @unchecked Sendable {
     struct Counters { var received = 0; var framesIn = 0; var dropped = 0; var glassesAudio = 0 }
 
     let clock = ClockMapper()
+    /// Decoded glasses frames for hand tracking (BodyTracker). Called on DAT's
+    /// frame thread: keep it cheap, the tracker drops frames it can't use.
+    var onPixels: (@Sendable (CVPixelBuffer) -> Void)?
     private let counters = OSAllocatedUnfairLock(initialState: Counters())
     private var video: AsyncStream<CMSampleBuffer>.Continuation?
     private var audio: AsyncStream<(AVAudioPCMBuffer, AVAudioTime)>.Continuation?
@@ -119,10 +122,11 @@ final class MediaPump: @unchecked Sendable {
                                         presentationTimeStamp: CMTime(seconds: host, preferredTimescale: 1_000_000_000),
                                         decodeTimeStamp: .invalid)
         if sb.imageBuffer == nil, sb.formatDescription?.mediaType == .video {
-            if let pixels = decoder.decode(sb) { enqueue(pixels, timing: &timing) }
+            if let pixels = decoder.decode(sb) { onPixels?(pixels); enqueue(pixels, timing: &timing) }
             else if first { log.error("first frame has no pixels and does not decode") }
             return
         }
+        if let pixels = sb.imageBuffer { onPixels?(pixels) }
         var out: CMSampleBuffer?
         guard CMSampleBufferCreateCopyWithNewTiming(allocator: nil, sampleBuffer: sb, sampleTimingEntryCount: 1,
                                                     sampleTimingArray: &timing, sampleBufferOut: &out) == noErr,

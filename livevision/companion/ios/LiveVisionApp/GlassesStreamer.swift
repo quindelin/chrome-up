@@ -104,6 +104,9 @@ final class GlassesStreamer {
     /// teleprompter's Display): the glasses take one session at a time.
     var deviceSession: DeviceSession? { session }
 
+    /// Decoded POV frames for hand tracking (BodyTracker); nil to stop.
+    func setFrameTap(_ tap: (@Sendable (CVPixelBuffer) -> Void)?) { pump.onPixels = tap }
+
     /// Once at launch.
     func configure() {
         guard !configured else { return }

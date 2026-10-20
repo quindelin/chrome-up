@@ -12,6 +12,10 @@ final class SensorBridge: NSObject, CLLocationManagerDelegate {
     var compassOn = true { didSet { applyToggles() } }
     var gpsOn = true { didSet { applyToggles() } }
     var motionOn = false { didSet { applyToggles() } }
+    /// Posture for the avatar: the phone in a front pocket lies along your
+    /// thigh, so its gravity vector says standing or sitting (server/body.py).
+    var postureOn = false { didSet { applyToggles() } }
+    @ObservationIgnored private var motionTick = 0
 
     private(set) var running = false
     private(set) var connected = false
@@ -61,10 +65,16 @@ final class SensorBridge: NSObject, CLLocationManagerDelegate {
         guard running else { return }
         compassOn && CLLocationManager.headingAvailable() ? location_.startUpdatingHeading() : location_.stopUpdatingHeading()
         gpsOn ? location_.startUpdatingLocation() : location_.stopUpdatingLocation()
-        if motionOn, motion.isDeviceMotionAvailable, !motion.isDeviceMotionActive {
+        if motionOn || postureOn, motion.isDeviceMotionAvailable, !motion.isDeviceMotionActive {
             motion.deviceMotionUpdateInterval = 1.0 / 25          // the page capped at ~25 Hz
             motion.startDeviceMotionUpdates(to: .main) { [weak self] m, _ in
                 guard let self, let m else { return }
+                self.motionTick += 1
+                // ~8 Hz is plenty for sitting down / standing up
+                if self.postureOn, self.motionTick % 3 == 0 {
+                    self.send(["body": ["gravity": [m.gravity.x, m.gravity.y, m.gravity.z]]])
+                }
+                guard self.motionOn else { return }
                 // the page sent accelerationIncludingGravity (m/s²) and rotationRate (deg/s)
                 let g = 9.80665, r = 180.0 / .pi
                 let a = (m.userAcceleration.x + m.gravity.x, m.userAcceleration.y + m.gravity.y,
@@ -74,7 +84,7 @@ final class SensorBridge: NSObject, CLLocationManagerDelegate {
                                    "gx": m.rotationRate.z * r, "gy": m.rotationRate.x * r,
                                    "gz": m.rotationRate.y * r]])
             }
-        } else if !motionOn {
+        } else if !motionOn && !postureOn {
             motion.stopDeviceMotionUpdates()
         }
     }
@@ -114,6 +124,9 @@ final class SensorBridge: NSObject, CLLocationManagerDelegate {
             self?.connect()
         }
     }
+
+    /// For BodyTracker: head pose, hands, wrists and heart rate share this socket.
+    func sendJSON(_ obj: [String: Any]) { send(obj) }
 
     private func send(_ obj: [String: Any]) {
         guard let socket, let data = try? JSONSerialization.data(withJSONObject: obj),

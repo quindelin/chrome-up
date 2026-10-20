@@ -15,19 +15,53 @@
 		2B00000000000000000000B5 /* RTMPHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000045 /* RTMPHaishinKit */; };
 		2B00000000000000000000B6 /* MWDATDisplay in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000046 /* MWDATDisplay */; };
 		2B00000000000000000000B7 /* MWDATInputs in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000047 /* MWDATInputs */; };
+		2B00000000000000000000B8 /* MWDATMotion in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000048 /* MWDATMotion */; };
+		2B00000000000000000000BA /* LiveVisionWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 2B0000000000000000000051 /* LiveVisionWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		2B000000000000000000005C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2B0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2B0000000000000000000052;
+			remoteInfo = LiveVisionWatch;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		2B0000000000000000000059 /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				2B00000000000000000000BA /* LiveVisionWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		2B0000000000000000000004 /* LiveVision.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveVision.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2B0000000000000000000006 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		2B0000000000000000000008 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2B0000000000000000000009 /* Secrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
+		2B0000000000000000000051 /* LiveVisionWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveVisionWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2B000000000000000000005D /* Watch-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Watch-Info.plist"; sourceTree = "<group>"; };
+		2B000000000000000000005E /* LiveVisionWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LiveVisionWatch.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		2B0000000000000000000005 /* LiveVisionApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			path = LiveVisionApp;
+			sourceTree = "<group>";
+		};
+		2B0000000000000000000050 /* LiveVisionWatch */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LiveVisionWatch;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -45,6 +79,14 @@
 				2B00000000000000000000B5 /* RTMPHaishinKit in Frameworks */,
 				2B00000000000000000000B6 /* MWDATDisplay in Frameworks */,
 				2B00000000000000000000B7 /* MWDATInputs in Frameworks */,
+				2B00000000000000000000B8 /* MWDATMotion in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		2B0000000000000000000054 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -55,6 +97,7 @@
 			isa = PBXGroup;
 			children = (
 				2B0000000000000000000005 /* LiveVisionApp */,
+				2B0000000000000000000050 /* LiveVisionWatch */,
 				2B0000000000000000000007 /* Config */,
 				2B0000000000000000000003 /* Products */,
 			);
@@ -64,6 +107,7 @@
 			isa = PBXGroup;
 			children = (
 				2B0000000000000000000004 /* LiveVision.app */,
+				2B0000000000000000000051 /* LiveVisionWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -74,6 +118,8 @@
 				2B0000000000000000000006 /* Base.xcconfig */,
 				2B0000000000000000000009 /* Secrets.example.xcconfig */,
 				2B0000000000000000000008 /* Info.plist */,
+				2B000000000000000000005D /* Watch-Info.plist */,
+				2B000000000000000000005E /* LiveVisionWatch.entitlements */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -88,10 +134,12 @@
 				2B0000000000000000000020 /* Sources */,
 				2B0000000000000000000021 /* Frameworks */,
 				2B0000000000000000000022 /* Resources */,
+				2B0000000000000000000059 /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				2B000000000000000000005B /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				2B0000000000000000000005 /* LiveVisionApp */,
@@ -103,12 +151,35 @@
 				2B0000000000000000000042 /* MWDATMockDevice */,
 				2B0000000000000000000046 /* MWDATDisplay */,
 				2B0000000000000000000047 /* MWDATInputs */,
+				2B0000000000000000000048 /* MWDATMotion */,
 				2B0000000000000000000043 /* HaishinKit */,
 				2B0000000000000000000044 /* SRTHaishinKit */,
 				2B0000000000000000000045 /* RTMPHaishinKit */,
 			);
 			productName = LiveVision;
 			productReference = 2B0000000000000000000004 /* LiveVision.app */;
+			productType = "com.apple.product-type.application";
+		};
+		2B0000000000000000000052 /* LiveVisionWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2B0000000000000000000056 /* Build configuration list for PBXNativeTarget "LiveVisionWatch" */;
+			buildPhases = (
+				2B0000000000000000000053 /* Sources */,
+				2B0000000000000000000054 /* Frameworks */,
+				2B0000000000000000000055 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				2B0000000000000000000050 /* LiveVisionWatch */,
+			);
+			name = LiveVisionWatch;
+			packageProductDependencies = (
+			);
+			productName = LiveVisionWatch;
+			productReference = 2B0000000000000000000051 /* LiveVisionWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -122,6 +193,9 @@
 				LastUpgradeCheck = 2700;
 				TargetAttributes = {
 					2B0000000000000000000010 = {
+						CreatedOnToolsVersion = 27.1;
+					};
+					2B0000000000000000000052 = {
 						CreatedOnToolsVersion = 27.1;
 					};
 				};
@@ -145,11 +219,19 @@
 			projectRoot = "";
 			targets = (
 				2B0000000000000000000010 /* LiveVision */,
+				2B0000000000000000000052 /* LiveVisionWatch */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		2B0000000000000000000055 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2B0000000000000000000022 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -160,6 +242,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		2B0000000000000000000053 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2B0000000000000000000020 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -169,7 +258,84 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		2B000000000000000000005B /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2B0000000000000000000052 /* LiveVisionWatch */;
+			targetProxy = 2B000000000000000000005C /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		2B0000000000000000000057 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Config/LiveVisionWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XPP3L755ZM;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/Watch-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = LiveVision;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Your heart rate shows on stream while LiveVision runs.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "LiveVision runs a workout session to keep your wrist tracking going; it is discarded when you stop.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Your wrist's motion moves the stream avatar's arm.";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.chromeup.livevision;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.chromeup.livevision.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
+		};
+		2B0000000000000000000058 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = Config/LiveVisionWatch.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XPP3L755ZM;
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/Watch-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = LiveVision;
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "Your heart rate shows on stream while LiveVision runs.";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "LiveVision runs a workout session to keep your wrist tracking going; it is discarded when you stop.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Your wrist's motion moves the stream avatar's arm.";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.chromeup.livevision;
+				INFOPLIST_KEY_WKRunsIndependentlyOfCompanionApp = NO;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = com.chromeup.livevision.watchkitapp;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 4;
+				VALIDATE_PRODUCT = YES;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 		2B0000000000000000000012 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = 2B0000000000000000000006 /* Base.xcconfig */;
@@ -278,6 +444,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		2B0000000000000000000056 /* Build configuration list for PBXNativeTarget "LiveVisionWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2B0000000000000000000057 /* Debug */,
+				2B0000000000000000000058 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		2B0000000000000000000011 /* Build configuration list for PBXNativeTarget "LiveVision" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -333,16 +508,6 @@
 			package = 2B0000000000000000000030 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
 			productName = MWDATMockDevice;
 		};
-		2B0000000000000000000046 /* MWDATDisplay */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 2B0000000000000000000030 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
-			productName = MWDATDisplay;
-		};
-		2B0000000000000000000047 /* MWDATInputs */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 2B0000000000000000000030 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
-			productName = MWDATInputs;
-		};
 		2B0000000000000000000043 /* HaishinKit */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 2B0000000000000000000031 /* XCRemoteSwiftPackageReference "HaishinKit" */;
@@ -357,6 +522,21 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 2B0000000000000000000031 /* XCRemoteSwiftPackageReference "HaishinKit" */;
 			productName = RTMPHaishinKit;
+		};
+		2B0000000000000000000046 /* MWDATDisplay */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2B0000000000000000000030 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
+			productName = MWDATDisplay;
+		};
+		2B0000000000000000000047 /* MWDATInputs */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2B0000000000000000000030 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
+			productName = MWDATInputs;
+		};
+		2B0000000000000000000048 /* MWDATMotion */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2B0000000000000000000030 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
+			productName = MWDATMotion;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

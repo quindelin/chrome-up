@@ -35,8 +35,10 @@ struct ControlView: View {
                 } header: {
                     Text("Phone sensors → HUD")
                 } footer: {
-                    Text("Drives the compass, the navigation objective and the motion skills. Sends while LiveVision is open.")
+                    Text("Drives the compass, the navigation objective and the motion skills. Sends while LiveVision is open, and in your pocket while the glasses stream.")
                 }
+
+                BodyTrackingSection()
 
                 Section("Navigation") {
                     if let obj = status?.nav?.objective, status?.nav?.active == true {

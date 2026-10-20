@@ -79,6 +79,28 @@ enum Settings {
         set { defaults.set(newValue, forKey: "mockGlasses") }
     }
 
+    // MARK: body tracking (BodyTracker, docs/BODY_TRACKING.md)
+
+    /// Horizontal field of view of the glasses' portrait video, in degrees.
+    /// Meta doesn't publish it: if the avatar's hand sits too close or too far
+    /// from where yours is, nudge this (wider = hands read further away).
+    static var cameraHFOV: Double {
+        get { let v = defaults.double(forKey: "body.cameraHFOV"); return v > 20 ? v : 62 }
+        set { defaults.set(newValue, forKey: "body.cameraHFOV") }
+    }
+
+    /// Which wrist the Meta Neural Band is on ("left" / "right").
+    static var bandWrist: String {
+        get { defaults.string(forKey: "body.bandWrist") ?? "right" }
+        set { defaults.set(newValue, forKey: "body.bandWrist") }
+    }
+
+    /// Which wrist the Apple Watch is on (the Watch app reports it too).
+    static var watchWrist: String {
+        get { defaults.string(forKey: "body.watchWrist") ?? "left" }
+        set { defaults.set(newValue, forKey: "body.watchWrist") }
+    }
+
     /// Host only, scheme and slashes stripped.
     static var bareHost: String? {
         var h = host.trimmingCharacters(in: .whitespacesAndNewlines)
