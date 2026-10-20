@@ -11,6 +11,7 @@
 #   ./gcp.sh ssh       shell on the VM
 #   ./gcp.sh static-ip keep this boot's IP for good (the companion app's host)
 #   ./gcp.sh companion write the LiveVision iOS app's Secrets.xcconfig from the VM
+#                      (host, approval login, glasses stream key + SRT passphrase)
 #   ./gcp.sh env K [V] set K=V in the VM's .env and apply it (no V: prompts, hidden)
 #   ./gcp.sh destroy   delete VM, IP and firewall rule
 #
@@ -135,10 +136,11 @@ TXT"
     echo "reserved $IP -> https://${IP//./-}.sslip.io (fixed from now on)"
     ;;
   companion)
-    # LiveVision (companion/ios) build settings: host + approval-page login
+    # LiveVision (companion/ios) build settings: host, approval-page login, and
+    # the glasses ingest (stream key + SRT passphrase)
     OUT=../../companion/ios/Config/Secrets.xcconfig
     ssh_ "cd $REMOTE/deploy/obs-vps && . ./.env && IP=\$(curl -fsS -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip) && \
-          printf '// written by deploy/obs-vps/gcp.sh companion - keep private\nLIVEVISION_HOST = %s.sslip.io\nLIVEVISION_USER = %s\nLIVEVISION_PASSWORD = %s\n' \"\${IP//./-}\" \"\$AUTOCLIP_USER\" \"\$AUTOCLIP_PASSWORD\"" 2>/dev/null \
+          printf '// written by deploy/obs-vps/gcp.sh companion - keep private\nLIVEVISION_HOST = %s.sslip.io\nLIVEVISION_USER = %s\nLIVEVISION_PASSWORD = %s\nLIVEVISION_STREAM_KEY = %s\nLIVEVISION_SRT_PASSPHRASE = %s\n' \"\${IP//./-}\" \"\$AUTOCLIP_USER\" \"\$AUTOCLIP_PASSWORD\" \"\$STREAM_KEY\" \"\$SRT_PASSPHRASE\"" 2>/dev/null \
       | grep -E '^(//|LIVEVISION_)' > "$OUT.tmp" && mv "$OUT.tmp" "$OUT" && chmod 600 "$OUT"
     grep LIVEVISION_HOST "$OUT"
     ;;

@@ -1,10 +1,18 @@
 // Shared build settings. Machine-specific values (VPS host, approval-page
-// login, Apple team) go in Secrets.xcconfig, which is gitignored:
+// login, glasses stream key, Apple team) go in Secrets.xcconfig, which is gitignored:
 // `deploy/obs-vps/gcp.sh companion` writes it from the VM's .env.
 PRODUCT_BUNDLE_IDENTIFIER = com.chromeup.livevision
 LIVEVISION_HOST =
 LIVEVISION_USER = clips
 LIVEVISION_PASSWORD =
+// glasses -> VM ingest: STREAM_KEY / SRT_PASSPHRASE from the VM's .env
+LIVEVISION_STREAM_KEY =
+LIVEVISION_SRT_PASSPHRASE =
+// "0" = DAT Developer Mode (no Wearables Developer Center app needed)
+META_APP_ID = 0
+META_CLIENT_TOKEN = 0
 DEVELOPMENT_TEAM =
+// HaishinKit's libsrt.xcframework has no x86_64 simulator slice
+EXCLUDED_ARCHS[sdk=iphonesimulator*] = x86_64
 
 #include? "Secrets.xcconfig"

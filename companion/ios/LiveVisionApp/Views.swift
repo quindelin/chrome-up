@@ -11,6 +11,8 @@ struct DashboardView: View {
                     .listRowInsets(EdgeInsets())
                     .listRowBackground(Color.clear)
 
+                GlassesSection(ingestLive: store.stack?.ingest?.isLive)
+
                 if let s = store.stack {
                     FeedsSection(stack: s)
                     RestreamSection(stack: s)
@@ -275,9 +277,15 @@ private struct HostSection: View {
 
 struct SettingsView: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(GlassesStreamer.self) private var glasses
     @State private var host = Settings.host
     @State private var user = Settings.user
     @State private var password = Settings.password
+    @State private var streamKey = Settings.streamKey
+    @State private var srtPassphrase = Settings.srtPassphrase
+    @State private var transport = Settings.transport
+    @State private var audioSource = Settings.audioSource
+    @State private var mock = Settings.mockGlasses
     var onSave: () -> Void
 
     var body: some View {
@@ -304,6 +312,25 @@ struct SettingsView: View {
                 } footer: {
                     Text("AUTOCLIP_USER / AUTOCLIP_PASSWORD from deploy/obs-vps/.env on the VM. ./gcp.sh companion writes all of this into the build.")
                 }
+                Section {
+                    SecureField("Stream key", text: $streamKey)
+                    SecureField("SRT passphrase", text: $srtPassphrase)
+                    Picker("Send over", selection: $transport) {
+                        ForEach(Settings.Transport.allCases) { Text($0.label).tag($0) }
+                    }
+                    Picker("Audio", selection: $audioSource) {
+                        ForEach(Settings.AudioSource.allCases) { Text($0.label).tag($0) }
+                    }
+                } header: {
+                    Text("Glasses stream")
+                } footer: {
+                    Text("STREAM_KEY / SRT_PASSPHRASE from the VM's .env. RTMP is the tested path; SRT is experimental (the VM drops it after a few seconds). The glasses mic needs DAT's beta audio; the phone mic always works. Applies the next time you start streaming.")
+                }
+                Section {
+                    Toggle("Mock glasses", isOn: $mock)
+                } footer: {
+                    Text("DAT's simulated Ray-Ban Display with a test-pattern camera, for trying the stream without the glasses (also in the Simulator).")
+                }
             }
             .navigationTitle("Settings")
             .navigationBarTitleDisplayMode(.inline)
@@ -314,6 +341,13 @@ struct SettingsView: View {
                         Settings.host = host
                         Settings.user = user
                         Settings.password = password
+                        Settings.streamKey = streamKey
+                        Settings.srtPassphrase = srtPassphrase
+                        Settings.transport = transport
+                        Settings.audioSource = audioSource
+                        if mock != Settings.mockGlasses {
+                            Task { await glasses.setMock(mock) }
+                        }
                         onSave()
                         dismiss()
                     }

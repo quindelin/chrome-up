@@ -6,6 +6,15 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		2B00000000000000000000B0 /* MWDATCore in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000040 /* MWDATCore */; };
+		2B00000000000000000000B1 /* MWDATCamera in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000041 /* MWDATCamera */; };
+		2B00000000000000000000B2 /* MWDATMockDevice in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000042 /* MWDATMockDevice */; };
+		2B00000000000000000000B3 /* HaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000043 /* HaishinKit */; };
+		2B00000000000000000000B4 /* SRTHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000044 /* SRTHaishinKit */; };
+		2B00000000000000000000B5 /* RTMPHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000045 /* RTMPHaishinKit */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		2B0000000000000000000004 /* LiveVision.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveVision.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2B0000000000000000000006 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
@@ -26,6 +35,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2B00000000000000000000B0 /* MWDATCore in Frameworks */,
+				2B00000000000000000000B1 /* MWDATCamera in Frameworks */,
+				2B00000000000000000000B2 /* MWDATMockDevice in Frameworks */,
+				2B00000000000000000000B3 /* HaishinKit in Frameworks */,
+				2B00000000000000000000B4 /* SRTHaishinKit in Frameworks */,
+				2B00000000000000000000B5 /* RTMPHaishinKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +93,14 @@
 				2B0000000000000000000005 /* LiveVisionApp */,
 			);
 			name = LiveVision;
+			packageProductDependencies = (
+				2B0000000000000000000040 /* MWDATCore */,
+				2B0000000000000000000041 /* MWDATCamera */,
+				2B0000000000000000000042 /* MWDATMockDevice */,
+				2B0000000000000000000043 /* HaishinKit */,
+				2B0000000000000000000044 /* SRTHaishinKit */,
+				2B0000000000000000000045 /* RTMPHaishinKit */,
+			);
 			productName = LiveVision;
 			productReference = 2B0000000000000000000004 /* LiveVision.app */;
 			productType = "com.apple.product-type.application";
@@ -106,6 +129,10 @@
 			);
 			mainGroup = 2B0000000000000000000002;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				2B0000000000000000000030 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */,
+				2B0000000000000000000031 /* XCRemoteSwiftPackageReference "HaishinKit" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 2B0000000000000000000003 /* Products */;
 			projectDirPath = "";
@@ -150,6 +177,9 @@
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LiveVision;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Needed to connect to your Meta glasses.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Needed to reach your Meta glasses.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "LiveVision sends your voice with the glasses video to your streaming server.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -180,6 +210,9 @@
 				INFOPLIST_FILE = Config/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = LiveVision;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
+				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Needed to connect to your Meta glasses.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Needed to reach your Meta glasses.";
+				INFOPLIST_KEY_NSMicrophoneUsageDescription = "LiveVision sends your voice with the glasses video to your streaming server.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -253,6 +286,57 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		2B0000000000000000000030 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/facebook/meta-wearables-dat-ios";
+			requirement = {
+				kind = exactVersion;
+				version = 1.0.1;
+			};
+		};
+		2B0000000000000000000031 /* XCRemoteSwiftPackageReference "HaishinKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/HaishinKit/HaishinKit.swift";
+			requirement = {
+				kind = exactVersion;
+				version = 2.2.5;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		2B0000000000000000000040 /* MWDATCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2B0000000000000000000030 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
+			productName = MWDATCore;
+		};
+		2B0000000000000000000041 /* MWDATCamera */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2B0000000000000000000030 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
+			productName = MWDATCamera;
+		};
+		2B0000000000000000000042 /* MWDATMockDevice */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2B0000000000000000000030 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
+			productName = MWDATMockDevice;
+		};
+		2B0000000000000000000043 /* HaishinKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2B0000000000000000000031 /* XCRemoteSwiftPackageReference "HaishinKit" */;
+			productName = HaishinKit;
+		};
+		2B0000000000000000000044 /* SRTHaishinKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2B0000000000000000000031 /* XCRemoteSwiftPackageReference "HaishinKit" */;
+			productName = SRTHaishinKit;
+		};
+		2B0000000000000000000045 /* RTMPHaishinKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2B0000000000000000000031 /* XCRemoteSwiftPackageReference "HaishinKit" */;
+			productName = RTMPHaishinKit;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 2B0000000000000000000001 /* Project object */;
 }

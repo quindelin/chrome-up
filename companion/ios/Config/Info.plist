@@ -2,11 +2,57 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>livevision</string>
+			</array>
+		</dict>
+	</array>
 	<key>LiveVisionHost</key>
 	<string>$(LIVEVISION_HOST)</string>
 	<key>LiveVisionPassword</key>
 	<string>$(LIVEVISION_PASSWORD)</string>
+	<key>LiveVisionSRTPassphrase</key>
+	<string>$(LIVEVISION_SRT_PASSPHRASE)</string>
+	<key>LiveVisionStreamKey</key>
+	<string>$(LIVEVISION_STREAM_KEY)</string>
 	<key>LiveVisionUser</key>
 	<string>$(LIVEVISION_USER)</string>
+	<key>MWDAT</key>
+	<dict>
+		<key>Analytics</key>
+		<dict>
+			<key>OptOut</key>
+			<true/>
+		</dict>
+		<key>AppLinkURLScheme</key>
+		<string>livevision://</string>
+		<key>ClientToken</key>
+		<string>$(META_CLIENT_TOKEN)</string>
+		<key>MetaAppID</key>
+		<string>$(META_APP_ID)</string>
+		<key>TeamID</key>
+		<string>$(DEVELOPMENT_TEAM)</string>
+	</dict>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your heading and position drive the HUD's compass and navigation objective on stream.</string>
+	<key>NSMotionUsageDescription</key>
+	<string>Phone motion lets the HUD tell running, lifting and boxing apart for its skills.</string>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_bonjour._tcp</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
+		<string>bluetooth-central</string>
+	</array>
 </dict>
 </plist>
