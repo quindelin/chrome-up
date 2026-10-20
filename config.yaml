@@ -93,8 +93,11 @@ attributes:
 
 skills:
   enabled: true
-  # XP per second while a rule is active. Skill level rises every 100 XP.
+  # XP per second while a rule is active. Level L -> L+1 costs
+  # xp_per_level * L^xp_curve: 100 XP for level 2, ~1100 at level 5, ~3200 at
+  # level 10 (~5 min of steady talking for Speech). xp_curve: 0 = flat.
   xp_per_level: 100
+  xp_curve: 1.5
   rizz:
     mode: conversation   # conversation (1-on-1) | gender (needs attributes opt-in)
     target: female       # used when mode: gender

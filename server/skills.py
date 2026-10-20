@@ -29,6 +29,9 @@ class SkillEngine:
     def __init__(self, cfg: dict):
         self.enabled = bool(cfg.get("enabled", True))
         self.xp_per_level = float(cfg.get("xp_per_level", 100))
+        # each level costs more than the last, as in Skyrim: with a flat cost,
+        # steady talking levelled Speech every ~8 s for the whole stream
+        self.xp_curve = float(cfg.get("xp_curve", 1.5))
         self.rules = {k: dict(v) for k, v in (cfg.get("rules") or {}).items()}
         self.vitals_cfg = cfg.get("vitals") or {}
         self.rizz_cfg = cfg.get("rizz") or {}
@@ -40,13 +43,17 @@ class SkillEngine:
         self._sector_seen: Dict[int, float] = {}
 
     # ------------------------------------------------------------------ xp
+    def xp_needed(self, level: int) -> float:
+        """XP to go from `level` to `level + 1`."""
+        return self.xp_per_level * max(1, level) ** self.xp_curve
+
     def _award(self, key: str, amount: float, world: World) -> None:
         s = self.skills[key]
         s["xp"] += amount
         s["total"] += amount
         s["flash"] = min(1.0, s["flash"] + amount / max(1.0, self.xp_per_level * 0.15))
-        while s["xp"] >= self.xp_per_level:
-            s["xp"] -= self.xp_per_level
+        while s["xp"] >= self.xp_needed(s["level"]):
+            s["xp"] -= self.xp_needed(s["level"])
             s["level"] += 1
             world.events.append({
                 "type": "skill_level",
@@ -206,7 +213,7 @@ class SkillEngine:
             key: {
                 "name": SKILL_NAMES[key],
                 "level": int(s["level"]),
-                "xp": round(s["xp"] / self.xp_per_level, 3),
+                "xp": round(s["xp"] / self.xp_needed(s["level"]), 3),
                 "total": int(s["total"]),
                 "active": bool(s["active"]),
                 "flash": round(s["flash"], 2),
@@ -231,7 +238,7 @@ class SkillEngine:
                 total = float(rec.get("total", 0.0))
             except (TypeError, ValueError):
                 continue
-            xp = max(0.0, min(self.xp_per_level - 0.001, xp))
+            xp = max(0.0, min(self.xp_needed(level) - 0.001, xp))
             self.skills[key]["level"] = level
             self.skills[key]["xp"] = xp
             self.skills[key]["total"] = total

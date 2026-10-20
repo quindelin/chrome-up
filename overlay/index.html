@@ -25,9 +25,6 @@
   <!-- ============================ objective line ====================== -->
   <div id="objective" class="hidden"></div>
 
-  <!-- ============================ notifications (top-left) ============ -->
-  <div id="notices"></div>
-
   <!-- ============================ skill increase + level meter ======== -->
   <div id="skillup" class="hidden">
     <div class="su-text"></div>
@@ -67,16 +64,10 @@
   </div>
 
   <!-- ============================ vitals ============================== -->
-  <!-- Magicka left, Health centre, Stamina right, as in Skyrim. Each one
-       fades out once it has been full for a moment. -->
+  <!-- One bar: Skyrim's magicka (bottom left) showing the glasses' battery,
+       relayed by the phone. Hidden until a reading arrives. -->
   <div id="vitals">
-    <div class="vital" data-vital="magicka">
-      <div class="bar"><div class="track"><div class="fill"></div></div></div>
-    </div>
-    <div class="vital" data-vital="health">
-      <div class="bar"><div class="track"><div class="fill"></div></div></div>
-    </div>
-    <div class="vital" data-vital="stamina">
+    <div class="vital unknown" data-vital="magicka" aria-label="glasses battery">
       <div class="bar"><div class="track"><div class="fill"></div></div></div>
     </div>
   </div>

@@ -163,6 +163,12 @@ class Runtime:
             except (TypeError, ValueError):
                 pass
 
+        # glasses battery (DAT DeviceState), flat or nested under "glasses"
+        g = data.get("glasses") if isinstance(data.get("glasses"), dict) else data
+        if "glasses_battery" in data or (g is not data and "battery" in g):
+            self.set_glasses(g.get("battery", data.get("glasses_battery")),
+                             g.get("charging", data.get("glasses_charging")))
+
         # gestures (if the bridge app forwards them)
         if data.get("gesture"):
             self.handle_gesture(str(data["gesture"]), "phone")
@@ -173,6 +179,20 @@ class Runtime:
             self.imu.ingest(imu, source="phone-ws")
         elif isinstance(imu, list):
             self.imu.ingest_batch(imu, source="phone-ws")
+
+    def set_glasses(self, battery, charging=None) -> dict:
+        """Glasses battery for the HUD's magicka bar. `charging` takes a bool
+        or DAT's ChargingState name (CHARGING / NOT_CHARGING / UNKNOWN)."""
+        g = self.world.glasses
+        try:
+            g["battery"] = max(0, min(100, int(round(float(battery)))))
+        except (TypeError, ValueError):
+            g["battery"] = None
+        if isinstance(charging, str):
+            charging = {"charging": True, "not_charging": False}.get(charging.lower())
+        g["charging"] = charging if isinstance(charging, bool) else None
+        g["ts"] = time.time()
+        return dict(g)
 
     def handle_gesture(self, gesture: str, source: str = "api") -> dict:
         event = self.gestures.handle(gesture, source)
@@ -222,6 +242,12 @@ class Runtime:
                 "health": round(w.vitals.health, 1),
                 "magicka": round(w.vitals.magicka, 1),
                 "stamina": round(w.vitals.stamina, 1),
+            },
+            "glasses": {
+                "battery": w.glasses["battery"],
+                "charging": w.glasses["charging"],
+                # DAT stops updating when the glasses disconnect: say so
+                "fresh": time.time() - float(w.glasses["ts"]) < 120,
             },
             "skills": self.engine.to_dict(),
             "player_level": self.engine.player_level,
@@ -325,6 +351,16 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="HUDstream", lifespan=lifespan)
+
+
+@app.middleware("http")
+async def overlay_revalidate(request: Request, call_next):
+    """OBS's browser source keeps a disk cache across restarts and happily
+    serves last deploy's ES modules; make it revalidate (ETags keep it cheap)."""
+    response = await call_next(request)
+    if request.url.path.startswith("/overlay/"):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
 app.mount("/overlay", StaticFiles(directory=str(OVERLAY_DIR)), name="overlay")
 app.mount("/static", StaticFiles(directory=str(WEB_DIR)), name="web")
 
@@ -569,6 +605,19 @@ async def ws_phone(ws: WebSocket):
         pass
     finally:
         RT.phone_clients.discard(ws)
+
+
+# ------------------------------------------------------------------ glasses
+@app.post("/api/glasses")
+async def api_glasses(request: Request):
+    """Glasses battery from the phone app (DAT DeviceState). The phone page's
+    WebSocket takes the same thing as {"glasses": {"battery", "charging"}}.
+
+    Body: {"battery": 72, "charging": false}
+    """
+    assert RT is not None
+    body = await request.json()
+    return JSONResponse({"ok": True, "glasses": RT.set_glasses(body.get("battery"), body.get("charging"))})
 
 
 # ------------------------------------------------------------------ IMU

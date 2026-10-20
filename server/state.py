@@ -70,6 +70,9 @@ class World:
     skills: Dict[str, dict] = field(default_factory=dict)
     player_level: int = 1
     shout: Dict[str, object] = field(default_factory=dict)
+    # Meta glasses' own state, relayed by the phone (DAT DeviceState):
+    # battery 0-100 or None until reported, charging True/False/None, ts
+    glasses: Dict[str, object] = field(default_factory=lambda: {"battery": None, "charging": None, "ts": 0.0})
     events: List[dict] = field(default_factory=list)
     started: float = 0.0
 

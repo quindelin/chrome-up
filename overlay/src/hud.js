@@ -3,16 +3,15 @@ import { play } from "./sfx.js";
 const ORDER = ["speech", "speechcraft", "rizz", "agility", "sneak", "exploration",
                "bard", "strength", "combat", "intelligence", "enchanting"];
 
-// a bar that has sat at 100% this long fades out, as in Skyrim
-const IDLE_AFTER_MS = 2500;
-const LOW_AT = 25;
+// glasses battery below this blinks, like a low Skyrim bar
+const LOW_AT = 20;
 
-/** Vitals, skill-increase + level meter, discovery title, notifications. */
+/** Vitals, skill-increase + level meter, discovery title. No top-left
+ *  notification stack: it only repeated the skill-ups shown under the compass. */
 export class Hud {
   constructor() {
     this.levelNum = document.getElementById("levelnum");
     this.levelup = document.getElementById("levelup");
-    this.notices = document.getElementById("notices");
     this.skillsEl = document.getElementById("skills");
     this.skillup = document.getElementById("skillup");
     this.suText = this.skillup.querySelector(".su-text");
@@ -22,7 +21,7 @@ export class Hud {
     this.dcName = this.discover.querySelector(".dc-name");
     this.vitals = {};
     for (const el of document.querySelectorAll(".vital")) {
-      this.vitals[el.dataset.vital] = { el, fill: el.querySelector(".fill"), last: null, fullSince: 0 };
+      this.vitals[el.dataset.vital] = { el, fill: el.querySelector(".fill") };
     }
     this.rows = new Map();
     this.playerLevel = 1;
@@ -34,18 +33,18 @@ export class Hud {
   }
 
   update(payload) {
-    const v = payload.vitals || {};
-    const now = performance.now();
-    for (const key of ["health", "magicka", "stamina"]) {
-      const bar = this.vitals[key];
-      if (!bar) continue;
-      const val = Math.max(0, Math.min(100, v[key] ?? 100));
-      bar.fill.style.width = `${val}%`;
-      if (val < 99.5) bar.fullSince = 0;
-      else if (!bar.fullSince) bar.fullSince = now;
-      bar.el.classList.toggle("idle", !!bar.fullSince && now - bar.fullSince > IDLE_AFTER_MS);
-      bar.el.classList.toggle("low", val < LOW_AT);
-      bar.last = val;
+    // magicka = the glasses' battery (phone relays DAT's DeviceState)
+    const bar = this.vitals.magicka;
+    const g = payload.glasses || {};
+    const known = typeof g.battery === "number" && g.fresh !== false;
+    if (bar) {
+      bar.el.classList.toggle("unknown", !known);
+      if (known) {
+        const val = Math.max(0, Math.min(100, g.battery));
+        bar.fill.style.width = `${val}%`;
+        bar.el.classList.toggle("charging", g.charging === true);
+        bar.el.classList.toggle("low", val < LOW_AT && g.charging !== true);
+      }
     }
 
     if (payload.player_level !== undefined) {
@@ -90,16 +89,11 @@ export class Hud {
     const levelEv = events.find((e) => e.type === "level");
     for (const ev of events) {
       if (ev.type === "skill_level") {
-        this.notice(ev.text);
         if (!levelEv) this.skillIncrease(ev);
       } else if (ev.type === "level") {
         this.levelUp(ev);
       } else if (ev.type === "discovery") {
         this.discovered(ev.place || String(ev.text || "").replace(/^Discovered:\s*/i, ""));
-      } else if (ev.type === "shout") {
-        this.notice(ev.text);
-      } else if (ev.type === "arrival") {
-        this.notice(ev.text);
       }
     }
   }
@@ -134,16 +128,6 @@ export class Hud {
     play("discover");
   }
 
-  notice(text) {
-    if (!text) return;
-    const el = document.createElement("div");
-    el.className = "notice";
-    el.textContent = text;
-    this.notices.appendChild(el);
-    while (this.notices.children.length > 4) this.notices.firstElementChild.remove();
-    setTimeout(() => el.remove(), 4800);
-  }
-
   _show(el, ms) {
     el.classList.remove("hidden");
     el.style.animation = "none";        // restart the fade
@@ -153,7 +137,6 @@ export class Hud {
     this._timers[el.id] = setTimeout(() => el.classList.add("hidden"), ms);
   }
 
-  // kept for callers that still use the old names
-  toast(text) { this.notice(text); }
+  // kept for callers that still use the old name
   banner(text) { this.levelUp({ text }); }
 }

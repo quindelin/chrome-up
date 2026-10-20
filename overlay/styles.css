@@ -111,10 +111,8 @@ html, body {
   opacity: 1;
   transition: opacity 700ms ease;
 }
-.vital.idle { opacity: 0; }
+.vital.unknown { opacity: 0; }       /* no battery reading (yet, or glasses gone) */
 .vital[data-vital="magicka"] { left: 150px; }
-.vital[data-vital="health"]  { left: 50%; margin-left: -176px; }
-.vital[data-vital="stamina"] { right: 150px; }
 
 /* metal frame with pointed ends */
 .vital .bar {
@@ -139,12 +137,13 @@ html, body {
   transition: width 160ms linear;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -2px 3px rgba(0, 0, 0, 0.45);
 }
-/* drains toward the centre of the screen; health from both ends */
+/* drains toward the centre of the screen */
 .vital[data-vital="magicka"] .fill { right: 0; background: linear-gradient(180deg, var(--magicka-hi), var(--magicka)); }
-.vital[data-vital="stamina"] .fill { left: 0; background: linear-gradient(180deg, var(--stamina-hi), var(--stamina)); }
-.vital[data-vital="health"] .fill { left: 50%; transform: translateX(-50%); background: linear-gradient(180deg, var(--health-hi), var(--health)); }
 .vital.low .fill { animation: vital-low 0.9s ease-in-out infinite; }
 @keyframes vital-low { 50% { filter: brightness(1.6); } }
+/* charging: a slow glow instead of the low-battery blink */
+.vital.charging .fill { animation: vital-charge 2.4s ease-in-out infinite; }
+@keyframes vital-charge { 50% { filter: brightness(1.35) saturate(1.2); } }
 
 /* ------------------------------------------------- skill list (opt-in) */
 #left-stack { display: none; }
@@ -171,25 +170,6 @@ body.show-skills #left-stack {
 .skill .xpbar { height: 5px; background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.35); }
 .skill .xpfill { height: 100%; width: 0%; background: #e6e6e6; transition: width 160ms linear; }
 .skill.flash .name { color: #fff; text-shadow: 0 0 10px rgba(255, 255, 255, 0.8), var(--shadow); }
-
-/* ------------------------------------------------ notifications top-left */
-#notices {
-  position: absolute;
-  left: 64px;
-  top: 52px;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  width: 560px;
-}
-.notice {
-  font-size: 24px;
-  letter-spacing: 0.02em;
-  animation: notice-in 250ms ease-out, notice-out 600ms ease-in forwards;
-  animation-delay: 0ms, 4200ms;
-}
-@keyframes notice-in { from { opacity: 0; transform: translateX(-8px); } }
-@keyframes notice-out { to { opacity: 0; } }
 
 /* ------------------------------------------ skill increase + level meter */
 #skillup {
