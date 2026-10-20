@@ -55,6 +55,22 @@ const thuumFill = document.getElementById("thuum-fill");
 
 let latest = null;
 
+// Body and head data reach the HUD over a websocket in ~100 ms, the camera
+// video only after the phone's encoder, RTMP and OBS's media buffer (~2 s,
+// measured on stream). The avatar plays its inputs back that much later so it
+// moves with the video, not ahead of it.
+const syncDelay = Math.max(0, Number(cfg.avatar?.sync_delay_ms) || 0);
+const motionQ = [];                       // {t, head, body}, oldest first
+let motion = { head: null, body: null };
+function pushMotion(p) {
+  if (!syncDelay) { motion = { head: p.head, body: p.body }; return; }
+  motionQ.push({ t: performance.now(), head: p.head, body: p.body });
+  if (motionQ.length > 600) motionQ.shift();           // ~60 s at 10 Hz, if frames stall
+}
+function playMotion(now) {
+  while (motionQ.length && motionQ[0].t <= now - syncDelay) motion = motionQ.shift();
+}
+
 const net = new Net();
 net.onStatus((ok) => {
   if (!ok) {
@@ -71,6 +87,7 @@ net.on((payload) => {
   hud.handleEvents(payload.events);
   heartbeat.update(payload.body);
   avatar3d?.react(payload.events);
+  pushMotion(payload);
 });
 net.connect();
 
@@ -122,7 +139,8 @@ function frame(now) {
       viseme,
       bands: a.bands || [],
     };
-    if (avatar3d) avatar3d.update(dt, audioForDraw, latest.vision, latest.skills, latest.head, latest.body);
+    playMotion(now);
+    if (avatar3d) avatar3d.update(dt, audioForDraw, latest.vision, latest.skills, motion.head, motion.body);
     else ring.draw(dt, audioForDraw);
     if (avatar3d) { /* the 3D rig draws itself */ }
     else if (live2d) drawLive2D(live2d, audioForDraw);

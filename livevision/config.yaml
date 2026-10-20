@@ -138,6 +138,10 @@ avatar:
   layout: full
   render_scale: 0.75        # WebGL resolution of the full-body canvas (CPU on the VPS)
   mirror: true              # turn your head left -> avatar turns screen-left, like a webcam
+  # the camera video lags the body/head data by the stream pipeline (phone
+  # encoder + RTMP + OBS media buffer); the avatar waits this long so it moves
+  # with the video. Measured 2.2-2.4 s on the VPS (camera pans vs avatar).
+  sync_delay_ms: 2200
 
 overlay:
   # "Download Vicinity" QR card in the left black bar, above the battery

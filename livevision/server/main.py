@@ -415,6 +415,7 @@ async def api_config():
             "layout": cfg.get("avatar", {}).get("layout", "full"),
             "render_scale": cfg.get("avatar", {}).get("render_scale", 0.75),
             "mirror": cfg.get("avatar", {}).get("mirror", True),
+            "sync_delay_ms": cfg.get("avatar", {}).get("sync_delay_ms", 0),
             "vtube_studio": RT.vtube.status(),
         },
         "overlay": {
