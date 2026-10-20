@@ -5,37 +5,44 @@ import VideoToolbox
 
 /// Puts the glasses' frames on the phone's clock (docs/AUDIO_VIDEO_SYNC.md ①).
 ///
-/// DAT stamps video and glasses audio on the glasses' clock; the phone mic and
-/// HaishinKit's audio timeline run on the host clock. Each video frame gives a
-/// (glasses PTS, host arrival) pair; once a second one is kept, and a
-/// least-squares line over the last 30 maps glasses time to host time - the
-/// offset absorbs the Bluetooth delay, the slope the tens-of-ppm drift
-/// between the two quartz clocks. A jump of more than a second (the glasses
-/// restarted their stream) starts the fit over.
+/// DAT stamps video (and glasses audio) on the glasses' clock; the phone mic
+/// and HaishinKit's audio timeline run on the host clock, sample-accurate and
+/// gap-free. Each frame gives `arrival - pts` = clock offset + Bluetooth delay.
+/// The delay only ever adds, so the smallest value over the last ~10 s is the
+/// best estimate of the offset (and follows the slow drift between the two
+/// crystals). Late frames - a Bluetooth stall delivers a second of frames in a
+/// burst - therefore never move the timeline. The first version re-based on
+/// any frame more than 1 s off, which pushed video ~0.9 s ahead of audio after
+/// a stall; OBS then kept restarting the source's audio ("audio is lagging at
+/// max audio buffering"), heard as static. Only a real discontinuity (the
+/// glasses' pts going backwards or jumping by seconds, i.e. their stream
+/// restarted) starts over.
 final class ClockMapper: @unchecked Sendable {
     private let lock = NSLock()
-    private var samples: [(x: Double, y: Double)] = []
-    private var lastSampleAt = -Double.infinity
-    private var a = 1.0, b = 0.0
-    private var ready = false
+    /// (arrival, arrival - pts), oldest first
+    private var window: [(t: Double, off: Double)] = []
+    private var offset: Double?
+    private var lastPts = -Double.infinity
+    private var lastArrival = -Double.infinity
     private var lastVideo = -Double.infinity
+    private let span = 10.0
 
-    /// A video frame: feeds the fit and returns its host time (strictly increasing).
+    /// A video frame: returns its host time (strictly increasing).
     func mapVideo(_ pts: Double, arrival: Double) -> Double {
         lock.lock(); defer { lock.unlock() }
-        if !ready || abs(a * pts + b - arrival) > 1 {
-            samples.removeAll()
-            a = 1; b = arrival - pts
-            ready = true
-            lastSampleAt = -.infinity
+        let off = arrival - pts
+        // glasses stream restarted: pts went back, or leapt far past wall time
+        let ptsStep = pts - lastPts, wallStep = arrival - lastArrival
+        if offset == nil || ptsStep < 0 || abs(ptsStep - wallStep) > 5 {
+            window.removeAll()
+            offset = off
         }
-        if arrival - lastSampleAt >= 1 {
-            lastSampleAt = arrival
-            samples.append((pts, arrival))
-            if samples.count > 30 { samples.removeFirst() }
-            fit()
-        }
-        let t = max(a * pts + b, lastVideo + 0.001)
+        lastPts = pts
+        lastArrival = arrival
+        window.append((arrival, off))
+        while let first = window.first, arrival - first.t > span { window.removeFirst() }
+        offset = window.map(\.off).min() ?? off
+        let t = max(pts + (offset ?? off), lastVideo + 0.001)
         lastVideo = t
         return t
     }
@@ -43,28 +50,16 @@ final class ClockMapper: @unchecked Sendable {
     /// Glasses audio: same clock as their video. nil until video has started.
     func mapAudio(_ pts: Double) -> Double? {
         lock.lock(); defer { lock.unlock() }
-        return ready ? a * pts + b : nil
+        return offset.map { pts + $0 }
     }
 
     func reset() {
         lock.lock(); defer { lock.unlock() }
-        samples.removeAll()
-        ready = false
+        window.removeAll()
+        offset = nil
+        lastPts = -.infinity
+        lastArrival = -.infinity
         lastVideo = -.infinity
-    }
-
-    private func fit() {
-        guard samples.count >= 5, let first = samples.first, let last = samples.last,
-              last.x - first.x >= 5 else { return }
-        let n = Double(samples.count)
-        let mx = samples.map(\.x).reduce(0, +) / n
-        let my = samples.map(\.y).reduce(0, +) / n
-        var sxy = 0.0, sxx = 0.0
-        for s in samples { sxy += (s.x - mx) * (s.y - my); sxx += (s.x - mx) * (s.x - mx) }
-        guard sxx > 0 else { return }
-        // real crystals are within ~100 ppm; anything wider is jitter, not drift
-        a = min(max(sxy / sxx, 0.999), 1.001)
-        b = my - a * mx
     }
 }
 
