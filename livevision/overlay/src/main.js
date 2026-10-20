@@ -6,7 +6,6 @@ import { Avatar } from "./avatar.js";
 import { Menu } from "./menu.js";
 import { resolve as resolveTheme } from "./themes.js";
 import { tryLoadLive2D, drawLive2D } from "./live2d.js";
-import { tryLoadAvatar3D } from "./avatar3d.js";
 import { PrivacyBadge } from "./privacy.js";
 import { VicinityFeed } from "./vicinity.js";
 import { loadSfx } from "./sfx.js";
@@ -23,12 +22,23 @@ const live2d = await tryLoadLive2D(avatarCanvas, cfg);
 if (live2d) console.log("[hudstream] Live2D model loaded:", live2d.name);
 // 3D VRM avatar (default). Falls back to Live2D / the 2D avatar if it can't load.
 const avatar3dCanvas = document.getElementById("avatar3d");
-const avatar3d = live2d ? null : await tryLoadAvatar3D(avatar3dCanvas, cfg);
+// imported lazily: if the 3D module fails to load (bad build, no WebGL
+// support at all), the rest of the HUD must still come up
+let avatar3d = null;
+if (!live2d) {
+  try {
+    const { tryLoadAvatar3D } = await import("./avatar3d.js");
+    avatar3d = await tryLoadAvatar3D(avatar3dCanvas, cfg);
+  } catch (err) {
+    console.warn("[hudstream] 3D avatar unavailable, using 2D:", err?.message || err);
+  }
+}
 if (avatar3d) {
   avatar3dCanvas.classList.remove("hidden");
   avatarCanvas.classList.add("hidden");
   document.getElementById("ring").classList.add("hidden");
-  document.getElementById("avatar-wrap").classList.add("is-3d");
+  document.getElementById("avatar-wrap").classList.add("is-3d", cfg.avatar?.layout === "bust" ? "bust" : "full");
+  window.__avatar3d = avatar3d;            // console: __avatar3d.debug = {activity: "running"}
 }
 const menu = new Menu(document.getElementById("menu"));
 const privacy = new PrivacyBadge(document.getElementById("privacy"));
@@ -100,7 +110,7 @@ function frame(now) {
       viseme,
       bands: a.bands || [],
     };
-    if (avatar3d) avatar3d.update(dt, audioForDraw, latest.vision, latest.skills);
+    if (avatar3d) avatar3d.update(dt, audioForDraw, latest.vision, latest.skills, latest.head);
     else ring.draw(dt, audioForDraw);
     if (avatar3d) { /* the 3D rig draws itself */ }
     else if (live2d) drawLive2D(live2d, audioForDraw);

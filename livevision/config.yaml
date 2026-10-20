@@ -133,6 +133,19 @@ avatar:
   # the file is missing.
   engine: vrm               # vrm | procedural | live2d
   model: hairsample_male.vrm
+  # full: head to toe in the side bar beside the portrait glasses feed
+  # bust: shoulders up in the corner (landscape sources with no bars)
+  layout: full
+  render_scale: 0.75        # WebGL resolution of the full-body canvas (CPU on the VPS)
+  mirror: true              # turn your head left -> avatar turns screen-left, like a webcam
+
+# Head orientation for the avatar (glasses Motion quaternion, or yaw/pitch/roll)
+# sent as "head" on /ws/phone or POST /api/head. The first sample is "facing the
+# camera"; yaw drifts back to centre over recenter_s. If an axis comes out
+# swapped or mirrored for your device: axes {yaw: roll, ...} / invert {pitch: true}.
+head:
+  stale_s: 1.5
+  recenter_s: 20
 
 # VTube Studio Plugin API — the practical way to use a real anime model.
 # Turn it on in VTube Studio: Settings -> Plugins -> "Start API Server".

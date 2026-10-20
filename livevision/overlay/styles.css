@@ -261,6 +261,12 @@ body.show-skills #left-stack {
 #ring { left: 0; bottom: 60px; z-index: 1; }
 #avatar { left: 30px; z-index: 2; }
 #avatar-wrap.is-3d { width: 440px; height: 330px; right: 24px; bottom: 96px; }
+/* full body in the right-hand bar beside the portrait glasses feed (the feed
+   is ~607 px wide at 1080p, leaving ~656 px each side): under the compass,
+   clear of the Stamina bar */
+#avatar-wrap.is-3d.full { width: 620px; height: 860px; right: 18px; top: 120px; bottom: auto; }
+#avatar-wrap.is-3d.full #avatar3d { width: 620px; height: 860px; }
+#avatar-wrap.is-3d.full #nameplate { top: 0; bottom: auto; }
 #avatar3d { position: absolute; left: 0; bottom: 0; width: 440px; height: 330px; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.55)); }
 
 /* -------------------------------------------------------------- gesture menu */

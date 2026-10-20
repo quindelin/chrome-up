@@ -1144,6 +1144,32 @@ def t_captions_one_file_per_clip():
         assert "one" in Path(a["srt"]).read_text() and "two" in Path(b["srt"]).read_text()
 
 
+def t_head_pose():
+    """Glasses orientation -> avatar head: relative to the first sample (DAT
+    does not document the quaternion's axes), each axis lands on its own."""
+    import math
+    from server.headpose import HeadPose, _qmul
+
+    def q(axis, deg):
+        h = math.radians(deg) / 2
+        return (math.cos(h),) + tuple(math.sin(h) if a == axis else 0.0 for a in "xyz")
+
+    hp = HeadPose({"recenter_s": 0})
+    base = q("x", 15)                        # already tilted when data starts = "ahead"
+    assert hp.ingest({"q": list(base)})
+    for axis, name in (("y", "yaw"), ("x", "pitch"), ("z", "roll")):
+        hp.ingest({"q": list(_qmul(base, q(axis, 30)))})
+        snap = hp.snapshot()
+        assert abs(snap[name] - 30) < 0.5, (name, snap)
+        assert all(abs(snap[o]) < 0.5 for o in ("yaw", "pitch", "roll") if o != name), snap
+    assert hp.snapshot()["fresh"] is True
+    assert hp.ingest({"yaw": 5, "pitch": -2, "roll": 1}) and hp.snapshot()["yaw"] == 5
+    assert not hp.ingest({"nothing": 1})
+    flip = HeadPose({"recenter_s": 0, "invert": {"yaw": True}})
+    flip.ingest({"q": [1, 0, 0, 0]}); flip.ingest({"q": list(q("y", 20))})
+    assert abs(flip.snapshot()["yaw"] + 20) < 0.5
+
+
 def main() -> int:
     print("autoclip smoke test\n")
     for name, fn in [
@@ -1162,6 +1188,7 @@ def main() -> int:
         ("privacy voice grammar", t_privacy_voice),
         ("privacy dispatcher routing", t_privacy_dispatcher),
         ("dedupe across windows", t_dedupe_across_windows),
+        ("head pose", t_head_pose),
         ("retention keeps disk bounded", t_retention_keeps_disk_bounded),
         ("captions one file per clip", t_captions_one_file_per_clip),
         ("voice fires once + rumble", t_voice_once_and_rumble),

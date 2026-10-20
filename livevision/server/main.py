@@ -25,6 +25,7 @@ from .discovery import Discovery
 from .focus import FocusRecognizer
 from .gestures import GestureBus
 from .imu import IMUHub
+from .headpose import HeadPose
 from .navigation import Navigation, parse_coords
 from .progress import load as progress_load, save as progress_save
 from .sensors import HeadingHub
@@ -55,6 +56,7 @@ class Runtime:
         self.discovery = Discovery(cfg.get("discovery", {}))
         self.focus = FocusRecognizer(cfg.get("focus", {}))
         self.imu = IMUHub(cfg.get("imu", {}))
+        self.head = HeadPose(cfg.get("head", {}))
         self.vtube = VTubeStudio(cfg.get("vtube_studio", {}))
         self.vtube.start()
         self._skill_prev = {k: False for k in SKILL_NAMES}
@@ -173,6 +175,10 @@ class Runtime:
         if data.get("gesture"):
             self.handle_gesture(str(data["gesture"]), "phone")
 
+        # head orientation (glasses Motion quaternion, or yaw/pitch/roll)
+        if isinstance(data.get("head"), dict):
+            self.head.ingest(data["head"], source="phone-ws")
+
         # IMU sample (devicemotion) — single or batch
         imu = data.get("imu")
         if isinstance(imu, dict):
@@ -231,6 +237,7 @@ class Runtime:
                 "focus": w.vision.focus,
             },
             "imu": w.imu,
+            "head": self.head.snapshot(),
             "focus": RT.focus_result(),
             "heading": {
                 "deg": w.heading.deg,
@@ -392,6 +399,9 @@ async def api_config():
                  "silver_knight", "blonde_prince", "hacker"]),
             "engine": cfg.get("avatar", {}).get("engine", "procedural"),
             "model": cfg.get("avatar", {}).get("model", ""),
+            "layout": cfg.get("avatar", {}).get("layout", "full"),
+            "render_scale": cfg.get("avatar", {}).get("render_scale", 0.75),
+            "mirror": cfg.get("avatar", {}).get("mirror", True),
             "vtube_studio": RT.vtube.status(),
         },
     })
@@ -618,6 +628,18 @@ async def api_glasses(request: Request):
     assert RT is not None
     body = await request.json()
     return JSONResponse({"ok": True, "glasses": RT.set_glasses(body.get("battery"), body.get("charging"))})
+
+
+# ------------------------------------------------------------------ head pose
+@app.post("/api/head")
+async def api_head(request: Request):
+    """Head orientation for the avatar (testing, or a client without the WS).
+
+    Body: {"q": [w,x,y,z]} | {"yaw":..,"pitch":..,"roll":..}, optional "recenter".
+    """
+    assert RT is not None
+    ok = RT.head.ingest(await request.json(), source="http")
+    return JSONResponse({"ok": ok, "head": RT.head.snapshot()})
 
 
 # ------------------------------------------------------------------ IMU
