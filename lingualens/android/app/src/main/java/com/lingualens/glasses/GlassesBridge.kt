@@ -9,10 +9,14 @@ import com.meta.wearable.dat.core.session.DeviceSession
 import com.meta.wearable.dat.core.session.DeviceSessionState
 import com.meta.wearable.dat.core.types.LinkState
 import com.meta.wearable.dat.core.types.RegistrationState
+import com.meta.wearable.dat.core.voiceinvocations.VoiceInvocationsStream
+import com.meta.wearable.dat.core.voiceinvocations.startVoiceInvocationsStream
+import com.meta.wearable.dat.core.voiceinvocations.types.actions.LaunchApp
 import com.meta.wearable.dat.display.Display
 import com.meta.wearable.dat.display.addDisplay
 import com.meta.wearable.dat.display.removeDisplay
 import com.meta.wearable.dat.display.types.DisplayState
+import com.meta.wearable.dat.display.views.ButtonStyle
 import com.meta.wearable.dat.display.views.Direction
 import com.meta.wearable.dat.display.views.FlexBoxBackground
 import com.meta.wearable.dat.display.views.TextColor
@@ -65,11 +69,19 @@ class GlassesBridge(private val context: Context) {
     private var display: Display? = null
     private var sessionJob: Job? = null
     private var displayJob: Job? = null
-    private var lastLine: Triple<String, String, String>? = null
+    private var lastCard: GlassesCard? = null
+
+    /** A button on the glasses was pressed: "repeat", "playPause" or "next". */
+    var onCommand: ((String) -> Unit)? = null
+
+    /** "Hey Meta, start LinguaLens": the lesson is back on the glasses. */
+    var onVoiceLaunch: (() -> Unit)? = null
+    private var voice: VoiceInvocationsStream? = null
 
     /** Call once per process, before anything else touches DAT. */
     fun connect() {
         Wearables.initialize(context)
+        listenForVoice()
         scope.launch(onError) {
             Wearables.registrationState.collect { state ->
                 registered = state == RegistrationState.REGISTERED
@@ -125,6 +137,52 @@ class GlassesBridge(private val context: Context) {
         )
     }
 
+    /**
+     * Put the lesson on the glasses, or back on them after it was closed
+     * there (leaving to do something else, or a call). DAT's Android display
+     * has no start(), so a stopped display is removed and added again; a
+     * session that has ended is started fresh.
+     */
+    fun showOnGlasses() {
+        val s = session ?: return startDisplay()
+        if (_displayActive.value) { lastCard?.let { send(it) }; return }
+        displayJob?.cancel(); displayJob = null
+        display?.let { s.removeDisplay() }
+        display = null
+        attachDisplay(s)
+    }
+
+    /** The Start / Stop label follows the native glasses-mic recording. */
+    fun setPlaying(on: Boolean) {
+        val card = (lastCard ?: GlassesCard(target = " ")).copy(playing = on)
+        lastCard = card
+        send(card)
+    }
+
+    /**
+     * "Hey Meta, start LinguaLens" brings the lesson back from the glasses.
+     * Needs the Voice Invocation permission for this app in the Wearables
+     * Developer Center; until then the stream opens and never fires.
+     */
+    private fun listenForVoice() {
+        if (voice != null) return
+        val stream = try {
+            Wearables.startVoiceInvocationsStream(AutoDeviceSelector())
+        } catch (t: Throwable) {
+            Log.w(TAG, "voice invocations unavailable", t); return
+        }
+        voice = stream
+        scope.launch(onError) {
+            stream.invocations.collect { invocation ->
+                if (invocation is LaunchApp) {
+                    showOnGlasses()
+                    onVoiceLaunch?.invoke()
+                    launch(Dispatchers.IO + onError) { invocation.responseHandle.sendSuccess(null) }
+                }
+            }
+        }
+    }
+
     private fun attachDisplay(s: DeviceSession) {
         if (display != null) return
         s.addDisplay().fold(
@@ -135,7 +193,7 @@ class GlassesBridge(private val context: Context) {
                         _displayActive.value = st == DisplayState.STARTED
                         // The display can restart after a disconnect or a wake;
                         // the glasses keep nothing, so send the current line again.
-                        if (st == DisplayState.STARTED) lastLine?.let { (a, b, c) -> showLine(a, b, c) }
+                        if (st == DisplayState.STARTED) lastCard?.let { send(it) }
                     }
                 }
             },
@@ -157,21 +215,44 @@ class GlassesBridge(private val context: Context) {
         _displayActive.value = false
     }
 
+    /** Older pages that only know the three-field line. */
+    fun showLine(target: String, reading: String, english: String) =
+        showCard(GlassesCard(target = target, reading = reading, english = english))
+
     /**
-     * Mirror the current line onto the glasses. A no-op unless native display
-     * mode is running - in Web App mode the page already shows it.
+     * Draw the server's card for the current step. A no-op unless native
+     * display mode is running - in Web App mode the page already shows it.
      */
-    fun showLine(target: String, reading: String, english: String) {
-        lastLine = Triple(target, reading, english)
+    fun showCard(card: GlassesCard) {
+        if (card == lastCard) return
+        lastCard = card
+        send(card)
+    }
+
+    private fun send(card: GlassesCard) {
         val d = display ?: return
         if (!_displayActive.value) return
         scope.launch(Dispatchers.IO + onError) {
+            // Primary colour only: SECONDARY is close to invisible on the
+            // waveguide, and it was hiding the pinyin and the English.
             d.sendContent {
-                flexBox(direction = Direction.COLUMN, gap = 12) {
-                    flexBox(padding = 24, background = FlexBoxBackground.CARD) {
-                        if (reading.isNotBlank()) text(reading, style = TextStyle.META, color = TextColor.SECONDARY)
-                        text(target, style = TextStyle.HEADING)
-                        if (english.isNotBlank()) text(english, style = TextStyle.BODY, color = TextColor.SECONDARY)
+                flexBox(direction = Direction.COLUMN, gap = 10) {
+                    flexBox(direction = Direction.COLUMN, padding = 24, gap = 8, background = FlexBoxBackground.CARD) {
+                        if (card.header.isNotBlank()) text(card.header, style = TextStyle.META)
+                        if (card.cue.isNotBlank()) text(card.cue, style = TextStyle.BODY)
+                        text(card.target.ifBlank { " " }, style = TextStyle.HEADING)
+                        if (card.reading.isNotBlank()) text(card.reading, style = TextStyle.BODY)
+                        if (card.english.isNotBlank()) text(card.english, style = TextStyle.BODY)
+                        if (card.footer.isNotBlank()) text(card.footer, style = TextStyle.META)
+                    }
+                    // the phone's controls, on the glasses
+                    flexBox(direction = Direction.ROW, gap = 8) {
+                        button(label = "Redo", style = ButtonStyle.OUTLINE,
+                            onClick = { onCommand?.invoke("repeat") })
+                        button(label = if (card.playing) "Stop" else "Start", style = ButtonStyle.PRIMARY,
+                            onClick = { onCommand?.invoke("playPause") })
+                        button(label = "Skip", style = ButtonStyle.OUTLINE,
+                            onClick = { onCommand?.invoke("next") })
                     }
                 }
             }.fold(

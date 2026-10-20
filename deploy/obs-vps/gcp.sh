@@ -9,12 +9,16 @@
 #   ./gcp.sh stop      stop the VM - only the 15 GB disk bills (~$0.60/mo)
 #   ./gcp.sh start     start it again and print the (new) ingest URLs
 #   ./gcp.sh ssh       shell on the VM
+#   ./gcp.sh static-ip keep this boot's IP for good (the companion app's host)
+#   ./gcp.sh companion write the LiveVision iOS app's Secrets.xcconfig from the VM
+#   ./gcp.sh env K [V] set K=V in the VM's .env and apply it (no V: prompts, hidden)
 #   ./gcp.sh destroy   delete VM, IP and firewall rule
 #
 # The external IP is ephemeral by default, so it changes on every start and
 # a stopped VM costs nothing for it. The HTTPS hostname (<ip>.sslip.io) is
 # refreshed on each boot. STATIC_IP=1 ./gcp.sh up reserves a fixed IP instead
-# (~$7.30/mo while stopped) so the phone settings never change.
+# (~$7.30/mo while stopped) so the phone settings never change; on an existing
+# VM, ./gcp.sh static-ip promotes the running IP to a reserved one.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -22,7 +26,7 @@ PROJECT="${PROJECT:-chrome-up-irl-e8d7}"
 REGION="${REGION:-us-central1}"
 ZONE="${ZONE:-${REGION}-a}"
 NAME="${NAME:-obs-irl}"
-MACHINE="${MACHINE:-e2-standard-4}"     # 4 vCPU / 16 GB: OBS + Chromium + x264 720p30
+MACHINE="${MACHINE:-e2-standard-8}"     # 8 vCPU / 32 GB: OBS alone saturated 4 (software HUD + avatar)
 DISK_GB="${DISK_GB:-15}"                 # OS + images use ~7 GB
 DISK_TYPE="${DISK_TYPE:-pd-standard}"    # $0.04/GB-mo; pd-balanced is $0.10
 STATIC_IP="${STATIC_IP:-0}"
@@ -31,12 +35,14 @@ REMOTE="chrome_up"
 
 # keepalives: a dropped connection fails fast instead of hanging
 ssh_() { "${G[@]}" compute ssh "$NAME" --zone "$ZONE" -- -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o ConnectTimeout=20 "$@"; }
+scp_() { "${G[@]}" compute scp --zone "$ZONE" --scp-flag=-oServerAliveInterval=15 \
+           --scp-flag=-oServerAliveCountMax=3 --scp-flag=-oConnectTimeout=20 "$@"; }
 
 upload() {
   local tgz; tgz="$(mktemp -t chrome_up.XXXX).tgz"
   # tracked files only: no venvs, no local secrets, no extracted game audio
   git -C ../.. archive --format=tar.gz -o "$tgz" HEAD
-  "${G[@]}" compute scp --zone "$ZONE" "$tgz" "$NAME:~/chrome_up.tgz"
+  scp_ "$tgz" "$NAME:~/chrome_up.tgz"
   # the LinguaLens panel's URL (Cloud Run, read-only stream view), if deployed
   local ll
   ll="$(../lingualens/deploy.sh url 2>/dev/null | sed -n 's/^ *OBS browser source *\(https[^ ]*\).*/\1/p' || true)"
@@ -45,13 +51,17 @@ upload() {
   fi
   # sfx you extracted yourself are gitignored; ship them separately if present
   if compgen -G "../../overlay/assets/sfx/*.[wom]*" >/dev/null; then
-    "${G[@]}" compute scp --zone "$ZONE" ../../overlay/assets/sfx/*.{wav,ogg,mp3} "$NAME:~/" 2>/dev/null || true
+    scp_ ../../overlay/assets/sfx/*.{wav,ogg,mp3} "$NAME:~/" 2>/dev/null || true
   fi
   rm -f "$tgz"
   # setup runs detached on the VM, so a dropped SSH session cannot kill it
   ssh_ "mkdir -p $REMOTE && tar -xzf chrome_up.tgz -C $REMOTE && \
         (mv -f ~/*.wav ~/*.ogg ~/*.mp3 $REMOTE/overlay/assets/sfx/ 2>/dev/null || true) && \
         (SETUP_BUILD=1 nohup bash $REMOTE/deploy/obs-vps/setup.sh > ~/setup.log 2>&1 < /dev/null &)"
+  wait_setup
+}
+
+wait_setup() {
   echo "setup running on the VM (log: ~/setup.log)..."
   for _ in $(seq 1 60); do
     sleep 20
@@ -114,11 +124,47 @@ TXT"
     for _ in $(seq 1 30); do ssh_ true 2>/dev/null && break; sleep 5; done
     "$0" info
     ;;
+  static-ip)
+    # promote the ephemeral IP in use to a reserved one: same address, kept
+    # across stop/start (the companion app and phone settings never change)
+    IP="$("${G[@]}" compute instances describe "$NAME" --zone "$ZONE" \
+          --format='get(networkInterfaces[0].accessConfigs[0].natIP)')"
+    [ -n "$IP" ] || { echo "no external IP: ./gcp.sh start first" >&2; exit 1; }
+    "${G[@]}" compute addresses describe "$NAME-ip" --region "$REGION" >/dev/null 2>&1 \
+      || "${G[@]}" compute addresses create "$NAME-ip" --region "$REGION" --addresses "$IP"
+    echo "reserved $IP -> https://${IP//./-}.sslip.io (fixed from now on)"
+    ;;
+  companion)
+    # LiveVision (companion/ios) build settings: host + approval-page login
+    OUT=../../companion/ios/Config/Secrets.xcconfig
+    ssh_ "cd $REMOTE/deploy/obs-vps && . ./.env && IP=\$(curl -fsS -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip) && \
+          printf '// written by deploy/obs-vps/gcp.sh companion - keep private\nLIVEVISION_HOST = %s.sslip.io\nLIVEVISION_USER = %s\nLIVEVISION_PASSWORD = %s\n' \"\${IP//./-}\" \"\$AUTOCLIP_USER\" \"\$AUTOCLIP_PASSWORD\"" 2>/dev/null \
+      | grep -E '^(//|LIVEVISION_)' > "$OUT.tmp" && mv "$OUT.tmp" "$OUT" && chmod 600 "$OUT"
+    grep LIVEVISION_HOST "$OUT"
+    ;;
+  env)
+    # e.g. ./gcp.sh env TWITCH_STREAM_KEY   (asks for the value; never in argv
+    # or shell history), ./gcp.sh env AUTOCLIP_LIVE_STREAMS 1
+    K="${2:-}"
+    [[ "$K" =~ ^[A-Z_][A-Z0-9_]*$ ]] || { echo "usage: ./gcp.sh env NAME [value]" >&2; exit 1; }
+    if [ $# -ge 3 ]; then V="$3"; else read -rsp "$K: " V; echo; fi
+    # the value goes over stdin, not the remote command line
+    printf '%s' "$V" | ssh_ "cd $REMOTE/deploy/obs-vps && python3 -c '
+import sys
+k, v = sys.argv[1], sys.stdin.read()
+lines = open(\".env\").read().splitlines()
+out = [l for l in lines if not l.startswith(k + \"=\")]
+out.append(k + \"=\" + v)
+open(\".env\", \"w\").write(\"\\n\".join(out) + \"\\n\")
+' $K && (nohup bash ~/$REMOTE/deploy/obs-vps/setup.sh > ~/setup.log 2>&1 < /dev/null &)"
+    echo "$K set on the VM; applying..."
+    wait_setup
+    ;;
   ssh)     shift; ssh_ "$@" ;;
   destroy)
     "${G[@]}" compute instances delete "$NAME" --zone "$ZONE" || true
     "${G[@]}" compute addresses delete "$NAME-ip" --region "$REGION" || true
     "${G[@]}" compute firewall-rules delete "$NAME-ingest" || true
     ;;
-  *) sed -n '2,13p' "$0" ;;
+  *) sed -n '2,16p' "$0" ;;
 esac

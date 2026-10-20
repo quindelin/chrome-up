@@ -23,9 +23,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-from server.config import load_config  # noqa: E402
+from server.config import course_config, load_config  # noqa: E402
 from server.curriculum import Course  # noqa: E402
-from server.engine import Session  # noqa: E402
+from server.engine import Session, Step  # noqa: E402
 from server.models import Score  # noqa: E402
 from server.course.ja import kana_check, kanji, readings, grammar  # noqa: E402
 
@@ -44,7 +44,9 @@ def check(name: str, fn):
 
 def _session(lang: str, lesson_id: int) -> Session:
     course = Course(lang)
-    return Session(course, load_config(lang),
+    # the course's own config, the way the server builds it - load_config(lang)
+    # finds no file called "es" and quietly hands every course Mandarin's
+    return Session(course, course_config(load_config(), lang),
                    {"lesson_id": lesson_id, "completed": [], "mastery": {},
                     "words": {}, "stats": {}})
 
@@ -315,10 +317,11 @@ def t_next_ignores_a_stale_step_index():
 # and かな, so these check the places where "one character = one unit of
 # meaning" would quietly be wrong for Spanish.
 def t_es_course_shape():
-    """Every A1 lesson carries what the audit says the Japanese N5 lacks."""
+    """Every lesson, A1 to C2, carries what the audit says the Japanese N5 lacks."""
     from server.course.es import readings as es_readings, grammar as es_grammar
     c = Course("es")
-    assert len(c.lesson_ids) == 15, len(c.lesson_ids)
+    assert [lv.code for lv in c.levels] == ["A1", "A2", "B1", "B2", "C1", "C2"], [lv.code for lv in c.levels]
+    assert len(c.lesson_ids) == 76 and c.lesson_ids == list(range(1, 77)), len(c.lesson_ids)
     bad = []
     for lid in c.lesson_ids:
         l = c.lessons[lid]
@@ -330,16 +333,27 @@ def t_es_course_shape():
             bad.append(f"L{lid}: missing prompts / scene / grammar page")
         if len(es_readings.get(lid).get("questions") or []) < 2:
             bad.append(f"L{lid}: passage needs a read and a hear question")
+        if any("+" in v.text for v in l.vocab):
+            bad.append(f"L{lid}: a vocab item is a formula, not something you can say")
+        if any(t.speaker == "them" and t.text.startswith("(") for t in l.dialogue):
+            bad.append(f"L{lid}: a stage direction would be read aloud")
     assert not bad, bad[:5]
     assert not es_readings.check(), es_readings.check()[:3]
 
 
 def t_es_bank_fully_reached():
-    """15 lessons x inject_per_lesson must meet every bank word, once."""
+    """Each band's lessons x its inject count meet every bank word, once."""
+    from server.engine import inject_count
     c = Course("es")
-    per = int(load_config("config.es.yaml")["vocab"]["inject_per_lesson"])
-    met = [w.text for l in c.lessons_of_band(1) for w in c.vocab_for_lesson(l, per)]
-    assert len(set(met)) == c.vocab_count() == len(met), (len(set(met)), c.vocab_count(), len(met))
+    vocab_cfg = load_config("config.es.yaml")["vocab"]
+    assert not c.duplicate_words, c.duplicate_words[:5]
+    met = []
+    for band in c.vocab_by_band:
+        per = inject_count(vocab_cfg, band)
+        got = [w.text for l in c.lessons_of_band(band) for w in c.vocab_for_lesson(l, per)]
+        bank = len(c.vocab_words(band))
+        assert len(set(got)) == bank == len(got), (band, len(set(got)), bank, len(got))
+        met += got
     lesson_words = {v.text for l in c.lessons.values() for v in l.vocab}
     overlap = [w for w in met if w in lesson_words]
     assert not overlap, overlap[:5]
@@ -364,6 +378,36 @@ def t_es_matching_is_word_level():
     assert not content_chars("¿De dónde eres?", "es") & content_chars("Me gusta el café.", "es")
 
 
+def t_es_digits_in_dictation_still_match():
+    """Azure writes "son doce euros" as "Son 12 €" - a right answer must still pass.
+
+    Before the fix every price, time and date line failed the word check
+    ("Not all of the words came through") however well it was said.
+    """
+    import re
+    from server import drills
+    from server.pronunciation import _ES_UNITS, coverage_of
+    assert coverage_of("A las diez, andén tres.", "A las 10, andén 3.") == 1.0
+    assert coverage_of("Normalmente me acuesto a las once y media.", "Normalmente me acuesto a las 11:30.") == 1.0
+    assert coverage_of("Serán unos treinta mil euros.", "Serán unos 30.000 €.") == 1.0
+    assert coverage_of("Tercer piso, gracias.", "3er piso, gracias.") == 1.0
+    assert coverage_of("Son doce euros.", "Son 13 euros.") < 1.0          # a wrong number still counts
+    # dictate every learner line and drill the way Azure would: number words as digits
+    digits = {w: str(i) for i, w in enumerate(_ES_UNITS)}
+    digits.update({"treinta": "30", "cuarenta": "40", "cincuenta": "50", "noventa": "90", "cien": "100"})
+    word = re.compile(r"\b(" + "|".join(sorted(digits, key=len, reverse=True)) + r")\b")
+    c, cfg = Course("es"), load_config("config.es.yaml")
+    bad = []
+    for lid in c.lesson_ids:
+        lines = [t.text for t in c.lessons[lid].dialogue if t.speaker == "you"]
+        lines += [p.text for p in drills.generate(c.lessons[lid], cfg, "es")]
+        for text in lines:
+            heard = word.sub(lambda m: digits[m.group(1)], text)
+            if heard != text and coverage_of(text, heard) < 1.0:
+                bad.append((lid, text, heard))
+    assert not bad, bad[:5]
+
+
 def t_es_never_scored_by_iflytek():
     """ISE has no Spanish: Chinese keys in the env must not route Spanish to it."""
     import os
@@ -382,10 +426,274 @@ def t_es_never_scored_by_iflytek():
                 os.environ[k] = v
 
 
+def t_es_summaries_from_c1():
+    """C1-C2 lessons end in a spoken summary; earlier bands never do."""
+    from server.course.es import summaries
+    c = Course("es")
+    assert sorted(summaries.SUMMARIES) == list(range(53, 77)), sorted(summaries.SUMMARIES)
+    cfg = load_config("config.es.yaml")
+    for lid in (52, 53, 76):
+        steps = Session(c, cfg, {"lesson_id": lid, "completed": [], "mastery": {},
+                                 "words": {}, "stats": {}}).steps
+        has = any(st.kind == "write" for st in steps)
+        assert has == (lid >= 53), (lid, has)
+
+
+def t_es_summary_keywords_match_spoken_words():
+    """Summary keywords are checked against speech that has lost its spaces."""
+    from types import SimpleNamespace
+    from server.free import grade_writing
+    from server.course.es import summaries
+    item = summaries.get(54)
+    step = SimpleNamespace(text=item["prompt"], sample_text=item["sample"],
+                           keywords=item["keywords"], min_chars=10)
+    s = _score(item["sample"].lower().replace("á", "a"))
+    ok, why = grade_writing(s, step, {"min_pron_score": 0}, load_config("config.es.yaml"), "es", 5)
+    assert ok, why
+
+
 def t_es_session_every_lesson():
     for lid in Course("es").lesson_ids:
         st = _session("es", lid).state()
         assert isinstance(st, dict) and st.get("grammar"), f"es L{lid}"
+
+
+# --------------------------------------------------------------- 5 listening and role-play
+# Audit priorities 2 and 3 (docs/SPANISH_AUDIT.md): blind listening is the
+# whole passage, not its last line; the dialogue comes back blind once it is
+# mastered; and a role-play step talks back - or is left out with no key.
+def _walk_to(sess: Session, pred) -> Step:
+    """Pass every gated step until `pred(step)` holds - no audio, no network."""
+    for _ in range(2000):
+        st = sess.current()
+        if st is None or pred(st):
+            return st
+        if not sess.advance_non_speech():
+            sess.submit(_score(st.sample_text if st.kind in ("answer", "converse") else st.text))
+    raise AssertionError("never reached the step")
+
+
+def t_hear_plays_the_whole_passage():
+    from server.course import module_for
+    for lang, lid in (("es", 40), ("ja", 30), ("zh", 5)):
+        sess = _session(lang, lid)
+        chunks = module_for(lang, "readings").get(lid)["chunks"]
+        hear = next(st for st in sess.steps if st.key == f"hear:{lid}")
+        assert hear.audio_parts == [c[0] for c in chunks], (lang, hear.audio_parts)
+        assert chunks[0][0] in hear.audio_text and chunks[-1][0] in hear.audio_text, lang
+        d = hear.to_dict()
+        assert d["hide_text"] and not d["text"] and not d["en"], lang
+        assert d["audio_parts"] == hear.audio_parts, lang
+        # the question after it may draw on any part of the passage
+        nxt = sess.steps[sess.steps.index(hear) + 1]
+        assert nxt.kind == "answer" and nxt.key == f"hear-q:{lid}", (lang, nxt.kind)
+
+
+def t_natural_speed_from_b2():
+    assert next(s for s in _session("es", 41).steps if s.kind == "hear").natural      # B2
+    assert not next(s for s in _session("es", 30).steps if s.kind == "hear").natural  # B1
+    ja = _session("ja", 1)
+    assert not ja._natural()
+    ja.band = 2
+    assert ja._natural()                                       # JLPT counts down
+
+
+def t_dialogue_replay_waits_for_mastery():
+    sess = _session("es", 20)
+    replay = next(st for st in sess.steps if st.key == "hear-dialogue:20")
+    lesson = sess.course.lesson(20)
+    assert replay.hide_text and len(replay.audio_parts) == len(lesson.dialogue)
+    assert set(replay.audio_voices) == {0, 1}, replay.audio_voices
+    # not mastered: walked straight over
+    at = sess.steps.index(replay)
+    sess.pos = at - 1
+    sess.progress["mastery"] = {}
+    sess.steps[at - 1] = Step(kind="info", en="x")
+    sess.advance_non_speech()
+    assert sess.current() is not replay, "replayed before the lines were mastered"
+    # mastered: it plays
+    sess.pos = at - 1
+    sess.progress["mastery"] = {k: {"stage": 3} for k in replay.requires}
+    sess.advance_non_speech()
+    assert sess.current() is replay
+
+
+def t_converse_left_out_without_a_key():
+    import os
+    env = load_config("config.es.yaml")["think"].get("api_key_env") or "OPENAI_API_KEY"
+    saved = os.environ.pop(env, None)
+    try:
+        for lang in ("es", "ja", "zh"):
+            assert not any(st.kind == "converse" for st in _session(lang, 5).steps), lang
+    finally:
+        if saved is not None:
+            os.environ[env] = saved
+
+
+def t_converse_talks_back_then_ends():
+    import os
+    from server import converse
+    env = load_config("config.es.yaml")["think"].get("api_key_env") or "OPENAI_API_KEY"
+    saved, real = os.environ.get(env), converse.reply
+    os.environ[env] = "test-key"
+    replies = iter([
+        {"reply": "¿Y de qué parte de Boston eres?", "reply_en": "Which part?",
+         "hint": "Soy del centro.", "hint_en": "", "done": False},
+        None,  # the model goes away mid-scene: the scene ends, not the lesson
+    ])
+    converse.reply = lambda *a, **k: next(replies)
+    try:
+        sess = _session("es", 3)
+        st = _walk_to(sess, lambda s: s.kind == "converse")
+        assert st is not None and st.turns >= 3 and sess.needs_speech()
+        assert sess.state()["step"]["kind"] == "converse"
+        r = sess.submit(_score(st.sample_text))
+        assert r["passed"] and not r["advanced"] and r.get("converse_turn") == 1, r
+        assert st.text.startswith("¿Y de qué parte") and len(st.conversation) == 3
+        r = sess.submit(_score("Soy del centro de Boston, cerca del parque."))
+        assert r["passed"] and r["advanced"], r
+        assert "converse:3" not in sess.progress["mastery"]
+    finally:
+        converse.reply = real
+        if saved is None:
+            os.environ.pop(env, None)
+        else:
+            os.environ[env] = saved
+
+
+def t_es_four_free_prompts_a_lesson():
+    c = Course("es")
+    assert load_config("config.es.yaml")["free"]["per_lesson"] >= 4
+    short = [lid for lid in c.lesson_ids if len(c.lessons[lid].prompts) < 4]
+    assert not short, short
+    sess = _session("es", 50)
+    assert sum(1 for st in sess.steps if st.kind == "answer" and st.key.startswith("free:")) == 4
+
+
+def t_glasses_card_never_blank():
+    """Every step of every course gives the glasses something to show.
+
+    The phone apps used to mirror step.text/reading/en, which a recall step
+    leaves empty on purpose - so three steps in four drew a bare "…" on the
+    waveguide. The server's card must always have a target, and a recall
+    must show its English cue.
+    """
+    from server.pronunciation import simulated_score
+    for lang, cfg_path, lid in (("zh", "config.yaml", 3), ("ja", "config.ja.yaml", 3),
+                                ("es", "config.es.yaml", 3)):
+        c = Course(lang)
+        s = Session(c, load_config(cfg_path),
+                    {"lesson_id": lid, "completed": [], "mastery": {}, "words": {}, "stats": {}})
+        for i, step in enumerate(s.steps):
+            s.pos, s.attempts = i, 0
+            g = s.state()["glasses"]
+            assert g["target"].strip(), f"{lang} step {i} ({step.kind}): blank card"
+            assert g["header"], f"{lang} step {i}: no header"
+            if step.kind == "recall":
+                assert g["target"] == (step.prompt_en or step.en), (lang, i, g)
+                assert step.text not in (g["target"], g["reading"]), "recall gave the answer away"
+        # a pass brings the line back in full on the next screen
+        i = next(i for i, st in enumerate(s.steps) if st.kind == "recall")
+        s.pos, s.attempts = i, 0
+        sc = simulated_score(s.steps[i].text, "good")
+        sc.recognized = s.steps[i].text
+        assert s.submit(sc)["passed"]
+        assert s.steps[i].text in s.state()["glasses"]["footer"], lang
+
+
+def t_never_asked_for_what_you_have_not_heard():
+    """A recall is answered from the English alone, so every character (zh,
+    ja) or word (es) in it must have been heard earlier in the lesson.
+
+    HSK 1 lesson 1 used to ask for 我要茶 / 厕所在哪里 / 太贵了 from generic
+    fallback drills, and for 不客气 before it was ever modelled.
+    """
+    heard_kinds = ("listen", "speak", "read", "hanzi", "kanji", "kana", "answer",
+                   "hear", "converse")
+    for lang, cfg_path in (("zh", "config.yaml"), ("ja", "config.ja.yaml"),
+                           ("es", "config.es.yaml")):
+        c = Course(lang)
+        cfg = load_config(cfg_path)
+        bad = []
+        for lid in c.lesson_ids:
+            s = Session(c, cfg, {"lesson_id": lid, "completed": [], "mastery": {},
+                                 "words": {}, "stats": {}})
+            heard = set()
+            for st in s.steps:
+                if st.prior:
+                    continue
+                if st.kind == "recall" and s._units(st.text) - heard:
+                    bad.append((lid, st.text))
+                if st.kind in heard_kinds:
+                    heard |= s._units(st.text or getattr(st, "audio_text", "") or "")
+        assert not bad, f"{lang}: {len(bad)} unheard recalls, e.g. {bad[:3]}"
+
+
+def _play(s, fail_first=()):
+    """Drive one lesson: listen steps advance, spoken steps pass first try
+    (or fail once first, for keys in fail_first). Returns visited steps."""
+    from server.pronunciation import simulated_score
+    lid, seen = s.lesson_id, []
+    while s.current() and s.lesson_id == lid and len(seen) < 1000:
+        st = s.current()
+        seen.append(st)
+        if st.kind in ("listen", "info", "kana", "kanji", "hanzi", "hear"):
+            s.advance_non_speech()
+            continue
+        txt = st.text or st.sample_text or st.prompt_en or "x"
+        if st.key in fail_first and st.round:
+            bad = simulated_score(txt, "bad")
+            bad.recognized = ""
+            s.submit(bad)
+        ok = simulated_score(txt, "good")
+        ok.recognized = txt
+        if not s.submit(ok).get("advanced"):
+            s.pos, s.attempts = s.pos + 1, 0
+    return seen
+
+
+def t_review_rounds_drop_out_at_criterion():
+    """Rounds 1-2 always run (re-testing after a first success consolidates:
+    Karpicke & Roediger 2008); round 3 only brings back lines that have not
+    yet had two lagged first-try recalls this lesson."""
+    c = Course("zh")
+    s = Session(c, load_config("config.yaml"),
+                {"lesson_id": 1, "completed": [], "mastery": {}, "words": {}, "stats": {}})
+    s.start_lesson(1)
+    rounds = [st.round for st in _play(s) if st.kind == "recall" and st.round]
+    assert rounds.count(1) and rounds.count(2) == rounds.count(1), rounds
+    assert rounds.count(3) == 0, "a clean run should skip round 3"
+    s2 = Session(c, load_config("config.yaml"),
+                 {"lesson_id": 1, "completed": [], "mastery": {}, "words": {}, "stats": {}})
+    s2.start_lesson(1)
+    missed = next(st.key for st in s2.steps if st.kind == "recall" and st.round == 1)
+    r3 = [st.key for st in _play(s2, fail_first={missed}) if st.round == 3 and st.kind == "recall"]
+    assert r3 == [missed], r3
+
+
+def t_spacing_promotes_only_when_due_and_reviews_hit_the_real_line():
+    """Five passes in one sitting are one review, not five; a pass after a
+    day jumps past a day; the Review button and the warm-up update the line's
+    own schedule instead of minting "review:" copies."""
+    import time as _time
+    from unittest import mock
+    c = Course("zh")
+    prog = {"lesson_id": 1, "completed": [], "mastery": {}, "words": {}, "stats": {}}
+    t0 = _time.time()
+    with mock.patch("time.time", return_value=t0):
+        s = Session(c, load_config("config.yaml"), prog)
+        s.start_lesson(1)
+        _play(s)
+    assert {e["stage"] for e in prog["mastery"].values()} == {1}, "same-sitting passes promoted"
+    with mock.patch("time.time", return_value=t0 + 26 * 3600):
+        s.start_lesson(2)
+        warm = [st for st in s.steps if st.prior]
+        assert warm, "no warm-up of yesterday's lines"
+        assert s.steps[1] is warm[0], "a warm-up line was modelled first"
+        _play(s)
+        assert prog["mastery"][warm[0].key]["stage"] == 5   # 1 day survived -> 3 days
+        assert s.start_review(5) >= 0
+        assert not [k for k in prog["mastery"] if k.startswith("review:")]
 
 
 def main() -> int:

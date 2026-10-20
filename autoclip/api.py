@@ -11,6 +11,7 @@ POST /api/autoclip/publish           -> push a clip to platforms
 POST /api/autoclip/run               -> one full cycle (the whole product)
 GET  /api/autoclip/clips             -> everything produced so far
 GET  /api/autoclip/pending           -> clips held for approval
+GET  /api/autoclip/stack             -> whole-box health for the companion app
 POST /api/autoclip/approve/{id}      -> publish a held clip
 POST /api/autoclip/reject/{id}       -> drop a held clip
 
@@ -39,6 +40,7 @@ from .clips import render_clip
 from .config import load_config
 from .pipeline import Pipeline, build_pipeline
 from .publishers import available_platforms, publish_all
+from .stack import stack_status
 
 
 # --------------------------------------------------------------------------- schemas
@@ -171,6 +173,8 @@ def create_app(pipeline: Optional[Pipeline] = None, config_path: str = "autoclip
                 {"name": "command", "method": "POST", "path": "/api/autoclip/command",
                  "body": {"text": "str", "intent": "str?", "target": "str?",
                           "value": "str?", "source": "str?"}},
+                {"name": "stack", "method": "GET", "path": "/api/autoclip/stack",
+                 "description": "whole-box health: ingest/program live + bitrate, restreams, host, queue"},
                 {"name": "live_status", "method": "GET", "path": "/api/autoclip/live",
                  "description": "per-platform live status"},
                 {"name": "live_start", "method": "POST",
@@ -424,6 +428,12 @@ def create_app(pipeline: Optional[Pipeline] = None, config_path: str = "autoclip
                                source=body.source)
         ev.confidence = float(body.confidence)
         return JSONResponse({"event": ev.to_dict()})
+
+    # ------------------------------------------------------------------ stack
+    @app.get("/api/autoclip/stack")
+    async def stack(_: None = Depends(auth)) -> JSONResponse:
+        """Everything the companion app shows, in one poll."""
+        return JSONResponse(await run_in_threadpool(stack_status, cfg, app.state.pipeline))
 
     # ------------------------------------------------------------------ live
     @app.get("/api/autoclip/live")

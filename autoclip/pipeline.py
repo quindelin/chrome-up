@@ -550,7 +550,17 @@ class Pipeline:
 
     def inject_command(self, text: str, intent: str = "", target: str = "",
                        value: str = "", source: str = "manual") -> StreamEvent:
-        """Manually inject a voice event (e.g. from the REST API or a hotkey)."""
+        """Manually inject a voice event (e.g. from the REST API or a hotkey).
+
+        With no intent, the text goes through the same grammar as speech, so
+        "show lingualens" typed on the phone does what saying it would.
+        """
+        if not intent and text:
+            from .transcript import Transcript
+            parsed = self.voice.parse(Transcript(text=text.strip().rstrip(".") + "."))
+            if parsed and parsed[0].intent and parsed[0].intent != "unknown":
+                intent, target = parsed[0].intent, target or parsed[0].target
+                value = value or parsed[0].value
         ev = StreamEvent(
             type="voice_command",
             ts=time.time(),

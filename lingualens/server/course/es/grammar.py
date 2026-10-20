@@ -62,6 +62,34 @@ GRAMMAR = {
                  "about yourself with one ending.",
     }],
     5: [{
+        "point": "describing people: ser and tener",
+        "en": "what someone is like, and what they have",
+        "formula": "es + alto / baja / simpática · tiene + el pelo largo / los ojos verdes / barba",
+        "examples": [("Es baja y tiene el pelo largo.", E, "She's short and has long hair."),
+                     ("¿Cómo es tu hermano?", E, "What is your brother like?")],
+        "contrast": "The adjective agrees with the person: es alto, es alta. Colours of "
+                    "eyes agree with ojos: los ojos verdes, los ojos negros.",
+        "watch": "×Su pelo es largo → tiene el pelo largo. ×Es corto (a person) → es bajo.",
+    }, {
+        "point": "estar + -ando / -iendo",
+        "en": "what is happening right now",
+        "formula": "estoy · estás · está + hablando (-ar) · comiendo, escribiendo (-er / -ir)",
+        "examples": [("Estoy hablando con una amiga.", E, "I'm talking to a friend."),
+                     ("¿Qué está haciendo?", E, "What is she doing?")],
+        "contrast": "English uses -ing for plans too; Spanish does not: salgo mañana "
+                    "(I'm leaving tomorrow), never ×estoy saliendo mañana.",
+        "watch": "Irregular gerunds you will hear: durmiendo, leyendo, diciendo, yendo.",
+    }, {
+        "point": "mi, tu, su",
+        "en": "my, your, his / her / their",
+        "formula": "mi · tu · su + singular noun · mis · tus · sus + plural noun",
+        "examples": [("Es mi hermano Pablo.", E, "It's my brother Pablo."),
+                     ("Mis padres son de Sevilla.", E, "My parents are from Seville.")],
+        "contrast": "Su covers his, her, its, their and your (usted). Nuestro and the "
+                    "long forms (el mío) come in lesson 19.",
+        "watch": "Tu (your) has no accent; tú (you) does.",
+    }],
+    6: [{
         "point": "-ar, -er, -ir together",
         "en": "the three verb families in the present",
         "formula": "trabajo / trabajas · como / comes · vivo / vives",
@@ -71,7 +99,7 @@ GRAMMAR = {
                     "-as for -ar, -es for -er and -ir.",
         "watch": "Ser and estar, ir and tener are irregular - learn them as words.",
     }],
-    6: [{
+    7: [{
         "point": "estar for location",
         "en": "where something is",
         "formula": "N + está + place word · ¿dónde está + el/la N?",
@@ -80,8 +108,17 @@ GRAMMAR = {
         "contrast": "Ser tells you what a place is (es un banco); estar tells you "
                     "where it is (está aquí).",
         "watch": "de + el → del (al lado del banco). Never 'de el'.",
+    }, {
+        "point": "usted commands",
+        "en": "telling a stranger what to do: directions",
+        "formula": "yo form minus -o, then the 'other' vowel: sigo → siga · giro → gire · cruzo → cruce",
+        "examples": [("Siga todo recto y gire a la izquierda.", E, "Go straight on and turn left."),
+                     ("Cruce la calle.", E, "Cross the street.")],
+        "contrast": "To a friend the command is the él form: sigue, gira, cruza. "
+                    "Negatives and the tú forms come in lesson 20.",
+        "watch": "Spelling, not sound: cruzar → cruce, buscar → busque.",
     }],
-    7: [{
+    8: [{
         "point": "hay vs está",
         "en": "is there one? vs where is it?",
         "formula": "hay + un/una/dos/nothing + N  ·  el/la + N + está",
@@ -90,8 +127,16 @@ GRAMMAR = {
         "contrast": "Hay introduces something new; está locates something already "
                     "known. The article follows: un/una with hay, el/la with está.",
         "watch": "×Hay el banco. ×¿Dónde hay la farmacia?",
+    }, {
+        "point": "ordinals 1st-5th",
+        "en": "the first, the second...",
+        "formula": "primero · segundo · tercero · cuarto · quinto  (agree: la segunda, los primeros)",
+        "examples": [("Es la segunda a la izquierda.", E, "It's the second on the left.")],
+        "contrast": "Primero and tercero drop the -o before a masculine noun: el primer piso, "
+                    "el tercer día - but la tercera calle.",
+        "watch": "After the tenth, Spanish mostly uses plain numbers: el piso doce.",
     }],
-    8: [{
+    9: [{
         "point": "ir a",
         "en": "going somewhere",
         "formula": "voy · vas · va · vamos + a + place   (a + el → al)",
@@ -101,7 +146,7 @@ GRAMMAR = {
                     "en Madrid. Transport takes en: en autobús - except andando.",
         "watch": "×Voy a el centro. ×Voy en la playa.",
     }],
-    9: [{
+    10: [{
         "point": "numbers 0-20, and telling the time",
         "en": "counting, prices, departure times",
         "formula": "a la una · a las dos · a las diez y media",
@@ -112,7 +157,7 @@ GRAMMAR = {
         "watch": "Seis and siete, doce and dos are the pairs learners mishear - "
                  "listen for the end of the word.",
     }],
-    10: [{
+    11: [{
         "point": "review: ser, estar, hay, ir",
         "en": "four verbs, four jobs",
         "formula": "ser = what · estar = where/how · hay = there is · ir = going",
@@ -122,7 +167,7 @@ GRAMMAR = {
                     "back to its lesson before A1 ends.",
         "watch": "",
     }],
-    11: [{
+    12: [{
         "point": "tener + noun for states",
         "en": "hunger, thirst, cold, heat, age",
         "formula": "tengo · tienes · tiene + hambre / sed / frío / calor / N años",
@@ -141,7 +186,7 @@ GRAMMAR = {
                     "'¿me pones...?' is what you will hear in Spain.",
         "watch": "The stem changes: querer → quiero, not 'quero'.",
     }],
-    12: [{
+    13: [{
         "point": "gender and articles",
         "en": "every noun is masculine or feminine",
         "formula": "un / el + masculine  ·  una / la + feminine",
@@ -152,7 +197,7 @@ GRAMMAR = {
                     "the article.",
         "watch": "Adjectives agree too: una cerveza fría, un café frío.",
     }],
-    13: [{
+    14: [{
         "point": "gustar",
         "en": "liking - the thing liked is the subject",
         "formula": "me / te / le gusta + singular · me / te / le gustan + plural",
@@ -162,11 +207,21 @@ GRAMMAR = {
                     "you? It is never '¿y tú?' after gustar.",
         "watch": "×Yo gusto el café. ×Me gusta las verduras.",
     }],
-    14: [{
+    15: [{
+        "point": "quantities",
+        "en": "buying by weight and number",
+        "formula": "un kilo de · medio kilo de · cien gramos de · una docena de · media docena de + noun",
+        "examples": [("¿Me pone un kilo de tomates?", E, "Could I have a kilo of tomatoes?"),
+                     ("Póngame cien gramos de jamón.", E, "Give me a hundred grams of ham.")],
+        "contrast": "Medio / media agree with the measure and never take un: medio kilo, "
+                    "media docena. A litre is un litro de leche.",
+        "watch": "×Un kilo tomates: de is never dropped.",
+    }, {
         "point": "numbers 30-100",
         "en": "prices",
         "formula": "treinta y uno ... noventa y nueve · cien",
-        "examples": [("Son treinta y cinco euros.", E, "It's thirty-five euros.")],
+        "examples": [("Son treinta y cinco euros.", E, "It's thirty-five euros."),
+                     ("Está a noventa euros el kilo.", E, "It's ninety euros a kilo.")],
         "contrast": "Up to 29 it is one word (veintiocho); from 31 it is three "
                     "(treinta y ocho). Exactly 100 is cien.",
         "watch": "Sesenta and setenta are the pair everyone confuses.",
@@ -179,7 +234,7 @@ GRAMMAR = {
                     "querer → quiero.",
         "watch": "",
     }],
-    15: [{
+    16: [{
         "point": "review: ordering",
         "en": "the restaurant sequence",
         "formula": "una mesa para N · de primero... · de segundo... · ¿me trae la cuenta?",
@@ -189,6 +244,11 @@ GRAMMAR = {
         "watch": "",
     }],
 }
+
+
+# later bands keep their pages in their own band file
+from . import merged as _merged  # noqa: E402
+GRAMMAR = _merged("GRAMMAR", GRAMMAR)
 
 
 def for_lesson(lesson_id: int) -> list:

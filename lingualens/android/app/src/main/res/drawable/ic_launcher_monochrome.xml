@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Single-colour layer for Android 13+ themed icons: the same shapes, no gradient. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:scaleX="0.0708" android:scaleY="0.0708"
+        android:translateX="17.75" android:translateY="16.05">
+        <path android:strokeColor="#FFFFFF" android:strokeWidth="52"
+            android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M126,444a100,100 0,0 1,100,-100h140a100,100 0,0 1,100,100v100a100,100 0,0 1,-100,100H226a100,100 0,0 1,-100,-100zM558,444a100,100 0,0 1,100,-100h140a100,100 0,0 1,100,100v100a100,100 0,0 1,-100,100h-30l24,84l-98,-84h-36a100,100 0,0 1,-100,-100zM466,430q46,-34 92,0" />
+        <path android:strokeColor="#FFFFFF" android:strokeWidth="34" android:strokeLineCap="round"
+            android:pathData="M222,494c26,0 32,-54 58,-54s32,108 58,108 32,-54 58,-54" />
+        <path android:strokeColor="#FFFFFF" android:strokeWidth="26"
+            android:strokeLineCap="round" android:strokeLineJoin="round"
+            android:pathData="M716,374l22,16M638,418h172M670,458h108M670,496h108M670,534h108v70H670z" />
+    </group>
+</vector>

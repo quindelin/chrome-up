@@ -2,7 +2,7 @@
 
     server/course/zh/   Mandarin  - HSK 1 -> HSK 6
     server/course/ja/   Japanese  - JLPT N5 -> N1, plus an above-N1 band
-    server/course/es/   Spanish   - CEFR A1 -> (A2 … C1 being written)
+    server/course/es/   Spanish   - CEFR A1 -> C2
 
 Each package exports the same four things, so everything above this line is
 language-agnostic:

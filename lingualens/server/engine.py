@@ -6,8 +6,9 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 
 from . import course as course_pkg
-from . import drills, free, progress as ledger
+from . import converse, drills, free, progress as ledger
 from .config import reading_mode_for, scene_mode_for
+from .course import is_spaced
 from .curriculum import Course
 from .models import Lesson, Phrase, Score
 from .pronunciation import evaluate, fluency_reasons
@@ -27,6 +28,20 @@ _WRITE_NOTE = {"zh": "用你自己的话说，不用跟原文一样",
                "es": "Con tus propias palabras, no hace falta copiar el texto"}
 
 
+def inject_count(vocab_cfg: Dict, band: int) -> int:
+    """New bank words per lesson in this band.
+
+    `inject_by_band` lets a course hand later bands more words a lesson
+    without changing the beginner pace; anything it does not list falls
+    back to `inject_per_lesson`.
+    """
+    by_band = vocab_cfg.get("inject_by_band") or {}
+    value = by_band.get(band, by_band.get(str(band)))
+    if value is None:
+        value = vocab_cfg.get("inject_per_lesson", 4)
+    return int(value or 0)
+
+
 def _course_module(lang: str, name: str):
     """`course.<lang>.<name>`, or None when that course has not written one."""
     try:
@@ -35,9 +50,13 @@ def _course_module(lang: str, name: str):
         return None
 
 
+# steps the learner speaks, and that the gate grades
+SPOKEN = ("speak", "recall", "answer", "read", "write", "converse")
+
+
 @dataclass
 class Step:
-    kind: str  # listen | speak | recall | info | answer | done
+    kind: str  # listen | speak | recall | info | answer | converse | done
     text: str = ""
     reading: str = ""
     en: str = ""
@@ -72,6 +91,29 @@ class Step:
     # empty; `audio_text` is what gets spoken.
     audio_text: str = ""
     hide_text: bool = False
+    # a blind step longer than one line: the parts in order, and which
+    # speaker says each (0, 1, ...) so a dialogue is two voices, not one.
+    # `audio_text` still carries the whole thing joined, for any client that
+    # only knows how to play one string.
+    audio_parts: List[str] = field(default_factory=list)
+    audio_voices: List[int] = field(default_factory=list)
+    # natural speed and a voice per speaker - see listening.natural_bands
+    natural: bool = False
+    # mastery keys that must all be mastered for this step to be played at
+    # all; when they are not, the walk-through steps over it
+    requires: List[str] = field(default_factory=list)
+    # A recall-round step that is skipped once its line has reached the
+    # session's criterion (recall.criterion lagged first-try passes).
+    dropout: bool = False
+    # A line from an earlier session (the warm-up): it was heard back then,
+    # so it is retrieval, not new material, and must not be modelled first.
+    prior: bool = False
+    # role-play only: which learner turn this is, of how many, and what has
+    # been said so far ([{"who": "them"|"you", "text", "en"}])
+    turn: int = 0
+    turns: int = 0
+    conversation: List[dict] = field(default_factory=list)
+    scene: str = ""
     # reading passages only: a chunk knows where it sits in the text
     passage_title: str = ""
     chunk_index: int = 0
@@ -112,6 +154,12 @@ class Step:
             "components": self.components,
             "audio_text": self.audio_text,
             "hide_text": bool(self.hide_text),
+            "audio_parts": list(self.audio_parts),
+            "audio_voices": list(self.audio_voices),
+            "natural": bool(self.natural),
+            "turn": self.turn,
+            "turns": self.turns,
+            "conversation": [dict(t) for t in self.conversation],
             "passage_title": self.passage_title,
             "chunk_index": self.chunk_index,
             "chunk_total": self.chunk_total,
@@ -137,7 +185,14 @@ class Session:
         self.pos: int = 0
         self.attempts: int = 0
         self.history: List[dict] = []
+        # lagged, first-try correct recalls of each line in this lesson; a
+        # round-2+ step drops out once its line reaches recall.criterion
+        self.session_correct: Dict[str, int] = {}
         self.last_score: Optional[dict] = None
+        # the line you just got right, so the glasses can show it in full on
+        # the next screen: a recall is answered from the English alone, and
+        # without this you never see the characters of a line you passed
+        self.last_line: Optional[dict] = None
         self.message: str = ""
         self.thought: Optional[Target] = None
         self.think_done: int = 0
@@ -166,6 +221,7 @@ class Session:
         self.attempts = 0
         self.thought = None
         self._saved = None
+        self.session_correct = {}
         self.steps = self._build_steps(lesson_id)
         self.progress["lesson_id"] = lesson_id
         self.message = f"Unit {lesson.unit} · Lesson {lesson.id}: {lesson.title}"
@@ -175,9 +231,7 @@ class Session:
         vocab_cfg = self.cfg.get("vocab") or {}
         if not vocab_cfg.get("enabled", True):
             return []
-        return self.course.vocab_for_lesson(
-            lesson, int(vocab_cfg.get("inject_per_lesson", 4) or 0)
-        )
+        return self.course.vocab_for_lesson(lesson, inject_count(vocab_cfg, lesson.band))
 
     # -- English orientation ------------------------------------------------
     def scene_text(self, lesson: Optional[Lesson] = None) -> str:
@@ -339,19 +393,34 @@ class Session:
             note=note,
         )
 
+    def _natural(self) -> bool:
+        """Whether this band hears blind audio at natural speed, many voices."""
+        bands = (self.cfg.get("listening") or {}).get("natural_bands") or []
+        try:
+            return int(self.band) in {int(b) for b in bands}
+        except (TypeError, ValueError):
+            return False
+
+    def _joined(self, parts: List[str]) -> str:
+        return (" " if is_spaced(self.lang) else "").join(p for p in parts if p)
+
     def _hearing_steps(self, lesson: Lesson) -> List[Step]:
-        """Listen to one line of the passage with nothing on the screen.
+        """Listen to the passage with nothing on the screen.
 
-        This is the step the course did not have. Every other input the
-        learner gets arrives printed as well as spoken: the hanzi, the pinyin
-        and the English are all on the glasses while the audio plays, so what
-        is being trained is reading-along. Real listening is decoding a signal
-        you cannot see, which is a different skill and the one HSK 听力 tests.
+        Every other input the learner gets arrives printed as well as
+        spoken: the line, its reading and the English are all on the glasses
+        while the audio plays, so what is being trained is reading-along.
+        Real listening is decoding a signal you cannot see, which is a
+        different skill and the one HSK 听力 and DELE comprensión auditiva
+        test.
 
-        So: the line is played, nothing is printed, and the question that
-        follows can only be answered if the audio was understood. The text
-        travels in `audio_text`, which the UI speaks and never renders - and
-        `hide_text` is what stops a future author from leaking it by accident.
+        So: the passage is played, nothing is printed, and the question that
+        follows can only be answered if the audio was understood. It used to
+        be the passage's last line only - about ten words a lesson, six
+        minutes across a whole course. Now it is the whole passage, so the
+        question can lean on any part of it. The text travels in
+        `audio_text` / `audio_parts`, which the UI speaks and never renders -
+        and `hide_text` is what stops a future author from leaking it.
         """
         cfg = self.cfg.get("listening") or {}
         if not cfg.get("comprehension", True) or not self._readings:
@@ -361,18 +430,26 @@ class Session:
         questions = passage.get("questions") or []
         if not chunks or not questions:
             return []
-        # a different chunk from the one the reading question leans on, and a
-        # different question, so "I recognised the words I just read" is not
-        # the same as "I understood what I heard"
-        chunk = chunks[-1]
+        if cfg.get("full_passage", True):
+            picked = chunks
+        else:
+            picked = chunks[-1:]
+        rows = [(list(c) + ["", "", ""])[:3] for c in picked]
+        parts = [r[0] for r in rows]
+        # a different question from the one the reading step asked, so "I
+        # recognised the words I just read" is not the same as "I understood
+        # what I heard"
         q = questions[1] if len(questions) > 1 else questions[0]
-        text, reading, _en = (list(chunk) + ["", "", ""])[:3]
         return [
             Step(
                 kind="hear",
-                audio_text=text,
+                audio_text=self._joined(parts),
+                audio_parts=parts,
+                # one narrator: a passage is one person talking
+                audio_voices=[0] * len(parts),
+                natural=self._natural(),
                 hide_text=True,
-                reading=reading,
+                reading=self._joined([r[1] for r in rows]),
                 en="Listen. Nothing on the screen.",
                 # in the course's own language: this note used to be Chinese
                 # on the Japanese course too
@@ -380,7 +457,81 @@ class Session:
                 key=f"hear:{lesson.id}",
             ),
             self._comprehension_step(lesson, q, f"hear-q:{lesson.id}",
-                                     "from the line you just heard"),
+                                     "from the passage you just heard"),
+        ]
+
+    def _dialogue_replay_steps(self, lesson: Lesson) -> List[Step]:
+        """The whole conversation again, blind, once your lines are mastered.
+
+        You have just held this conversation with every line printed. Heard
+        again with a blank screen, at the band's speed and with a voice per
+        speaker, it is the same words arriving the way they would from two
+        strangers. It is held back until every one of your lines is mastered
+        (`requires`): played earlier it is a test of the dialogue, played now
+        it is listening to language you already own.
+        """
+        cfg = self.cfg.get("listening") or {}
+        if not cfg.get("dialogue_replay", True):
+            return []
+        turns = [t for t in lesson.dialogue if t.text]
+        mine = [t for t in turns if t.speaker == "you"]
+        if len(turns) < 2 or not mine:
+            return []
+        parts = [t.text for t in turns]
+        return [
+            Step(
+                kind="hear",
+                audio_text=self._joined(parts),
+                audio_parts=parts,
+                audio_voices=[0 if t.speaker == "them" else 1 for t in turns],
+                natural=self._natural(),
+                hide_text=True,
+                reading=self._joined([t.reading for t in turns]),
+                en="Listen to the whole conversation. Nothing on the screen.",
+                note=_HEAR_NOTE.get(self.lang, _HEAR_NOTE["zh"]),
+                requires=[f"{lesson.id}:{t.text}" for t in mine],
+                key=f"hear-dialogue:{lesson.id}",
+            )
+        ]
+
+    def _converse_steps(self, lesson: Lesson) -> List[Step]:
+        """A short role-play: the model is the other speaker in this scene.
+
+        Opens with the dialogue's first line from the other side, so the
+        scene is one the learner has just rehearsed; from there the partner
+        replies to what was actually said. One step, several turns: it does
+        not advance until the last turn passes (see `submit`). Left out
+        entirely when no model is configured - there is nothing scripted
+        that could stand in for a reply to an unscripted answer.
+        """
+        cfg = self.cfg.get("converse") or {}
+        if not converse.available(self.cfg):
+            return []
+        turns = list(lesson.dialogue)
+        first = next((i for i, t in enumerate(turns) if t.speaker == "them" and t.text), None)
+        if first is None:
+            return []
+        opener = turns[first]
+        answer = next((t for t in turns[first + 1:] if t.speaker == "you"), None)
+        return [
+            Step(
+                kind="converse",
+                text=opener.text,
+                reading=opener.reading,
+                en=opener.en,
+                prompt_en=opener.en,
+                speaker="them",
+                sample_text=answer.text if answer else "",
+                sample_reading=answer.reading if answer else "",
+                sample_en=answer.en if answer else "",
+                turn=0,
+                turns=max(1, int(cfg.get("turns", 3) or 3)),
+                conversation=[{"who": "them", "text": opener.text, "en": opener.en}],
+                scene=self.scene_text(lesson),
+                natural=self._natural(),
+                note="Role-play: answer as yourself",
+                key=f"converse:{lesson.id}",
+            )
         ]
 
     def _writing_steps(self, lesson: Lesson) -> List[Step]:
@@ -464,6 +615,15 @@ class Session:
         assert lesson is not None
         steps: List[Step] = []
 
+        # 00. warm-up: lines from earlier lessons that are due today. This is
+        #     successive relearning (Rawson & Dunlosky): what decides whether a
+        #     line is still there next month is recalling it again on later
+        #     days, not recalling it more times today. It used to sit behind a
+        #     "Review" button that a learner has to remember to press; Pimsleur
+        #     opens every lesson this way, and so does this.
+        for row in self._warmup_steps(lesson_id):
+            steps.append(row)
+
         # 0. where you are standing. Pimsleur has to speak this in English
         #    because audio is all it has; we print it, so the whole audio track
         #    stays in the target language. The scene is a signpost: it tells
@@ -506,6 +666,20 @@ class Session:
         #    only fails the gate. So the order is target language first
         #    (heard), English second (as the cue), target language last (said
         #    by you) - which is Pimsleur's anticipation.
+        # 2a. the lesson's own word list comes first. It used to appear only in
+        #     the recall rounds, so 谢谢 / 不客气 were first met as "say it in
+        #     Mandarin" - and 不客气 is in no line of the dialogue at all.
+        dialogue_lines = {self._norm(t.text) for t in lesson.dialogue}
+        for word in lesson.vocab:
+            if self._norm(word.text) in dialogue_lines:
+                continue  # already heard and said whole in the conversation
+            steps.append(Step(kind="listen", text=word.text, reading=word.reading,
+                              en=word.en, speaker="them", note=f"new word · {word.en}",
+                              key=f"{lesson_id}:{word.text}"))
+            steps.append(Step(kind="recall", text=word.text, reading=word.reading,
+                              en=word.en, prompt_en=word.en, note=f"new word · {word.en}",
+                              round=0, key=f"{lesson_id}:{word.text}"))
+
         new_words = self._new_words(lesson)
         for word in new_words:
             steps.append(
@@ -635,11 +809,20 @@ class Session:
                     )
                 )
 
+        # 4b. the dialogue again, blind, then the scene for real: the other
+        #     speaker is played by a model and answers what you said. Both
+        #     come after the free answers, so the lesson's language is warm.
+        for row in self._dialogue_replay_steps(lesson):
+            steps.append(row)
+        for row in self._converse_steps(lesson):
+            steps.append(row)
+
         # 5. graduated interval recall of everything you just met
         items = self.course.drill_items(lesson) + drill_pool + recycled + new_words + answers
         intervals = list(self.cfg["recall"].get("intervals") or [10, 30, 75])
         rounds = int(self.cfg["recall"].get("rounds") or 3)
         anticipation = float((self.cfg.get("recall") or {}).get("anticipation_seconds", 0.0) or 0.0)
+        criterion = int((self.cfg.get("recall") or {}).get("criterion", 2) or 0)
         for r in range(rounds):
             wait = 0.0 if r == 0 else float(intervals[min(r - 1, len(intervals) - 1)])
             steps.append(
@@ -668,9 +851,98 @@ class Session:
                         wait_seconds=anticipation,
                         round=r + 1,
                         key=f"{lesson_id}:{item.text}",
+                        # Round 1 always runs: re-testing a line after its
+                        # first success is what consolidates it (Karpicke &
+                        # Roediger 2008). From round 2 a line drops out once
+                        # it has `criterion` lagged first-try recalls this
+                        # session; the next recall belongs on a later day.
+                        dropout=r >= 1 and criterion > 0,
                     )
                 )
-        return steps
+        return self._model_before_recall(steps)
+
+    # -- spaced relearning ---------------------------------------------------
+    def _warmup_steps(self, lesson_id: int) -> List["Step"]:
+        """Lines from earlier lessons that are due today, most overdue first."""
+        limit = int((self.cfg.get("recall") or {}).get("warmup", 6) or 0)
+        if limit <= 0 or self.mode != "lesson":
+            return []
+        own = f"{lesson_id}:"
+        due = [(k, p) for k, p in drills.due_entries(self.progress, limit * 2, include_fresh=False)
+               if not k.startswith(own)][:limit]
+        if not due:
+            return []
+        out = [Step(kind="info", en=f"Warm-up · {len(due)} lines from earlier lessons",
+                    wait_seconds=3.0, key=f"warmup:{lesson_id}")]
+        anticipation = float((self.cfg.get("recall") or {}).get("anticipation_seconds", 0.0) or 0.0)
+        for key, item in due:
+            out.append(Step(kind="recall", text=item.text, reading=item.reading, en=item.en,
+                            prompt_en=item.en, note="review", wait_seconds=anticipation,
+                            key=key, prior=True))
+        return out
+
+    def _dropped(self, step: "Step") -> bool:
+        criterion = int((self.cfg.get("recall") or {}).get("criterion", 2) or 0)
+        return bool(step.dropout and criterion > 0
+                    and self.session_correct.get(step.key, 0) >= criterion)
+
+    def _round_empty(self, at: int) -> bool:
+        """Every recall in the round that starts after the info step at `at`
+        has dropped out, so its "Recall round N" header is noise."""
+        i = at + 1
+        while i < len(self.steps) and self.steps[i].kind == "recall" and self.steps[i].round:
+            if not self._dropped(self.steps[i]):
+                return False
+            i += 1
+        return i > at + 1
+
+    # -- the hear-it-first rule -----------------------------------------------
+    def _norm(self, text: str) -> str:
+        from .pronunciation import normalize_text
+        return normalize_text(text).casefold()
+
+    def _units(self, text: str) -> set:
+        """What has to have been heard before a line can be asked for:
+        words for a spaced language, characters for Chinese and Japanese."""
+        if is_spaced(self.lang):
+            from .pronunciation import _LATIN_WORD, _fold
+            return set(_LATIN_WORD.findall(_fold(text or "")))
+        return {ch for ch in self._norm(text) if not ch.isascii()}
+
+    def _model_before_recall(self, steps: List["Step"]) -> List["Step"]:
+        """Never ask for a line containing a word or character not yet heard.
+
+        A recall is answered from the English alone. That is retrieval when
+        the line is made of things you have met, and guessing when it is not
+        - which fails the gate and teaches nothing. This walks the finished
+        lesson and, before any recall with an unheard unit, inserts the line
+        modelled ("listen") and repeated ("speak"): Pimsleur's order. It is a
+        safety net under every content module, so a drill frame, an injected
+        bank word or a recycled line can never skip it.
+        """
+        heard: set = set()
+        heard_kinds = ("listen", "speak", "read", "hanzi", "kanji", "kana", "answer",
+                       "hear", "converse")
+        out: List[Step] = []
+        for step in steps:
+            if step.prior:
+                heard |= self._units(step.text)   # met in an earlier lesson
+                out.append(step)
+                continue
+            if step.kind == "recall" and step.text:
+                missing = self._units(step.text) - heard
+                if missing:
+                    out.append(Step(kind="listen", text=step.text, reading=step.reading,
+                                    en=step.en or step.prompt_en, speaker="them",
+                                    note="new line", key=f"model:{step.text}"))
+                    out.append(Step(kind="speak", text=step.text, reading=step.reading,
+                                    en=step.en or step.prompt_en, speaker="you",
+                                    note="say it after the model", key=step.key))
+                    heard |= self._units(step.text)
+            if step.kind in heard_kinds:
+                heard |= self._units(step.text or getattr(step, "audio_text", "") or "")
+            out.append(step)
+        return out
 
     # -- vocabulary sessions -----------------------------------------------
     def start_vocab(self, topic_id: str) -> int:
@@ -756,19 +1028,19 @@ class Session:
         step = self.current()
         if not step:
             return ""
-        if step.kind in ("answer", "write"):
+        if step.kind in ("answer", "write", "converse"):
             return ""
         return step.text
 
     def needs_speech(self) -> bool:
         step = self.current()
-        return bool(step and step.kind in ("speak", "recall", "answer", "read", "write"))
+        return bool(step and step.kind in SPOKEN)
 
     def show_target(self) -> bool:
         step = self.current()
         if not step:
             return True
-        if step.kind == "answer":
+        if step.kind in ("answer", "converse"):
             return True  # the question is always on screen
         if step.kind == "read":
             return True  # you cannot read a blank page
@@ -804,7 +1076,7 @@ class Session:
     def show_sample(self) -> bool:
         """Show the model answer only once you have tried (and failed) twice."""
         step = self.current()
-        if not step or step.kind != "answer":
+        if not step or step.kind not in ("answer", "converse"):
             return False
         reveal_after = int(self.cfg["gate"].get("reveal_after_attempts", 2))
         return self.attempts >= reveal_after
@@ -827,8 +1099,66 @@ class Session:
         if step.kind in ("listen", "info", "kana", "kanji", "hanzi", "hear"):
             self.pos += 1
             self.attempts = 0
+            self._settle()
             return True
         return False
+
+    def _mastered(self, keys: List[str]) -> bool:
+        need = int((self.cfg.get("listening") or {}).get("replay_min_stage", 1) or 1)
+        mastery = self.progress.get("mastery") or {}
+        for key in keys:
+            entry = mastery.get(key)
+            stage = entry.get("stage", 0) if isinstance(entry, dict) else int(entry or 0)
+            if stage < need:
+                return False
+        return True
+
+    def _settle(self) -> None:
+        """Step over anything whose prerequisites are not mastered yet, and
+        over recall-round lines that have already reached the criterion."""
+        while self.pos < len(self.steps):
+            step = self.steps[self.pos]
+            if step.requires and not self._mastered(step.requires):
+                self.pos += 1
+            elif self._dropped(step):
+                self.pos += 1
+            elif step.kind == "info" and step.round >= 2 and self._round_empty(self.pos):
+                self.pos += 1
+            else:
+                break
+
+    def _converse_next(self, step: Step, said: str) -> bool:
+        """Record the learner's turn and fetch the partner's reply.
+
+        True when the conversation goes on (the step stays, with the new
+        line); False when it is over - the last turn was taken, or the model
+        could not be reached, which ends the scene rather than the lesson.
+        """
+        step.conversation.append({"who": "you", "text": said, "en": ""})
+        step.turn += 1
+        if step.turn >= step.turns:
+            return False
+        lesson = self.course.lesson(self.lesson_id)
+        level = self.course.level_of(self.lesson_id)
+        nxt = converse.reply(
+            step.scene,
+            lesson.goal if lesson else "",
+            step.conversation,
+            self.cfg,
+            self.lang,
+            f"{level.code} {level.title}" if level else "",
+        )
+        if not nxt:
+            return False
+        step.conversation.append({"who": "them", "text": nxt["reply"], "en": nxt["reply_en"]})
+        step.text = nxt["reply"]
+        step.reading = ""
+        step.en = step.prompt_en = nxt["reply_en"]
+        step.sample_text, step.sample_reading, step.sample_en = nxt["hint"], "", nxt["hint_en"]
+        if nxt["done"]:
+            # the partner wrapped the scene up: one last reply, then out
+            step.turns = step.turn + 1
+        return True
 
     def submit(self, score: Score) -> dict:
         """Grade one spoken attempt. Failing keeps you on the same line."""
@@ -837,7 +1167,7 @@ class Session:
             return {"passed": False, "reasons": ["Lesson finished."], "advanced": False}
         # `write` is yours to say too: a 缩写 is produced by the learner, even
         # though it looks like a question because the prompt is on screen.
-        if step.kind not in ("speak", "recall", "answer", "read", "write"):
+        if step.kind not in SPOKEN:
             return {
                 "passed": False,
                 "reasons": ["That line is the other person's - just listen."],
@@ -846,7 +1176,9 @@ class Session:
 
         gate = self.gate()
         reference = self.reference_text()
-        if step.kind == "answer":
+        if step.kind in ("answer", "converse"):
+            # a role-play turn is graded like a free answer: relevant to the
+            # line it replies to, intelligible through the eased gate
             passed, reasons = free.grade(
                 score, step, gate, self.cfg, self.lang, self.band
             )
@@ -871,6 +1203,11 @@ class Session:
         self.last_score = score.to_dict()
         self.last_score["passed"] = passed
         self.last_score["reasons"] = reasons
+        # Only a pass (or a give-up advance) reveals the line: showing it after
+        # a miss would hand over the answer before the second try.
+        if (passed or forced_advance) and step.kind in ("speak", "recall", "read"):
+            self.last_line = {"text": step.text, "reading": step.reading,
+                              "en": step.en or step.prompt_en, "passed": bool(passed)}
 
         # feed the per-course ledger: every attempt counts, and a real pass
         # (not a give-up advance) adds the line to the word list the phone shows
@@ -882,7 +1219,8 @@ class Session:
             ledger.record_syllables(self.progress, list(getattr(score, "syllables", []) or []))
         except Exception:  # pragma: no cover - never let telemetry break a lesson
             pass
-        if passed and not forced_advance and self.mode != "think" and step.kind != "answer":
+        if (passed and not forced_advance and self.mode != "think"
+                and step.kind not in ("answer", "converse")):
             if self.mode == "vocab":
                 band, lesson_id = self.band, None
             else:
@@ -915,7 +1253,7 @@ class Session:
             {
                 "t": round(time.time()),
                 "text": (score.recognized or step.text)
-                if step.kind == "answer"
+                if step.kind in ("answer", "converse")
                 else step.text,
                 "kind": step.kind,
                 "passed": passed,
@@ -925,7 +1263,13 @@ class Session:
         )
         self.history = self.history[-50:]
 
-        if step.key:
+        # a role-play line is never the same twice, so it is not a line to
+        # schedule for review
+        if passed and step.kind == "recall" and (step.round >= 1 or step.prior) \
+                and self.attempts == 1 and step.key:
+            self.session_correct[step.key] = self.session_correct.get(step.key, 0) + 1
+
+        if step.key and step.kind != "converse":
             mastery = self.progress.setdefault("mastery", {})
             prev = mastery.get(step.key)
             if passed or prev is not None:
@@ -936,18 +1280,46 @@ class Session:
                 # that makes spaced repetition work.
                 stage = prev.get("stage", 0) if isinstance(prev, dict) else int(prev or 0)
                 entry = dict(prev) if isinstance(prev, dict) else {}
-                entry.update(
-                    {
-                        "text": step.text,
-                        "reading": step.reading,
-                        "en": step.en or step.prompt_en,
-                        "ts": time.time(),
-                    }
-                )
-                entry["stage"] = (
-                    min(drills.MAX_STAGE, stage + 1) if passed else max(0, stage - 2)
-                )
+                now = time.time()
+                last = float(entry.get("ts", 0) or 0)
+                due = prev is None or now - last >= drills.STAGE_INTERVALS[
+                    min(stage, drills.MAX_STAGE)]
+                entry.update({"text": step.text, "reading": step.reading,
+                              "en": step.en or step.prompt_en})
+                if not passed:
+                    # a lapse sends it back, and the clock restarts
+                    entry["stage"], entry["ts"] = max(0, stage - 2), now
+                elif due:
+                    # Promote only a recall that was due. Every pass used to
+                    # promote, so a line said five times in one 20-minute
+                    # lesson reached a multi-day interval without ever being
+                    # recalled after a delay - the opposite of spacing.
+                    # And credit the gap actually survived: recalled after a
+                    # day, the next gap is the step past a day (3 days), not
+                    # one rung up from wherever the line happened to sit.
+                    elapsed = now - last if prev is not None else 0.0
+                    new = stage + 1
+                    while (new < drills.MAX_STAGE
+                           and drills.STAGE_INTERVALS[new] <= elapsed):
+                        new += 1
+                    entry["stage"], entry["ts"] = min(drills.MAX_STAGE, new), now
+                else:
+                    entry.setdefault("ts", now)   # an early pass: no change
+                    entry.setdefault("stage", stage)
                 mastery[step.key] = entry
+                # The same line learned in two lessons (or drilled under a
+                # vocab key) is one memory: keep one schedule for it.
+                for other_key, other in mastery.items():
+                    if (other_key != step.key and isinstance(other, dict)
+                            and other.get("text") == step.text):
+                        other["stage"], other["ts"] = entry["stage"], entry["ts"]
+
+        if step.kind == "converse" and passed and not forced_advance:
+            if self._converse_next(step, (score.recognized or "").strip()):
+                self.attempts = 0
+                result["converse_turn"] = step.turn
+                self.message = "Good. Keep the conversation going."
+                return result
 
         if passed or forced_advance:
             if self.mode == "think":
@@ -962,6 +1334,7 @@ class Session:
 
             self.pos += 1
             self.attempts = 0
+            self._settle()
             result["advanced"] = True
             if self.pos >= len(self.steps) and self.mode == "review":
                 self.message = "Review done - those lines will come back again."
@@ -1045,13 +1418,15 @@ class Session:
         # Respect the intervals: a line you aced a minute ago is not due.  Only
         # pad with not-yet-due lines when the queue is short, because an empty
         # review is worse than a slightly early one.
-        items = drills.due_items(self.progress, limit, include_fresh=False)
+        # The original mastery key, not "review:<text>": passing a review used
+        # to schedule a new entry and leave the real one due forever.
+        items = drills.due_entries(self.progress, limit, include_fresh=False)
         if len(items) < limit:
-            seen = {i.text for i in items}
+            seen = {p.text for _, p in items}
             items += [
-                i
-                for i in drills.due_items(self.progress, limit, include_fresh=True)
-                if i.text not in seen
+                (k, p)
+                for k, p in drills.due_entries(self.progress, limit, include_fresh=True)
+                if p.text not in seen
             ][: limit - len(items)]
         if not items:
             self.message = "Nothing due for review yet - finish a lesson first."
@@ -1060,6 +1435,7 @@ class Session:
             self._saved = (self.steps, self.pos)
         self.mode = "review"
         self.attempts = 0
+        self.session_correct = {}
         self.steps = [
             Step(
                 kind="recall",
@@ -1067,9 +1443,10 @@ class Session:
                 reading=item.reading,
                 en=item.en,
                 prompt_en=item.en,
-                key=f"review:{item.text}",
+                key=key,
+                prior=True,
             )
-            for item in items
+            for key, item in items
         ]
         self.pos = 0
         self.message = f"Review: {len(items)} lines are due."
@@ -1139,4 +1516,91 @@ class Session:
             # the grammar page for this lesson, if the course has written one
             "grammar": (self._grammar.for_lesson(self.lesson_id)
                         if self._grammar else []),
+            # what the glasses waveguide should show for this step
+            "glasses": self.glasses_card(),
         }
+
+    def glasses_card(self) -> dict:
+        """What the glasses display shows for the current step, ready to draw.
+
+        The phone apps used to build this themselves from `step`, and got it
+        wrong in a way that hid most of every lesson: a recall step sends no
+        `text` or `en` (only `prompt_en`, so you answer from memory), so
+        recall - three steps in four - came out as a bare "…". Info and
+        listening steps did the same. Deciding it here gives every client
+        (iOS, Android, the web page) one rule set, and a test.
+
+            header   where you are: lesson and position
+            cue      what to do, small: "Say it in Mandarin", "Listen"
+            target   the big line: characters, or the English cue on a recall
+            reading  pinyin / kana, when this step may show it
+            english  the meaning, when this step may show it
+            footer   the line you just passed, in full; or why you missed
+        """
+        step = self.current()
+        lesson = self.course.lesson(self.lesson_id) if self.mode == "lesson" else None
+        total = len(self.steps)
+        index = min(self.pos, total)
+        if lesson:
+            where = f"L{lesson.id} · {lesson.title}"
+        elif self.mode == "vocab" and self.course.topic(self.topic_id):
+            where = self.course.topic(self.topic_id).title
+        else:
+            where = {"review": "Review", "think": "Think"}.get(self.mode, "LinguaLens")
+        header = f"{where} · {min(index + 1, total)}/{total}" if total else where
+        card = {"header": header, "cue": "", "target": "", "reading": "", "english": "",
+                "footer": ""}
+        if not step:
+            card["target"] = "Lesson complete"
+            card["cue"] = "Swipe forward for the next lesson"
+            return card
+
+        lang = course_pkg.LANG_NAMES.get(self.lang, "the language")
+        shown = self.show_target() and not step.hide_text
+        reading_ok = self.show_reading(step)
+        kind = step.kind
+
+        def full(cue: str) -> None:
+            card.update(cue=cue, target=step.text,
+                        reading=step.reading if reading_ok else "", english=step.en)
+
+        if kind == "info":
+            card.update(cue="", target=step.en or step.text or step.note)
+        elif kind == "listen":
+            full("Listen")
+        elif kind == "speak":
+            full("Say it")
+        elif kind == "recall":
+            if shown:
+                full("Say it")
+                card["english"] = step.en or step.prompt_en
+            else:
+                card.update(cue=f"Say it in {lang}", target=step.prompt_en or step.en)
+        elif kind == "read":
+            n = f" · {step.chunk_index}/{step.chunk_total}" if step.chunk_total else ""
+            full("Read aloud" + n)
+        elif kind == "answer":
+            full(f"Answer in {lang}")
+            if self.show_sample() and step.sample_text:
+                card["footer"] = "e.g. " + step.sample_text
+        elif kind == "write":
+            full("Say it shorter")
+        elif kind == "hear":
+            card.update(cue="Listen", target=step.note or "Nothing on screen - just listen")
+        elif kind in ("kana", "kanji", "hanzi"):
+            full({"kana": "Kana", "kanji": "Kanji", "hanzi": "Character"}[kind])
+            if not card["reading"] and step.reading:
+                card["reading"] = step.reading      # a character is taught with its sound
+        else:
+            full("")
+
+        if not card["footer"]:
+            score = self.last_score or {}
+            if self.attempts and score and not score.get("passed"):
+                reasons = score.get("reasons") or []
+                card["footer"] = "Try again" + (f" - {reasons[0]}" if reasons else "")
+            elif self.last_line and self.last_line.get("text") != step.text:
+                ll = self.last_line
+                card["footer"] = "✓ " + " · ".join(
+                    x for x in (ll["text"], ll["reading"], ll["en"]) if x)
+        return card

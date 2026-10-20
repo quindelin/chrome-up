@@ -30,3 +30,11 @@ overlay/assets/sfx/*
 deploy/obs-vps/mediamtx.yml
 deploy/obs-vps/hud.yaml
 deploy/obs-vps/autoclip.yaml
+
+# Xcode / SwiftPM build output and local secrets (lingualens/ios)
+.build/
+DerivedData/
+xcuserdata/
+*.xcuserstate
+lingualens/ios/Config/Secrets.xcconfig
+companion/ios/Config/Secrets.xcconfig

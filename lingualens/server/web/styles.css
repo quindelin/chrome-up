@@ -26,7 +26,7 @@ html, body {
 
 body.phone { width: 100%; height: 100%; overflow: auto; }
 /* view=stream (OBS): black is opaque on video, unlike on the waveguide */
-body.stream { background: transparent; }
+html.stream, body.stream { background: transparent; }
 body.stream #app {
   background: rgba(8, 8, 8, 0.62);
   border: 1px solid rgba(255, 255, 255, 0.18);

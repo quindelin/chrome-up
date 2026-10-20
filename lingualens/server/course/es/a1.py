@@ -18,7 +18,7 @@ Authoring rules this file keeps (see docs/COURSE_AUDIT.md for why):
      Slot values carry their own article - the frame never has to guess
      a gender.
   3. Register is a choice the learner makes: lessons with strangers and staff
-     use usted, lessons with peers use tú, and lessons 2 and 5 make you
+     use usted, lessons with peers use tú, and lessons 2 and 6 make you
      produce both.
   4. One variety: Peninsular Spanish, to match the es-ES voice and scorer.
      Latin American alternatives go in the vocab note, never mixed into a
@@ -35,8 +35,8 @@ E = ""  # the empty reading slot, so the tables below stay readable
 UNIT_1 = {
     "id": 1,
     "title": "Greetings & Introductions",
-    "focus": "Say hello, give your name and where you are from, and keep a "
-             "conversation going when you do not understand.",
+    "focus": "Say hello, give your name and where you are from, describe people, "
+             "and keep a conversation going when you do not understand.",
     "gate": {"min_pron_score": 62.0, "min_accuracy": 62.0, "min_completeness": 75.0},
     "lessons": [
         {
@@ -159,7 +159,7 @@ UNIT_1 = {
                 "Chicago'. Saying yo is emphasis - 'I, on the other hand, am from "
                 "Chicago' - which is exactly how the last line uses it.",
                 "Ser is for what something is: origin, identity, nationality. "
-                "Estar (lesson 6) is for where and how something is right now.",
+                "Estar (lesson 7) is for where and how something is right now.",
             ],
         },
         {
@@ -209,6 +209,58 @@ UNIT_1 = {
         },
         {
             "id": 5,
+            "title": "¿Cómo es?",
+            "goal": "Say what someone looks like and what they are doing right now.",
+            "vocab": [
+                ("¿cómo es?", E, "what is he / she like?", "ser: what someone is like"),
+                ("alto / alta", E, "tall", ""),
+                ("bajo / baja", E, "short (height)", "corto is for hair and things, never people"),
+                ("el pelo", E, "hair", "pelo largo, pelo corto, pelo rizado"),
+                ("los ojos", E, "eyes", ""),
+                ("estoy hablando", E, "I'm talking (right now)", "estar and the -ando / -iendo form"),
+            ],
+            "dialogue": [
+                ("them", "¿Quién es este chico de la foto?", E, "Who's this guy in the photo?"),
+                ("you", "Es mi hermano Pablo. Es muy alto.", E, "It's my brother Pablo. He's very tall."),
+                ("them", "¿Y la chica? ¿Cómo es?", E, "And the girl? What's she like?"),
+                ("you", "Es mi hermana. Es baja y tiene el pelo largo.", E,
+                 "It's my sister. She's short and has long hair."),
+                ("them", "Tiene los ojos azules, ¿no?", E, "She has blue eyes, doesn't she?"),
+                ("you", "No, tiene los ojos verdes. Y es muy simpática.", E,
+                 "No, she has green eyes. And she's really nice."),
+                ("them", "¿Y qué está haciendo aquí?", E, "And what is she doing here?"),
+                ("you", "Está bailando en la boda de una amiga.", E, "She's dancing at a friend's wedding."),
+                ("them", "¡Uy, te llama alguien!", E, "Oh, someone's calling you!"),
+                ("you", "Es Pablo. Pablo, estoy hablando con una amiga.", E,
+                 "It's Pablo. Pablo, I'm talking to a friend."),
+            ],
+            "patterns": [
+                {"text": "Es {x}.", "reading": E, "en": "He's / She's {x}.",
+                 "kind": "es-looks",
+                 "values": [("alto", E, "tall (a man)"), ("baja", E, "short (a woman)"),
+                            ("rubio", E, "blond (a man)"), ("morena", E, "dark-haired (a woman)")]},
+                {"text": "Tiene {x}.", "reading": E, "en": "He / She has {x}.",
+                 "kind": "es-feature",
+                 "values": [("el pelo largo", E, "long hair"), ("el pelo corto", E, "short hair"),
+                            ("los ojos verdes", E, "green eyes"), ("barba", E, "a beard")]},
+                {"text": "Está {x} ahora.", "reading": E, "en": "He's / She's {x} right now.",
+                 "kind": "es-gerund",
+                 "values": [("bailando", E, "dancing"), ("comiendo", E, "eating"),
+                            ("trabajando", E, "working"), ("durmiendo", E, "sleeping")]},
+            ],
+            "notes": [
+                "Ser for what someone is like (es alto, es simpática); tener for "
+                "features (tiene el pelo largo, tiene los ojos verdes). Not 'su "
+                "pelo es largo' - that is a sentence about the hair.",
+                "Estar + -ando / -iendo is what is happening right now: estoy "
+                "hablando, está comiendo. Spanish uses it less than English: 'I'm "
+                "leaving tomorrow' is 'salgo mañana'.",
+                "Mi, tu, su: my, your, his / her. They agree only in number: mi "
+                "hermano, mis hermanos.",
+            ],
+        },
+        {
+            "id": 6,
             "title": "Repaso: en una fiesta",
             "goal": "Hold a whole first conversation: greet, names, origin, and a graceful exit.",
             "vocab": [
@@ -258,45 +310,59 @@ UNIT_1 = {
 UNIT_2 = {
     "id": 2,
     "title": "Getting Around",
-    "focus": "Find places, ask what there is, say where you are going, and buy a ticket.",
+    "focus": "Find places and give directions, ask what there is, say where you are going, and buy a ticket.",
     "gate": {"min_pron_score": 64.0, "min_accuracy": 64.0, "min_completeness": 78.0},
     "lessons": [
         {
-            "id": 6,
+            "id": 7,
             "title": "¿Dónde está...?",
-            "goal": "Ask where a place is and understand left, right and straight on.",
+            "goal": "Ask where a place is, then give directions yourself: siga, gire, cruce.",
             "vocab": [
                 ("¿dónde está...?", E, "where is...?", ""),
                 ("a la derecha", E, "on the right", "a single r between vowels is one tap"),
                 ("a la izquierda", E, "on the left", ""),
-                ("todo recto", E, "straight ahead", "Mexico also says 'derecho'"),
-                ("cerca", E, "near", ""),
-                ("lejos", E, "far", "j is a breathy h, from the throat"),
+                ("siga todo recto", E, "go straight on (usted)",
+                 "to a friend: sigue. Mexico also says 'derecho'"),
+                ("gire", E, "turn (usted)", "to a friend: gira"),
+                ("cruce la calle", E, "cross the street (usted)",
+                 "c before e is 'th' in Spain, 's' in Latin America"),
             ],
             "dialogue": [
                 ("you", "Perdone, ¿dónde está la estación?", E, "Excuse me, where is the station?"),
                 ("them", "Está cerca. Siga todo recto.", E, "It's near. Go straight on."),
                 ("you", "¿Todo recto? ¿Y después?", E, "Straight on? And then?"),
-                ("them", "Después, a la derecha. Está al lado del banco.", E,
-                 "Then right. It's next to the bank."),
+                ("them", "Después, gire a la derecha. Está al lado del banco.", E,
+                 "Then turn right. It's next to the bank."),
                 ("you", "A la derecha, al lado del banco. ¿Está lejos?", E,
                  "Right, next to the bank. Is it far?"),
                 ("them", "No, está a cinco minutos.", E, "No, it's five minutes away."),
-                ("you", "Perfecto. ¿Y dónde está el baño, por favor?", E,
-                 "Perfect. And where's the bathroom, please?"),
-                ("them", "Allí, a la izquierda.", E, "Over there, on the left."),
+                ("them", "Perdone, joven, ¿sabe dónde está el museo?", E,
+                 "Excuse me, young man, do you know where the museum is?"),
+                ("you", "Sí. Siga todo recto y gire a la izquierda.", E,
+                 "Yes. Go straight on and turn left."),
+                ("them", "¿A la izquierda, en el semáforo?", E, "Left, at the traffic lights?"),
+                ("you", "Sí. Después cruce la calle. Está enfrente.", E,
+                 "Yes. Then cross the street. It's opposite."),
+                ("them", "Muchas gracias, muy amable.", E, "Thank you very much, that's very kind."),
             ],
             "patterns": [
                 {"text": "¿Dónde está {x}?", "reading": E, "en": "Where is {x}?",
                  "kind": "es-place",
                  "values": [("la estación", E, "the station"), ("el banco", E, "the bank"),
                             ("el baño", E, "the bathroom")]},
+                {"text": "Siga todo recto y gire {x}.", "reading": E, "en": "Go straight on and turn {x}.",
+                 "kind": "es-turn",
+                 "values": [("a la derecha", E, "right"), ("a la izquierda", E, "left"),
+                            ("en el semáforo", E, "at the traffic lights"), ("en la plaza", E, "at the square")]},
                 {"text": "Está {x}.", "reading": E, "en": "It's {x}.",
                  "kind": "es-direction",
                  "values": [("a la derecha", E, "on the right"), ("a la izquierda", E, "on the left"),
                             ("todo recto", E, "straight ahead"), ("cerca", E, "near")]},
             ],
             "notes": [
+                "Siga, gire, cruce are usted commands. Take the yo form (sigo, "
+                "giro, cruzo), drop the -o and swap the vowel: -ar verbs take -e, "
+                "-er / -ir verbs take -a. To a friend: sigue, gira, cruza.",
                 "Estar is for location: la estación está cerca. Even a building "
                 "that has not moved in a century 'está' somewhere.",
                 "de + el contracts to del: al lado del banco. de + la does not: "
@@ -304,23 +370,30 @@ UNIT_2 = {
             ],
         },
         {
-            "id": 7,
+            "id": 8,
             "title": "¿Hay un... por aquí?",
-            "goal": "Ask whether there is something nearby, and tell hay from está.",
+            "goal": "Ask whether there is something nearby - even on a Sunday - and tell hay from está.",
             "vocab": [
                 ("¿hay...?", E, "is there / are there...?", "the h is silent: 'ai'"),
                 ("por aquí", E, "around here", ""),
                 ("una farmacia", E, "a pharmacy", ""),
+                ("de guardia", E, "on duty (open when the rest are shut)",
+                 "every closed pharmacy lists la farmacia de guardia on its door"),
+                ("la segunda", E, "the second (one)", "primera, segunda, tercera: ordinals agree"),
                 ("un cajero", E, "a cash machine", ""),
                 ("un supermercado", E, "a supermarket", ""),
                 ("la calle", E, "the street", ""),
             ],
             "dialogue": [
                 ("you", "Disculpe, ¿hay una farmacia por aquí?", E, "Excuse me, is there a pharmacy around here?"),
-                ("them", "Sí, hay una en la calle Sol.", E, "Yes, there's one on Sol Street."),
+                ("them", "Sí, hay una en la calle Sol. Pero hoy es domingo.", E,
+                 "Yes, there's one on Sol Street. But it's Sunday today."),
+                ("you", "Es urgente. ¿Hay una farmacia de guardia?", E, "It's urgent. Is there a duty pharmacy?"),
+                ("them", "Sí, la de la calle Sol está de guardia hoy.", E, "Yes, the one on Sol Street is on duty today."),
                 ("you", "¿Y dónde está la calle Sol?", E, "And where is Sol Street?"),
                 ("them", "Es la segunda a la izquierda.", E, "It's the second on the left."),
-                ("you", "Gracias. ¿Hay un cajero también?", E, "Thanks. Is there a cash machine too?"),
+                ("you", "¿La segunda? Gracias. ¿Hay un cajero también?", E,
+                 "The second? Thanks. Is there a cash machine too?"),
                 ("them", "Hay dos, enfrente del supermercado.", E, "There are two, opposite the supermarket."),
                 ("you", "¿El supermercado está en la calle Sol?", E, "Is the supermarket on Sol Street?"),
                 ("them", "No, está aquí, en esta calle.", E, "No, it's here, on this street."),
@@ -340,10 +413,13 @@ UNIT_2 = {
                 "You ask with hay when you do not know one exists, with está when "
                 "you do. 'Hay el banco' is the classic beginner slip.",
                 "Hay never changes: hay una farmacia, hay dos cajeros.",
+                "On Sundays and at night only one pharmacy in the area opens: la "
+                "farmacia de guardia. Its address is posted on every other "
+                "pharmacy's door.",
             ],
         },
         {
-            "id": 8,
+            "id": 9,
             "title": "Voy a...",
             "goal": "Say where you are going and ask how to get there.",
             "vocab": [
@@ -377,13 +453,13 @@ UNIT_2 = {
             ],
             "notes": [
                 "a + el contracts to al: voy al centro. a + la does not: voy a la "
-                "playa. Same rule as del in lesson 6.",
+                "playa. Same rule as del in lesson 7.",
                 "Voy, vas, va, vamos: ir is irregular and too common to avoid. "
                 "Learn the four forms as four words.",
             ],
         },
         {
-            "id": 9,
+            "id": 10,
             "title": "Un billete, por favor",
             "goal": "Buy a ticket: numbers to twenty, one-way or return, and the price.",
             "vocab": [
@@ -422,7 +498,7 @@ UNIT_2 = {
             ],
         },
         {
-            "id": 10,
+            "id": 11,
             "title": "Repaso: en la estación",
             "goal": "Find the station, buy a ticket, and find your platform without English.",
             "vocab": [
@@ -457,7 +533,7 @@ UNIT_2 = {
             ],
             "notes": [
                 "Nothing new to learn here except four words. Everything else is "
-                "lessons 6 to 9, in a different order - which is the test.",
+                "lessons 7 to 10, in a different order - which is the test.",
             ],
         },
     ],
@@ -469,11 +545,11 @@ UNIT_2 = {
 UNIT_3 = {
     "id": 3,
     "title": "Food & Drink",
-    "focus": "Say what you want, order in a café and a restaurant, say what you like, and pay.",
+    "focus": "Say what you want, order in a café, shop at the market by weight, say what you like, and pay.",
     "gate": {"min_pron_score": 66.0, "min_accuracy": 66.0, "min_completeness": 80.0},
     "lessons": [
         {
-            "id": 11,
+            "id": 12,
             "title": "Tengo hambre",
             "goal": "Say you are hungry, thirsty or tired, and what you want to do about it.",
             "vocab": [
@@ -513,7 +589,7 @@ UNIT_3 = {
             ],
         },
         {
-            "id": 12,
+            "id": 13,
             "title": "En el café",
             "goal": "Order a drink and something to eat, with un and una.",
             "vocab": [
@@ -553,7 +629,7 @@ UNIT_3 = {
             ],
         },
         {
-            "id": 13,
+            "id": 14,
             "title": "Me gusta",
             "goal": "Say what you like and do not like, with gusta and gustan.",
             "vocab": [
@@ -595,46 +671,60 @@ UNIT_3 = {
             ],
         },
         {
-            "id": 14,
-            "title": "La cuenta, por favor",
-            "goal": "Ask for the bill, understand prices to a hundred, and pay.",
+            "id": 15,
+            "title": "En el mercado",
+            "goal": "Buy food by weight and by the dozen, understand prices to a hundred, and pay.",
             "vocab": [
-                ("la cuenta", E, "the bill", ""),
-                ("¿me trae la cuenta?", E, "could you bring me the bill? (usted)", ""),
-                ("con tarjeta", E, "by card", ""),
-                ("en efectivo", E, "in cash", ""),
-                ("la propina", E, "the tip", ""),
+                ("¿me pone...?", E, "could I have...? (in a shop or bar)",
+                 "Spain's everyday ask, literally 'will you put me'. Latin America: ¿me da...?"),
+                ("un kilo de", E, "a kilo of", "de is never dropped: un kilo de tomates"),
+                ("medio kilo de", E, "half a kilo of", "medio, never 'un medio'"),
+                ("media docena de", E, "half a dozen", ""),
+                ("cien gramos de", E, "a hundred grams of", "how ham and cheese are sold"),
+                ("¿a cuánto está?", E, "how much is it (per kilo) today?", "for prices that change"),
                 ("treinta, cuarenta, cincuenta", E, "thirty, forty, fifty", ""),
             ],
             "dialogue": [
-                ("you", "Perdone, ¿me trae la cuenta, por favor?", E, "Excuse me, could you bring the bill, please?"),
-                ("them", "Ahora mismo.", E, "Right away."),
-                ("them", "Son treinta y cinco euros.", E, "That's thirty-five euros."),
-                ("you", "¿Treinta y cinco? ¿Puedo pagar con tarjeta?", E, "Thirty-five? Can I pay by card?"),
-                ("them", "Sí, claro. ¿Juntos o separados?", E, "Yes, of course. Together or separately?"),
-                ("you", "Juntos, por favor. Pago yo.", E, "Together, please. I'm paying."),
-                ("them", "Muy bien. Aquí tiene.", E, "Very good. Here you are."),
-                ("you", "Gracias. Y esto es para usted, la propina.", E, "Thank you. And this is for you, the tip."),
+                ("them", "Buenos días. ¿Qué le pongo?", E, "Good morning. What can I get you?"),
+                ("you", "¿Me pone un kilo de tomates, por favor?", E, "Could I have a kilo of tomatoes, please?"),
+                ("them", "Aquí tiene. ¿Algo más?", E, "Here you are. Anything else?"),
+                ("you", "Sí, media docena de huevos y medio kilo de queso.", E,
+                 "Yes, half a dozen eggs and half a kilo of cheese."),
+                ("them", "Este queso está a treinta y dos euros el kilo.", E, "This cheese is thirty-two euros a kilo."),
+                ("you", "Vale. ¿Y a cuánto está el jamón?", E, "OK. And how much is the ham?"),
+                ("them", "A noventa euros el kilo. Es ibérico.", E, "Ninety euros a kilo. It's Iberian."),
+                ("you", "¿Noventa? Póngame cien gramos, entonces.", E, "Ninety? Give me a hundred grams, then."),
+                ("them", "Son treinta euros justos.", E, "That's exactly thirty euros."),
+                ("you", "¿Puedo pagar con tarjeta?", E, "Can I pay by card?"),
+                ("them", "Claro. Gracias, ¡hasta el sábado!", E, "Of course. Thanks, see you on Saturday!"),
             ],
             "patterns": [
+                {"text": "¿Me pone {x}, por favor?", "reading": E, "en": "Could I have {x}, please?",
+                 "kind": "es-quantity",
+                 "values": [("un kilo de tomates", E, "a kilo of tomatoes"),
+                            ("medio kilo de queso", E, "half a kilo of cheese"),
+                            ("media docena de huevos", E, "half a dozen eggs"),
+                            ("cien gramos de jamón", E, "a hundred grams of ham")]},
+                {"text": "Está a {x} euros el kilo.", "reading": E, "en": "It's {x} euros a kilo.",
+                 "kind": "es-number",
+                 "values": [("treinta y dos", E, "thirty-two"), ("cuarenta", E, "forty"),
+                            ("cincuenta y cinco", E, "fifty-five"), ("noventa", E, "ninety")]},
                 {"text": "¿Puedo pagar {x}?", "reading": E, "en": "Can I pay {x}?",
                  "kind": "es-payment",
                  "values": [("con tarjeta", E, "by card"), ("en efectivo", E, "in cash"),
                             ("con el móvil", E, "with my phone")]},
-                {"text": "Son {x} euros.", "reading": E, "en": "It's {x} euros.",
-                 "kind": "es-number",
-                 "values": [("treinta y cinco", E, "thirty-five"), ("cuarenta", E, "forty"),
-                            ("cincuenta y dos", E, "fifty-two"), ("cien", E, "a hundred")]},
             ],
             "notes": [
                 "From thirty on, numbers are tens + y + units, written apart: "
                 "treinta y cinco. Below thirty they are one word: veinticinco.",
-                "¿Me trae...? (usted) is the polite ask to staff. ¿Me traes...? "
-                "is the same to a friend.",
+                "¿Me pone...? asks; póngame... (lesson 7's usted command) tells. "
+                "Both are polite at a market stall - the tone does the work.",
+                "Fixed prices: ¿cuánto cuesta? Prices by weight that change with "
+                "the day: ¿a cuánto está? - está a noventa euros el kilo.",
             ],
         },
         {
-            "id": 15,
+            "id": 16,
             "title": "Repaso: en el restaurante",
             "goal": "A whole meal: a table, order for two, say what you like, and pay.",
             "vocab": [
@@ -644,6 +734,8 @@ UNIT_3 = {
                 ("el postre", E, "dessert", ""),
                 ("¿qué me recomienda?", E, "what do you recommend? (usted)", ""),
                 ("está muy rico", E, "it's delicious", ""),
+                ("¿me trae la cuenta?", E, "could you bring me the bill? (usted)",
+                 "to a friend: ¿me traes...?"),
             ],
             "dialogue": [
                 ("you", "Buenas noches. Una mesa para dos, por favor.", E, "Good evening. A table for two, please."),
@@ -683,7 +775,8 @@ LEVEL = {
     "id": 1,
     "code": "A1",
     "title": "CEFR A1 · First contact",
-    "focus": "Meet people in both registers, find your way, buy a ticket, order, say what you like, pay.",
+    "focus": "Meet and describe people in both registers, find and give directions, buy a ticket, "
+             "order, shop by weight, say what you like, pay.",
     "gate": {"min_pron_score": 62.0, "min_accuracy": 62.0, "min_completeness": 78.0},
     "units": [dict(u, band=1) for u in UNITS],
 }

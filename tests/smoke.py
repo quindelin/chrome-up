@@ -205,6 +205,14 @@ def t_rest():
         assert r.status_code == 200, r.text
         assert any(e["target"] == "compass" for e in r.json()["events"]), r.json()
 
+        # companion app's one-poll health: answers even with nothing running
+        r = client.get("/api/autoclip/stack")
+        assert r.status_code == 200, r.text
+        st = r.json()
+        assert st["ingest"]["live"] is False and st["program"]["live"] is False, st
+        assert "pending" in st["autoclip"] and "disk_free" in st["host"], st
+        assert all("key" not in t for t in st["restream"]["targets"]), st
+
         # live multi-stream endpoints exist and degrade cleanly when disabled
         r = client.get("/api/autoclip/live")
         assert r.status_code == 200, r.text
@@ -713,6 +721,15 @@ def t_voice_once_and_rumble():
         assert [e["intent"] for e in again] == ["hide"], again
     finally:
         p.shutdown()
+
+    # typed/hotkey commands go through the same grammar as speech
+    p3 = _bare_pipeline()
+    try:
+        ev = p3.inject_command("show lingua lens")
+        assert (ev.intent, ev.target) == ("show", "lingua lens"), ev
+        assert p3.inject_command("hello there").intent == "manual"
+    finally:
+        p3.shutdown()
 
     rx = RegexParser()
     one = lambda text: rx.parse(Transcript(words=[Word(0, 1, text.split()[0])], text=text))[0]

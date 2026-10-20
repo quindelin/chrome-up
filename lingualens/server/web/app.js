@@ -25,7 +25,8 @@ const AUDIO_HOST = IS_PHONE || !!window.LinguaLensHaptics;
 // ?view=stream: the copy OBS shows on stream. Read-only (never advances the
 // lesson, never speaks) and drawn as a translucent panel instead of black.
 const STREAM_VIEW = params.get('view') === 'stream';
-if (STREAM_VIEW) document.body.classList.add('stream');
+// <html> is black too, so both get the class
+if (STREAM_VIEW) { document.documentElement.classList.add('stream'); document.body.classList.add('stream'); }
 
 let state = null;
 let course = null;
@@ -116,14 +117,37 @@ function connect() {
 // Web App. A no-op everywhere else.
 function mirrorToGlasses() {
   const g = window.LinguaLensGlasses;
-  const s = state && state.step;
-  if (!g || !s) return;
-  // `hear` is the step that must not show its line
-  const hidden = s.kind === 'hear';
+  if (!g || !state) return;
   try {
-    g.showLine(hidden ? '' : s.text || '', hidden || s.show_reading === false ? '' : s.reading || '', s.en || '');
+    // The server decides the card for every step kind (engine.glasses_card):
+    // a recall shows its English cue, never a bare "…".
+    if (g.showCard && state.glasses) {
+      // `playing` labels the Start / Stop button drawn on the glasses
+      g.showCard(JSON.stringify(Object.assign({}, state.glasses, { playing: recording })));
+      // (the Android wrapper's native glasses-mic take sets its own label)
+      return;
+    }
+    const s = state.step;
+    if (!s) return;
+    const hidden = s.kind === 'hear';
+    g.showLine(hidden ? '' : s.text || s.prompt_en || '',
+               hidden || s.show_reading === false ? '' : s.reading || '', s.en || s.prompt_en || '');
   } catch (_) { /* wrapper not ready */ }
 }
+
+// The Redo / Start / Skip buttons drawn on the glasses (Android wrapper,
+// GlassesBridge) call back in here: the same actions as the phone controls.
+window.glassesCommand = (cmd) => {
+  const s = state && state.step;
+  if (cmd === 'repeat') {
+    if (s && s.kind === 'hear') playHidden(s);
+    else if (s && s.text) speak(s.text, 0.6);
+  } else if (cmd === 'playPause') {
+    toggleRecord();
+  } else if (cmd === 'next') {
+    maybeAdvance();
+  }
+};
 
 /* ---------- text to speech (native model audio) ---------- */
 // A course that only ever plays one voice is teaching you to understand one
@@ -165,6 +189,7 @@ if (window.speechSynthesis) speechSynthesis.onvoiceschanged = pickVoices;
 // not a thing anyone will say to you.
 function rateFor(kind, fallback) {
   const r = (state && state.config && state.config.listening_rate) || {};
+  if (kind === 'natural') return r.natural ?? r.listen ?? fallback;
   if (kind === 'listen') return r.listen ?? fallback;
   if (kind === 'slow') return r.slow ?? fallback;
   if (kind === 'drill') return r.drill ?? fallback;
@@ -186,6 +211,31 @@ function speak(text, rate = 0.9, opts = {}) {
   speechSynthesis.cancel();
   speechSynthesis.speak(u);
   return u;
+}
+
+// A blind step is a whole passage or a whole dialogue, played part by part.
+// Each part names its speaker (audio_voices), and each speaker keeps one
+// voice for the whole step, so a dialogue is two people, not one. Below the
+// natural bands the narrator is always the same familiar voice at the
+// listening rate; from them (s.natural) the voices rotate from step to step
+// and nothing is slowed down.
+function playHidden(s, done) {
+  const parts = (s.audio_parts && s.audio_parts.length) ? s.audio_parts : [s.audio_text || s.text];
+  const who = s.audio_voices || [];
+  const voices = pickVoices();
+  const rotate = !(state && state.config && state.config.listening_rotate_voices === false);
+  const base = s.natural && rotate ? voiceCursor++ : 0;
+  const rate = s.natural ? rateFor('natural', 1.1) : rateFor('listen', 1.0);
+  let i = 0;
+  const next = () => {
+    if (i >= parts.length) { if (done) done(); return; }
+    const v = voices.length ? voices[(base + (who[i] || 0)) % voices.length] : undefined;
+    const u = speak(parts[i], rate, { voice: v });
+    i += 1;
+    if (!u) { if (done) done(); return; }
+    u.onend = () => setTimeout(next, s.natural ? 150 : 400);
+  };
+  next();
 }
 
 /* ---------- menu (levels -> units -> lessons) ---------- */
@@ -603,8 +653,11 @@ function render() {
   }
 
   // free response: the model asks, you answer. Nothing is scripted.
-  if (kind === 'answer') {
-    role.textContent = 'answer';
+  // A role-play turn (`converse`) is the same shape: the other speaker's
+  // line on screen, your reply graded - it just comes back with a new line.
+  if (kind === 'answer' || kind === 'converse') {
+    const talk = kind === 'converse';
+    role.textContent = talk ? 'talk' : 'answer';
     role.className = 'role answer';
     target.textContent = s.text || '';
     const qlen = (s.text || '').length;
@@ -612,11 +665,13 @@ function render() {
     reading.textContent = s.show_reading === false ? '' : s.reading || '';
     english.textContent = s.en || '';
     english.classList.remove('hidden');
-    cue.textContent = 'Answer in the language';
+    cue.textContent = talk
+      ? `Reply as yourself · turn ${(s.turn || 0) + 1} of ${s.turns || 1}`
+      : 'Answer in the language';
     if (s.show_sample && s.sample && s.sample.text && sample) {
       sample.classList.remove('hidden');
       sample.innerHTML =
-        '<span class="lbl">one answer</span>' +
+        `<span class="lbl">${talk ? 'one reply' : 'one answer'}</span>` +
         `<span class="rd">${s.sample.reading || ''}</span>` +
         `<span class="tg">${s.sample.text}</span>`;
     }
@@ -824,7 +879,7 @@ function renderScore() {
     (worst && worst.tone >= 0 && worst.tone < 70
       ? `<div class="tonebad">${toneLabel()}: ${worst.word} ${Math.round(worst.tone)}</div>`
       : '') +
-    (sc.recognized && state.step && state.step.kind === 'answer'
+    (sc.recognized && state.step && ['answer', 'converse'].includes(state.step.kind)
       ? `<div class="heard">${youSaidLabel()} ${sc.recognized}</div>`
       : '') +
     (sc.reasons && sc.reasons.length
@@ -904,12 +959,21 @@ function maybeSpeak() {
     return;
   }
   if (s.kind === 'hear') {
-    // The one step with nothing on the screen. The line lives in audio_text
-    // because the client has to be able to play something it must not show -
-    // if it were in `text` it would be on the glasses a frame later.
-    const u = speak(s.audio_text || s.text, rateFor('listen', 1.0));
-    if (!u) return maybeAdvance();
-    u.onend = () => setTimeout(maybeAdvance, 350);
+    // The one step with nothing on the screen. The words live in audio_text /
+    // audio_parts because the client has to be able to play something it
+    // must not show - if they were in `text` they would be on the glasses a
+    // frame later.
+    playHidden(s, () => setTimeout(maybeAdvance, 350));
+    return;
+  }
+  if (s.kind === 'converse') {
+    // the other speaker: a voice that is not the narrator's, and at the top
+    // bands at the speed they would actually talk
+    const voices = pickVoices();
+    const v = voices.length ? voices[1 % voices.length] : undefined;
+    const rate = state.attempts > 0 ? rateFor('slow', 0.6)
+      : s.natural ? rateFor('natural', 1.1) : rateFor('model', 0.9);
+    speak(s.text, rate, { voice: v });
     return;
   }
   if (s.kind === 'answer') {
@@ -996,6 +1060,7 @@ async function toggleRecord() {
   recorder.start();
   startDictation();
   recording = true;
+  mirrorToGlasses();
   el('mic').textContent = 'Stop & grade';
   el('mic').disabled = false;
   haptic('select');
@@ -1008,6 +1073,7 @@ function stopRecording() {
   if (recorder && recording) {
     recording = false;
     recorder.stop();
+    mirrorToGlasses();
   }
   if (stream) stream.getTracks().forEach((t) => t.stop());
   if (el('mic')) {
@@ -1113,6 +1179,7 @@ function boot() {
       if (s && ['kana', 'kanji', 'info'].includes(s.kind)) maybeAdvance();
       // nothing can be replayed from the glasses; a press moves past the line
       else if (!AUDIO_HOST) { if (s && ['listen', 'hear'].includes(s.kind)) maybeAdvance(); }
+      else if (s && s.kind === 'hear') playHidden(s);
       else if (s && s.text) speak(s.text, 0.7);
     }
     else if (e.key === 'Escape') { if (grammarPage) goBack(); else toggleMenu(); }

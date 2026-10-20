@@ -184,7 +184,12 @@ def generate(lesson: Lesson, cfg: Dict, lang: str = "zh") -> List[Phrase]:
     if not drills_cfg.get("enabled", True):
         return []
     per = int(drills_cfg.get("per_pattern", 3) or 3)
-    patterns = lesson.patterns or base_patterns(lang)
+    # Only the lesson's own frames. The generic BASE_PATTERNS used to fill in
+    # for lessons that had none, which put 我要咖啡 / 厕所在哪里 / 太贵了 into
+    # HSK 1 lesson 1 - words the learner had never heard - and asked for them
+    # from the English four times over. A lesson without frames gets no
+    # drills; it does not get somebody else's.
+    patterns = lesson.patterns
     out: List[Phrase] = []
     for pattern in patterns:
         for value in pattern.values[:per]:
@@ -342,10 +347,23 @@ MAX_STAGE = len(STAGE_INTERVALS) - 1
 
 def due_items(progress: Dict, limit: int = 20, include_fresh: bool = True) -> List[Phrase]:
     """Mastered lines that are due for another pass. Never runs out."""
+    return [p for _, p in due_entries(progress, limit, include_fresh)]
+
+
+def due_entries(progress: Dict, limit: int = 20,
+                include_fresh: bool = True) -> List[tuple]:
+    """(mastery key, line) for lines due for another pass, most overdue first.
+
+    The key matters: a review has to update the line's own schedule.
+    Legacy "review:<text>" entries are skipped - they were copies made by an
+    old review that keyed its passes wrongly.
+    """
     mastery = progress.get("mastery") or {}
     now = time.time()
     scored = []
     for key, entry in mastery.items():
+        if str(key).startswith("review:"):
+            continue
         if isinstance(entry, dict):
             stage = int(entry.get("stage", 0))
             ts = float(entry.get("ts", 0) or 0)
@@ -360,16 +378,16 @@ def due_items(progress: Dict, limit: int = 20, include_fresh: bool = True) -> Li
         interval = STAGE_INTERVALS[min(stage, len(STAGE_INTERVALS) - 1)]
         overdue = now - ts - interval
         if overdue >= 0 or include_fresh:
-            scored.append((-overdue, Phrase(text, reading, en)))
+            scored.append((-overdue, key, Phrase(text, reading, en)))
 
-    scored.sort(key=lambda pair: pair[0])  # most overdue first
-    items: List[Phrase] = []
+    scored.sort(key=lambda row: row[0])  # most overdue first
+    items: List[tuple] = []
     seen = set()
-    for _, phrase in scored:
+    for _, key, phrase in scored:
         if phrase.text in seen:
             continue
         seen.add(phrase.text)
-        items.append(phrase)
+        items.append((key, phrase))
         if len(items) >= limit:
             break
     return items

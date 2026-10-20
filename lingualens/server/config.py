@@ -83,7 +83,16 @@ DEFAULTS: Dict[str, Any] = {
     # anticipation": the silent pause at the top of a recall item, BEFORE the
     # English cue appears. You try to retrieve with nothing on the screen; if
     # you draw a blank the English arrives and rescues you. 0 = cue at once.
-    "recall": {"intervals": [10, 30, 75], "rounds": 3, "anticipation_seconds": 5.0},
+    #
+    # criterion: a line drops out of rounds 2+ once it has this many lagged,
+    # first-try correct recalls in the lesson. Its next recall belongs on a
+    # later day: with spaced relearning, extra same-day recalls stop adding
+    # retention (Rawson & Dunlosky 2011; Vaughn, Dunlosky & Rawson 2016).
+    # 0 = every round runs in full.
+    # warmup: due lines from earlier lessons that open each lesson
+    # (successive relearning). 0 = off; the Review button still works.
+    "recall": {"intervals": [10, 30, 75], "rounds": 3, "anticipation_seconds": 5.0,
+               "criterion": 2, "warmup": 6},
     # --- literacy -----------------------------------------------------------
     # Japanese is the one major language you cannot read without being taught
     # the writing system explicitly: two 46-character syllabaries get you
@@ -129,12 +138,35 @@ DEFAULTS: Dict[str, Any] = {
         "enabled": True,
         "rotate_voices": True,  # cycle every available voice, not just the first
         "vary_pitch": True,     # a different speaker, not merely a slower one
-        "rate": {"model": 0.95, "slow": 0.6, "listen": 1.0, "drill": 0.85},
+        "rate": {"model": 0.95, "slow": 0.6, "listen": 1.0, "drill": 0.85,
+                 "natural": 1.1},
         # Every line in a lesson is printed while it is spoken, so nothing in
         # the course is actually listening practice. `comprehension` adds one
         # audio-only step per lesson: the line plays with a blank screen and
         # the question afterwards can only be answered from the audio.
         "comprehension": True,
+        # The whole passage plays blind, not one line of it. And once every
+        # one of your lines in the dialogue is mastered (mastery stage at
+        # least `replay_min_stage`), the whole dialogue plays blind too: the
+        # same conversation you just held, heard as a stranger would hear it.
+        "full_passage": True,
+        "dialogue_replay": True,
+        "replay_min_stage": 1,
+        # Bands where blind listening stops being slowed for you: natural
+        # speed (`rate.natural`) and a different voice for every part. A list
+        # of bands rather than a threshold, because JLPT counts down and HSK
+        # and CEFR count up. Empty here; each course sets its own from B2.
+        "natural_bands": [],
+    },
+    # --- role-play ----------------------------------------------------------
+    # One question, one answer never practises turn-taking. `converse` puts
+    # an LLM in the other speaker's shoes for a few turns, replying to what
+    # you actually said. It uses the `think` model and key; with no key the
+    # step is simply left out of the lesson.
+    "converse": {
+        "enabled": True,
+        "turns": 3,               # learner turns before the scene closes
+        "timeout": 12,
     },
     "storage": {"path": "state.json"},
     "ui": {
@@ -243,6 +275,8 @@ LANG_DEFAULTS: Dict[str, Any] = {
         # back on, so a character either is known or the line is opaque.
         "hanzi": {"per_lesson": 3, "recognition": True},
         "reading": {"per_lesson": 1, "read_aloud": True, "comprehension": True},
+        # HSK 4 is roughly B2 for listening: natural speed from there
+        "listening": {"natural_bands": [4, 5, 6, 7]},
         "storage": {"path": "state.json"},
     },
     "ja": {
@@ -271,6 +305,8 @@ LANG_DEFAULTS: Dict[str, Any] = {
         # Reading matters more here too: the jump from a spoken line to a
         # newspaper is wider, so passages start early and stay.
         "reading": {"per_lesson": 1, "read_aloud": True, "comprehension": True},
+        # bands count down: 2 (N2-ish) and harder hear natural speed
+        "listening": {"natural_bands": [2, 1, 0]},
         "storage": {"path": "state.ja.json"},
     },
     "es": {
@@ -298,7 +334,16 @@ LANG_DEFAULTS: Dict[str, Any] = {
         },
         # ~12 letters/s in natural speech, vs ~3 kana/s
         "audio": {"seconds_per_char": 0.075},
+        # Bands count up here (1 = A1 ... 6 = C2): spoken summaries from C1,
+        # fluency from B2. The rate is letters a second with the spaces
+        # gone, so it is about four times the Mandarin number.
+        "writing": {"min_band": 5, "min_chars": 80},
+        "fluency": {"min_chars_per_second": 9.0, "min_band": 4},
         "reading": {"per_lesson": 1, "read_aloud": True, "comprehension": True},
+        # B2, C1, C2 hear natural speed and rotating voices
+        "listening": {"natural_bands": [4, 5, 6]},
+        # composing, not reciting: four of your own answers a lesson
+        "free": {"per_lesson": 4},
         "storage": {"path": "state.es.json"},
     },
 }

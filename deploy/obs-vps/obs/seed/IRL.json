@@ -71,13 +71,13 @@
             "visible": false,
             "locked": false,
             "pos": {
-              "x": 1460.0,
-              "y": 110.0
+              "x": 1480.0,
+              "y": 92.0
             },
             "rot": 0.0,
             "scale": {
-              "x": 0.68,
-              "y": 0.68
+              "x": 0.6,
+              "y": 0.6
             },
             "align": 5,
             "bounds_type": 0,

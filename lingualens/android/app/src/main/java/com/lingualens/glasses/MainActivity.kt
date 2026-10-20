@@ -79,6 +79,9 @@ class MainActivity : AppCompatActivity() {
             @JavascriptInterface
             fun showLine(target: String, reading: String, english: String) =
                 bridge.showLine(target, reading, english)
+            /** The server's glasses card for the current step, as JSON. */
+            @JavascriptInterface
+            fun showCard(json: String) = bridge.showCard(GlassesCard.parse(json))
             @JavascriptInterface
             fun register() = runOnUiThread { bridge.register(this@MainActivity) }
             @JavascriptInterface
@@ -86,6 +89,21 @@ class MainActivity : AppCompatActivity() {
             @JavascriptInterface
             fun stopDisplay() = runOnUiThread { bridge.stopDisplay() }
         }, "LinguaLensGlasses")
+
+        // The Redo / Start / Skip buttons drawn on the glasses. Start / Stop
+        // is the native glasses-mic take (the talk button's path); Redo and
+        // Skip act on the page.
+        bridge.onCommand = { cmd ->
+            runOnUiThread {
+                if (cmd == "playPause") {
+                    if (capture.isRecording) stopTalking() else startTalking()
+                } else {
+                    web.evaluateJavascript("window.glassesCommand && window.glassesCommand('$cmd')", null)
+                }
+            }
+        }
+        bridge.onVoiceLaunch = { runOnUiThread { bridge.showOnGlasses() } }
+        findViewById<FloatingActionButton>(R.id.glasses).setOnClickListener { bridge.showOnGlasses() }
 
         // the key goes in once; the server answers with a cookie for the rest
         val key = BuildConfig.LINGUALENS_KEY
@@ -129,11 +147,13 @@ class MainActivity : AppCompatActivity() {
         if (capture.isRecording) return
         capture.start()
         bridge.haptic("select")
+        bridge.setPlaying(true)
     }
 
     fun stopTalking() {
         if (!capture.isRecording) return
         capture.stop()?.let { send(it) }
+        bridge.setPlaying(false)
     }
 
     private fun send(wav: ByteArray) {

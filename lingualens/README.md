@@ -5,13 +5,13 @@ say sits in front of your eyes with its reading above it (pinyin for Mandarin, k
 Japanese), audio models it for you, and **you do not move to the next line until your
 pronunciation passes** — tones included.
 
-**Three courses ship in one app.** `./run.sh` is Mandarin, `./run.sh ja` is Japanese, `./run.sh es` is Spanish (CEFR A1 so far). Same
+**Three courses ship in one app.** `./run.sh` is Mandarin, `./run.sh ja` is Japanese, `./run.sh es` is Spanish. Same
 server, same gate, same glasses UI — only the course data, the speech locale and the
 scoring engine change.
 
 | | Mandarin | Japanese | Spanish |
 |---|---|---|---|
-| ladder | HSK 1 → HSK 7‑9 | JLPT N5 → N1, plus an above‑N1 band | CEFR A1 (A2+ not written) |
+| ladder | HSK 1 → HSK 7‑9 | JLPT N5 → N1, plus an above‑N1 band | CEFR A1 → C2 |
 | config | `config.yaml` | `config.ja.yaml` | `config.es.yaml` |
 | course data | `server/course/zh/` | `server/course/ja/` | `server/course/es/` |
 | speech locale | `zh-CN` | `ja-JP` | `es-ES` |
@@ -30,8 +30,15 @@ A lesson runs in this order:
 4. **Characters** — 汉字 (or kanji) as an object in its own right: you meet the
    character, then you have to recognise it (§3h).
 5. **Reading** — a real passage, read aloud, then a comprehension question (§3i).
-6. **Listening** — the same passage again with the screen blank (§3i).
+6. **Listening** — the whole passage again with the screen blank (§3i). From
+   B2 (HSK 4, N2) it plays at natural speed (`listening.rate.natural`) with a
+   rotating voice; bands are set per course in `listening.natural_bands`.
 7. **缩写** — from HSK 6: say the passage back, shorter (§3j).
+8. **The dialogue, blind** — once every one of your lines is mastered, the whole
+   conversation plays again with a blank screen, one voice per speaker.
+9. **Role-play** (`converse`) — an LLM plays the other speaker in the scene for
+   three turns and replies to what you actually said; each turn is graded like a
+   free answer. Uses the `think` model and key, and is left out with no key.
 
 Steps 4–7 are on for Mandarin from HSK 1 (characters, reading, listening) and
 HSK 6 (缩写); the Japanese course runs reading and listening from N5.
@@ -49,13 +56,33 @@ Japanese, and drill it until you get it right.
 
 ---
 
+## 0. On the go (phone + glasses, no laptop)
+
+LinguaLens runs on Google Cloud Run, so the phone and the glasses reach it
+anywhere over HTTPS. It scales to zero, so an idle day costs nothing.
+
+```bash
+deploy/lingualens/deploy.sh        # build + deploy (keeps the same key)
+deploy/lingualens/deploy.sh url    # your phone / glasses / OBS links
+```
+
+- **Phone:** open the `phone` link (it records you and plays the model audio
+  through the glasses speakers). Add it to the home screen.
+- **Glasses:** load the `glasses web app` link as a Meta Ray-Ban Display Web App.
+- **Same `client_id` on both** = one shared session.
+- The key in the link is needed once per device (then a cookie). Anyone with
+  the link can use the app, so don't post it.
+- Progress is kept in a Cloud Storage bucket, so it survives restarts.
+- **On stream:** say "show lingualens" / "hide lingualens" (see
+  `deploy/obs-vps`); OBS shows a read-only copy of the same session.
+
 ## 1. Quick start
 
 ```bash
 cd lingualens
 ./run.sh                 # Mandarin  — config.yaml     (HSK 1-7)
 ./run.sh ja              # Japanese  — config.ja.yaml  (JLPT N5-N1)
-./run.sh es              # Spanish   — config.es.yaml  (CEFR A1)
+./run.sh es              # Spanish   — config.es.yaml  (CEFR A1-C2)
 ```
 
 Both create `.venv`, install deps and start on `:8899`. Pick the course with the first

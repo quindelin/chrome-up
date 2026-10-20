@@ -1,96 +1,121 @@
+#if os(iOS)
 import AVFoundation
 
-/// Records one utterance as 16 kHz / 16-bit mono PCM WAV - what Azure Speech
-/// and iFlytek ISE both expect.
+/// Records one utterance as 16 kHz / 16-bit mono WAV, stopping by itself when
+/// the learner goes quiet (SpeechEndpointer).
 ///
-/// With Ray-Ban Display paired, setting the audio session to a Bluetooth HFP
-/// input routes this to the glasses microphone array, so the learner never has
-/// to reach for the phone.
-public final class AudioCapture {
-    public static let sampleRate: Double = 16000
+/// The audio session is the caller's (the app's AudioEngine): it switches the
+/// route to the glasses' HFP microphone before a take and back to A2DP after,
+/// because HFP drops the speakers to 8 kHz phone-call quality.
+public final class AudioCapture: @unchecked Sendable {
+    public struct Take: Sendable {
+        public var wav: Data?
+        public var decision: SpeechEndpointer.Decision
+        public var seconds: Double
+    }
 
-    private let engine = AVAudioEngine()
-    private var pcm = Data()
+    private var engine: AVAudioEngine?
     private let lock = NSLock()
+    private var samples: [Float] = []
+    private var endpointer = SpeechEndpointer()
+    private var continuation: CheckedContinuation<Take, Error>?
+    private var stopRequested = false
 
-    public var isRecording = false
+    public private(set) var isRecording = false
 
     public init() {}
 
-    /// Call once before the first recording (also routes to the glasses mic).
-    public func configureSession(preferGlassesMic: Bool = true) throws {
-        let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
-        if preferGlassesMic {
-            // HFP input = the glasses microphone array when the glasses are paired
-            let hfp = session.availableInputs?.first { $0.portType == .bluetoothHFP }
-            if let hfp { try? session.setPreferredInput(hfp) }
-        }
-        try session.setActive(true)
-    }
-
-    public func start() throws {
-        guard !isRecording else { return }
-        pcm = Data()
+    /// Records until the endpointer decides, `stop()` is called, or the task
+    /// is cancelled. The session must already be active with an input route.
+    public func record(endpointer: SpeechEndpointer = SpeechEndpointer(),
+                       level: (@Sendable (Float) -> Void)? = nil) async throws -> Take {
+        let engine = AVAudioEngine()
         let input = engine.inputNode
-        let format = AVAudioFormat(commonFormat: .pcmFormatInt16,
-                                   sampleRate: Self.sampleRate,
-                                   channels: 1,
-                                   interleaved: true)!
-        // convert from the hardware rate if the device is not natively 16 kHz
-        input.installTap(onBus: 0, bufferSize: 4096, format: input.outputFormat(forBus: 0)) { [weak self] buffer, _ in
-            guard let self else { return }
-            guard let converted = self.convert(buffer, to: format) else { return }
-            let bytes = Data(bytes: converted.int16ChannelData!.pointee,
-                             count: Int(converted.frameLength) * 2)
-            self.lock.lock(); self.pcm.append(bytes); self.lock.unlock()
+        let hwFormat = input.outputFormat(forBus: 0)
+        guard hwFormat.sampleRate > 0, hwFormat.channelCount > 0 else {
+            throw NSError(domain: "LinguaLens", code: 1,
+                          userInfo: [NSLocalizedDescriptionKey: "No microphone input available."])
         }
+        guard let target = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: Double(WAV.sampleRate),
+                                         channels: 1, interleaved: false),
+              let converter = AVAudioConverter(from: hwFormat, to: target) else {
+            throw NSError(domain: "LinguaLens", code: 2,
+                          userInfo: [NSLocalizedDescriptionKey: "Cannot convert \(hwFormat) to 16 kHz."])
+        }
+
+        lock.withLock {
+            samples = []
+            samples.reserveCapacity(WAV.sampleRate * 12)
+            self.endpointer = endpointer
+            stopRequested = false
+        }
+
+        input.installTap(onBus: 0, bufferSize: 2048, format: hwFormat) { [weak self] buffer, _ in
+            guard let self else { return }
+            let block = Self.convert(buffer, with: converter, to: target)
+            let db = WAV.rmsDB(block)
+            level?(db)
+            let duration = Double(buffer.frameLength) / hwFormat.sampleRate
+            self.lock.lock()
+            self.samples.append(contentsOf: block)
+            var decision = self.endpointer.feed(levelDB: db, duration: duration)
+            if self.stopRequested { decision = self.endpointer.heardSpeech ? .finished : .noSpeech }
+            self.lock.unlock()
+            if decision != .listening { self.finish(decision) }
+        }
+
         engine.prepare()
         try engine.start()
+        self.engine = engine
         isRecording = true
+
+        return try await withTaskCancellationHandler {
+            try await withCheckedThrowingContinuation { cont in
+                lock.withLock { continuation = cont }
+            }
+        } onCancel: {
+            self.finish(.noSpeech)
+        }
     }
 
-    public func stop() -> Data? {
-        guard isRecording else { return nil }
-        engine.inputNode.removeTap(onBus: 0)
-        engine.stop()
-        isRecording = false
-        lock.lock(); let data = pcm; lock.unlock()
-        return data.isEmpty ? nil : Self.wav(from: data, sampleRate: Int(Self.sampleRate))
+    /// Ends the take now (push-to-talk release, or a "next" from the glasses).
+    public func stop() {
+        lock.withLock { stopRequested = true }
     }
 
-    private func convert(_ buffer: AVAudioPCMBuffer, to format: AVAudioFormat) -> AVAudioPCMBuffer? {
-        if buffer.format.sampleRate == format.sampleRate { return buffer }
-        guard let converter = AVAudioConverter(from: buffer.format, to: format) else { return nil }
+    private func finish(_ decision: SpeechEndpointer.Decision) {
+        lock.lock()
+        guard let cont = continuation else { lock.unlock(); return }
+        continuation = nil
+        let pcm = samples
+        let seconds = endpointer.elapsed
+        lock.unlock()
+
+        DispatchQueue.main.async { [weak self] in
+            self?.engine?.inputNode.removeTap(onBus: 0)
+            self?.engine?.stop()
+            self?.engine = nil
+            self?.isRecording = false
+        }
+        let wav = decision == .finished ? WAV.encode(pcm: WAV.pcm16(pcm)) : nil
+        cont.resume(returning: Take(wav: wav, decision: decision, seconds: seconds))
+    }
+
+    private static func convert(_ buffer: AVAudioPCMBuffer, with converter: AVAudioConverter,
+                                to format: AVAudioFormat) -> [Float] {
         let ratio = format.sampleRate / buffer.format.sampleRate
-        guard let out = AVAudioPCMBuffer(pcmFormat: format,
-                                         frameCapacity: AVAudioFrameCount(Double(buffer.frameLength) * ratio)) else { return nil }
+        let capacity = AVAudioFrameCount(Double(buffer.frameLength) * ratio + 32)
+        guard let out = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: capacity) else { return [] }
+        var fed = false
         var error: NSError?
         converter.convert(to: out, error: &error) { _, status in
+            if fed { status.pointee = .noDataNow; return nil }
+            fed = true
             status.pointee = .haveData
             return buffer
         }
-        return error == nil ? out : nil
-    }
-
-    /// Wraps raw 16-bit PCM in a RIFF/WAVE header.
-    public static func wav(from pcm: Data, sampleRate: Int) -> Data {
-        var data = Data()
-        func ascii(_ s: String) { data.append(s.data(using: .ascii)!) }
-        func le(_ value: UInt32) {
-            var v = value.littleEndian
-            data.append(Data(bytes: &v, count: 4))
-        }
-        func le16(_ value: UInt16) {
-            var v = value.littleEndian
-            data.append(Data(bytes: &v, count: 2))
-        }
-        let byteRate = UInt32(sampleRate) * 2
-        ascii("RIFF"); le(UInt32(36 + pcm.count)); ascii("WAVE")
-        ascii("fmt "); le(16); le16(1); le16(1)
-        le(UInt32(sampleRate)); le(byteRate); le16(2); le16(16)
-        ascii("data"); le(UInt32(pcm.count))
-        data.append(pcm)
-        return data
+        guard error == nil, let ch = out.floatChannelData else { return [] }
+        return Array(UnsafeBufferPointer(start: ch[0], count: Int(out.frameLength)))
     }
 }
+#endif

@@ -50,6 +50,12 @@ publish:
   mode: dry_run                        # setup.sh: AUTOCLIP_PUBLISH (dry_run | live)
   require_approval: true
 
+# GET /api/autoclip/stack, polled by the iOS companion app (companion/ios)
+stack:
+  mediamtx_api: "http://127.0.0.1:9997"
+  ingest_path: "live/${STREAM_KEY}"
+  program_path: "live/program"
+
 server:
   host: 127.0.0.1                      # Caddy proxies /autoclip/*; the overlay reads :8899
   port: 8899
