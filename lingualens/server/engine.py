@@ -645,8 +645,37 @@ class Session:
         for row in self._kana_steps(lesson_id):
             steps.append(row)
 
-        # 1. the conversation: their lines are input, your lines are gated
+        # 1. the conversation: their lines are input, your lines are gated.
+        #    A line of yours is never asked for cold. If it holds a word or
+        #    character no earlier lesson has given you (对不起，我迟到了 in
+        #    lesson 2), the lesson's own word for it is taught right there,
+        #    and the whole line is modelled once before you say it - Pimsleur
+        #    breaks a new line down before the learner produces it. The app
+        #    only replays a speak line after a miss, so without this the
+        #    first attempt is a guess.
+        known = self._known_before(lesson)
+        taught: set = set()   # lesson vocab already introduced in the dialogue
         for turn in lesson.dialogue:
+            if turn.speaker != "them":
+                missing = self._units(turn.text) - known
+                if missing:
+                    for word in lesson.vocab:
+                        wn = self._norm(word.text)
+                        if (wn in taught or wn == self._norm(turn.text)
+                                or not self._units(word.text) & missing):
+                            continue
+                        taught.add(wn)
+                        known |= self._units(word.text)
+                        steps.append(Step(kind="listen", text=word.text, reading=word.reading,
+                                          en=word.en, speaker="them", note=f"new word · {word.en}",
+                                          key=f"{lesson_id}:{word.text}"))
+                        steps.append(Step(kind="speak", text=word.text, reading=word.reading,
+                                          en=word.en, speaker="you", note=f"new word · {word.en}",
+                                          key=f"{lesson_id}:{word.text}"))
+                    steps.append(Step(kind="listen", text=turn.text, reading=turn.reading,
+                                      en=turn.en, speaker="them", note="new line · hear it first",
+                                      key=f"model:{turn.text}"))
+            known |= self._units(turn.text)
             steps.append(
                 Step(
                     kind="listen" if turn.speaker == "them" else "speak",
@@ -671,8 +700,8 @@ class Session:
         #     Mandarin" - and 不客气 is in no line of the dialogue at all.
         dialogue_lines = {self._norm(t.text) for t in lesson.dialogue}
         for word in lesson.vocab:
-            if self._norm(word.text) in dialogue_lines:
-                continue  # already heard and said whole in the conversation
+            if self._norm(word.text) in dialogue_lines | taught:
+                continue  # already heard and said in the conversation
             steps.append(Step(kind="listen", text=word.text, reading=word.reading,
                               en=word.en, speaker="them", note=f"new word · {word.en}",
                               key=f"{lesson_id}:{word.text}"))
@@ -859,7 +888,7 @@ class Session:
                         dropout=r >= 1 and criterion > 0,
                     )
                 )
-        return self._model_before_recall(steps)
+        return self._model_before_recall(self._model_before_speak(steps, lesson))
 
     # -- spaced relearning ---------------------------------------------------
     def _warmup_steps(self, lesson_id: int) -> List["Step"]:
@@ -908,6 +937,48 @@ class Session:
             from .pronunciation import _LATIN_WORD, _fold
             return set(_LATIN_WORD.findall(_fold(text or "")))
         return {ch for ch in self._norm(text) if not ch.isascii()}
+
+    def _known_before(self, lesson: Lesson) -> set:
+        """Every unit (character, or word for a spaced language) the lessons
+        before this one have put in front of the learner: their dialogue,
+        word lists, injected bank words and drill lines. Lessons run in
+        course order, and placement only skips lessons the learner proved
+        they can already do, so this is what they can be expected to know."""
+        cache = self.__dict__.setdefault("_known_cache", {})
+        if lesson.id in cache:
+            return set(cache[lesson.id])
+        known: set = set()
+        vocab_cfg = self.cfg.get("vocab") or {}
+        for lid in self.course.lesson_ids:
+            if lid >= lesson.id:
+                break
+            prev = self.course.lesson(lid)
+            texts = [t.text for t in prev.dialogue] + [v.text for v in prev.vocab]
+            if vocab_cfg.get("enabled", True):
+                texts += [w.text for w in self.course.vocab_for_lesson(
+                    prev, inject_count(vocab_cfg, prev.band))]
+            texts += [d.text for d in drills.generate(prev, self.cfg, self.lang)]
+            for text in texts:
+                known |= self._units(text)
+        cache[lesson.id] = known
+        return set(known)
+
+    def _model_before_speak(self, steps: List["Step"], lesson: Lesson) -> List["Step"]:
+        """The same rule for repetition: a line you are asked to say after
+        nobody (a free-response model answer, say) is modelled first if it
+        holds anything the course has not let you hear yet. Dialogue lines
+        already got their words taught in place; this catches the rest."""
+        heard = self._known_before(lesson)
+        out: List[Step] = []
+        for step in steps:
+            if step.kind == "speak" and step.speaker == "you" and not step.prior and step.text:
+                if self._units(step.text) - heard:
+                    out.append(Step(kind="listen", text=step.text, reading=step.reading,
+                                    en=step.en, speaker="them", note="new line · hear it first",
+                                    key=f"model:{step.text}"))
+            heard |= self._units(step.text or "")
+            out.append(step)
+        return out
 
     def _model_before_recall(self, steps: List["Step"]) -> List["Step"]:
         """Never ask for a line containing a word or character not yet heard.

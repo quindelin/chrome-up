@@ -147,6 +147,46 @@ def t_ja_beginner_patterns_recombine():
     assert len(recombined) >= 15, recombined  # 17 today; 1, 2, 5 have nothing older to draw on
 
 
+def t_no_learner_line_asked_for_cold():
+    """A dialogue line you must say never holds a word or character that no
+    earlier lesson, and nothing earlier in this one, has let you hear.
+    Lesson 2 asked for 对不起，我迟到了 with 迟到 taught nowhere."""
+    for lang, path in (("zh", "config.yaml"), ("ja", "config.ja.yaml"), ("es", "config.es.yaml")):
+        course, cfg = Course(lang), load_config(path)
+        for lid in course.lesson_ids:
+            sess = Session(course, cfg, {"lesson_id": lid, "completed": [], "mastery": {},
+                                         "words": {}, "stats": {}})
+            heard = sess._known_before(course.lesson(lid))
+            for step in sess._build_steps(lid):
+                if step.kind == "speak" and step.speaker == "you" and not step.prior:
+                    cold = sess._units(step.text) - heard
+                    assert not cold, f"{lang} L{lid}: {step.text} asked for cold ({''.join(sorted(cold))})"
+                heard |= sess._units(step.text)
+
+
+def t_zh_beginner_word_lists_cover_learner_lines():
+    """HSK 1-2: every character you say is in this lesson's word list or was
+    met in an earlier lesson - the model step is a safety net, not a plan."""
+    import re
+    han = re.compile(r"[一-鿿]")
+    course, cfg = Course("zh"), load_config("config.yaml")
+    sess = Session(course, cfg, {"lesson_id": 1, "completed": [], "mastery": {},
+                                 "words": {}, "stats": {}})
+    bad = []
+    for lid in course.lesson_ids:
+        lesson = course.lesson(lid)
+        if lesson.band > 2:
+            continue
+        known = sess._known_before(lesson) | {ch for v in lesson.vocab for ch in han.findall(v.text)}
+        for t in lesson.dialogue:
+            if t.speaker == "you":
+                new = set(han.findall(t.text)) - known
+                if new:
+                    bad.append(f"L{lid} {t.text}: {''.join(sorted(new))}")
+            known |= set(han.findall(t.text))
+    assert not bad, bad
+
+
 def t_readings():
     assert not readings.check(), readings.check()[:5]
     assert readings.stats()["passages"] == 73, readings.stats()
