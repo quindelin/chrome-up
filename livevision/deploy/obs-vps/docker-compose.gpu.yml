@@ -1,0 +1,20 @@
+# Added on GPU VMs (setup.sh puts COMPOSE_FILE=docker-compose.yml:docker-compose.gpu.yml
+# in .env): OBS gets the NVIDIA GPU and draws on the host's GPU X server (:0,
+# systemd obs-xorg) instead of Xvfb, so compositing, the HUD's Chromium and the
+# NVENC encoder all run on the GPU.
+services:
+  obs:
+    environment:
+      OBS_GPU: "1"
+      DISPLAY: ":0"
+      # graphics + video (NVENC) + display libs from the host driver
+      NVIDIA_DRIVER_CAPABILITIES: all
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

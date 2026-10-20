@@ -22,7 +22,39 @@ envsubst < /opt/obs-seed/service.json > "$CFG/basic/profiles/IRL/service.json"
 rm -rf "$CFG/.sentinel"
 # supervisord starts xvfb first but does not wait for it: give the display a
 # moment to appear rather than failing fast and burning the restart budget
-for _ in $(seq 1 50); do [ -S /tmp/.X11-unix/X99 ] && break; sleep 0.2; done
+SOCK="/tmp/.X11-unix/X${DISPLAY#:}"
+for _ in $(seq 1 50); do [ -S "$SOCK" ] && break; sleep 0.2; done
+
+# Encoder, output size and browser rendering follow the hardware on every
+# start (not just the first seed), so a VM that gains or loses its GPU is right.
+#   GPU:      NVENC, 1080p, HUD Chromium on the GPU
+#   no GPU:   x264 veryfast, 720p, Chromium in software
+# Override with OUT_WIDTH / OUT_HEIGHT / OUT_FPS / OUT_KBPS in .env.
+ini_set() {   # file section key value
+  awk -v sec="[$2]" -v key="$3" -v val="$4" '
+    $0 == sec { insec = 1; print; next }
+    /^\[/ && insec { if (!done) print key "=" val; done = 1; insec = 0 }
+    insec && index($0, key "=") == 1 { if (!done) print key "=" val; done = 1; next }
+    { print }
+    END { if (!done) { if (!insec) print sec; print key "=" val } }' "$1" > "$1.tmp" && mv "$1.tmp" "$1"
+}
+PROFILE="$CFG/basic/profiles/IRL/basic.ini"
+if [ "${OBS_GPU:-0}" = "1" ]; then
+  W="${OUT_WIDTH:-1920}"; H="${OUT_HEIGHT:-1080}"; KBPS="${OUT_KBPS:-6000}"
+  ini_set "$PROFILE" SimpleOutput StreamEncoder nvenc
+  ini_set "$PROFILE" SimpleOutput NVENCPreset2 p5            # quality end of NVENC's p1-p7
+  HWACCEL=true
+else
+  W="${OUT_WIDTH:-1280}"; H="${OUT_HEIGHT:-720}"; KBPS="${OUT_KBPS:-4500}"
+  ini_set "$PROFILE" SimpleOutput StreamEncoder x264
+  HWACCEL=false
+fi
+ini_set "$PROFILE" Video OutputCX "$W"
+ini_set "$PROFILE" Video OutputCY "$H"
+ini_set "$PROFILE" Video FPSCommon "${OUT_FPS:-30}"
+ini_set "$PROFILE" SimpleOutput VBitrate "$KBPS"
+for f in "$CFG/user.ini" "$CFG/global.ini"; do [ -f "$f" ] && ini_set "$f" General BrowserHWAccel "$HWACCEL"; done
+echo "obs: gpu=${OBS_GPU:-0} display=$DISPLAY encoder=$(grep '^StreamEncoder=' "$PROFILE" | cut -d= -f2) ${W}x${H}@${OUT_FPS:-30} ${KBPS} kbps browser-hwaccel=$HWACCEL"
 ARGS=(--profile IRL --collection IRL --scene IRL --disable-shutdown-check --disable-updater)
 [ "${OBS_AUTOSTREAM:-0}" = "1" ] && ARGS+=(--startstreaming)
 exec obs "${ARGS[@]}"

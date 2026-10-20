@@ -11,6 +11,78 @@ if ! command -v docker >/dev/null; then
   sudo usermod -aG docker "$USER"
 fi
 
+# ---- NVIDIA GPU (G2 / L4): driver, Docker GPU runtime, a real X display -----
+# OBS composites, encodes (NVENC) and renders the HUD's Chromium on the GPU.
+# Without one (e2 machines) everything stays on the software path (Xvfb, x264).
+GPU=0
+if grep -qs 0x10de /sys/bus/pci/devices/*/vendor; then      # 0x10de = NVIDIA
+  GPU=1
+  if ! nvidia-smi >/dev/null 2>&1; then
+    sudo apt-get update -qq
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ubuntu-drivers-common xserver-xorg-core
+    # the full driver (GL + the Xorg module), not --gpgpu, which is compute only
+    sudo DEBIAN_FRONTEND=noninteractive ubuntu-drivers install
+    NEED_REBOOT=1
+  fi
+  if ! command -v nvidia-ctk >/dev/null; then
+    curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
+      | sudo gpg --dearmor --yes -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+    curl -fsSL https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
+      | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' \
+      | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list >/dev/null
+    sudo apt-get update -qq
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq nvidia-container-toolkit
+    sudo nvidia-ctk runtime configure --runtime=docker
+    sudo systemctl restart docker
+  fi
+  if [ "${NEED_REBOOT:-0}" = 1 ]; then
+    echo "NVIDIA driver installed: rebooting; boot.sh runs setup again on the way up"
+    sudo reboot
+    exit 0
+  fi
+  # an X server on the GPU with no monitor attached (data-centre GPUs have no
+  # outputs): OBS and its Chromium draw here through the container's X socket
+  BUS="$(nvidia-smi --query-gpu=pci.bus_id --format=csv,noheader | head -1)"    # 00000000:00:03.0
+  IFS=':.' read -r _ b d f <<<"$BUS"
+  BUSID="PCI:$((16#$b)):$((16#$d)):$((16#$f))"
+  sudo tee /etc/X11/obs-xorg.conf >/dev/null <<XCONF
+Section "ServerFlags"
+    Option "AutoAddDevices" "False"
+EndSection
+Section "Device"
+    Identifier "gpu0"
+    Driver     "nvidia"
+    BusID      "$BUSID"
+    Option     "AllowEmptyInitialConfiguration" "True"
+    Option     "UseDisplayDevice" "None"
+EndSection
+Section "Screen"
+    Identifier   "screen0"
+    Device       "gpu0"
+    DefaultDepth 24
+    SubSection "Display"
+        Depth   24
+        Virtual 1920 1080
+    EndSubSection
+EndSection
+XCONF
+  sudo tee /etc/systemd/system/obs-xorg.service >/dev/null <<'UNIT'
+[Unit]
+Description=X server on the NVIDIA GPU for OBS (display :0, no monitor)
+After=systemd-modules-load.service
+[Service]
+ExecStart=/usr/lib/xorg/Xorg :0 -ac -nolisten tcp -noreset -config /etc/X11/obs-xorg.conf
+Restart=always
+RestartSec=2
+[Install]
+WantedBy=multi-user.target
+UNIT
+  sudo systemctl daemon-reload
+  sudo systemctl enable --now obs-xorg.service
+  for _ in $(seq 1 25); do [ -S /tmp/.X11-unix/X0 ] && break; sleep 0.4; done
+  [ -S /tmp/.X11-unix/X0 ] || { echo "GPU X server did not start:"; sudo journalctl -u obs-xorg -n 20 --no-pager; }
+fi
+
 IP="$(curl -fsS -H 'Metadata-Flavor: Google' \
   http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip)"
 
@@ -59,6 +131,11 @@ if [ -s "${HOME:-/nonexistent}/lingualens_url" ]; then
   sed -i "s|^LINGUALENS_URL=.*|LINGUALENS_URL='${LL}'|" .env
 fi
 grep -q '^RUMBLE_URL=' .env || printf 'RUMBLE_URL=\nRUMBLE_STREAM_KEY=\n' >> .env
+
+# GPU or not decides the compose files; compose reads COMPOSE_FILE from .env,
+# so every `docker compose` (here, gcp.sh obs-reset, ...) picks it up
+sed -i '/^COMPOSE_FILE=/d' .env
+[ "$GPU" = 1 ] && echo 'COMPOSE_FILE=docker-compose.yml:docker-compose.gpu.yml' >> .env
 
 # the IP is ephemeral: point the HTTPS hostname at whatever we got this boot
 sed -i "s/^DOMAIN=.*/DOMAIN=${IP//./-}.sslip.io/" .env

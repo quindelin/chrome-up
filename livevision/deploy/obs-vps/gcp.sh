@@ -28,9 +28,14 @@ PROJECT="${PROJECT:-chrome-up-irl-e8d7}"
 REGION="${REGION:-us-central1}"
 ZONE="${ZONE:-${REGION}-a}"
 NAME="${NAME:-obs-irl}"
-MACHINE="${MACHINE:-e2-standard-8}"     # 8 vCPU / 32 GB: OBS alone saturated 4 (software HUD + avatar)
-DISK_GB="${DISK_GB:-15}"                 # OS + images use ~7 GB
-DISK_TYPE="${DISK_TYPE:-pd-standard}"    # $0.04/GB-mo; pd-balanced is $0.10
+# g2-standard-8 = 8 vCPU / 32 GB + one NVIDIA L4 (~$0.85/h running): OBS
+# composites, encodes (NVENC 1080p) and renders the HUD on the GPU. Without a
+# GPU (MACHINE=e2-standard-8, ~$0.27/h) the software path saturated 8 cores.
+MACHINE="${MACHINE:-g2-standard-8}"
+DISK_GB="${DISK_GB:-40}"                 # OS + NVIDIA driver + images
+DISK_TYPE="${DISK_TYPE:-pd-balanced}"    # G2 machines don't take pd-standard
+# RESTORE_ENV=<file>: a saved deploy/obs-vps/.env to start a new VM with (same
+# stream key, passwords and approval login as the VM it replaces)
 STATIC_IP="${STATIC_IP:-0}"
 G=(gcloud --project "$PROJECT" --quiet)
 REMOTE="chrome_up"
@@ -54,6 +59,11 @@ upload() {
     rm -f "$tgz"; return 1
   fi
   scp_ "$tgz" "$NAME:~/chrome_up.tgz"
+  if [ -n "${RESTORE_ENV:-}" ]; then
+    scp_ "$RESTORE_ENV" "$NAME:~/restore.env"
+    # only into a VM that has no .env yet: never overwrite a live one
+    ssh_ "mkdir -p $REMOTE/deploy/obs-vps && { [ -f $REMOTE/deploy/obs-vps/.env ] || install -m 600 ~/restore.env $REMOTE/deploy/obs-vps/.env; } && rm -f ~/restore.env"
+  fi
   # the LinguaLens panel's URL (Cloud Run, read-only stream view), if deployed
   local ll
   ll="$(../../../lingualens/deploy/deploy.sh url 2>/dev/null | sed -n 's/^ *OBS browser source *\(https[^ ]*\).*/\1/p' || true)"
@@ -94,8 +104,11 @@ case "${1:-help}" in
       || "${G[@]}" compute firewall-rules create "$NAME-ingest" --target-tags "$NAME" \
            --allow tcp:80,tcp:443,tcp:1935,udp:8890 --description "IRL ingest + HUD https"
     if ! "${G[@]}" compute instances describe "$NAME" --zone "$ZONE" >/dev/null 2>&1; then
+      GPU_FLAGS=()
+      # GPU VMs can't live-migrate: they stop for host maintenance and restart
+      case "$MACHINE" in g2-*|a2-*|a3-*) GPU_FLAGS=(--maintenance-policy TERMINATE --restart-on-failure) ;; esac
       "${G[@]}" compute instances create "$NAME" --zone "$ZONE" \
-        --machine-type "$MACHINE" --tags "$NAME" \
+        --machine-type "$MACHINE" --tags "$NAME" ${GPU_FLAGS[@]+"${GPU_FLAGS[@]}"} \
         --image-family ubuntu-2404-lts-amd64 --image-project ubuntu-os-cloud \
         --boot-disk-size "${DISK_GB}GB" --boot-disk-type "$DISK_TYPE" \
         --metadata-from-file startup-script=boot.sh ${ADDR[@]+"${ADDR[@]}"}

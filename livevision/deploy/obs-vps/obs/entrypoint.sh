@@ -6,6 +6,8 @@ set -e
 # boot's lock, decides display :99 is taken and exits; OBS then can't open a
 # display and supervisord gives up on both. Nothing is running yet: clear it.
 rm -f /tmp/.X99-lock /tmp/.X11-unix/X99
+# GPU VM: the host runs the display (:0, mounted in); software VM: our own Xvfb
+if [ "${OBS_GPU:-0}" = "1" ]; then export XVFB_AUTOSTART=false; else export XVFB_AUTOSTART=true DISPLAY=:99; fi
 mkdir -p /home/obs/.config/obs-studio
 chown -R obs:obs /home/obs/.config
 exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf
