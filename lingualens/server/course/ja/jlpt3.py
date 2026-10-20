@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""JLPT N3 — daily life in detail.
+"""Band 3 (shown as N4+) — daily life in detail, on N5-N4 grammar.
 
 Pimsleur-style.  Polite base (です/ます) with a few plain-form lines in the
 later units.  Each lesson's vocabulary is re-used in the dialogue so the
@@ -690,9 +690,12 @@ UNITS: List[Dict[str, Any]] = [
 LEVEL = {
     "band": 3,
     "id": 3,
-    "code": "N3",
-    "title": "JLPT N3 · Daily life",
-    "focus": "Routines, home, weather, health, family, plans, hobbies, comparisons, and life experience (〜たことがあります).",
+    # Labelled by what the lessons teach, not by where the bank's words come
+    # from: ごろ/ぐらい, あまり〜ない, 〜くなります, 〜のほうが, 〜たことがある and
+    # 〜んです are N5-N4 grammar (docs/COURSE_AUDIT.md, finding 1).
+    "code": "N4+",
+    "title": "JLPT N4 · Daily life",
+    "focus": "N5-N4 grammar put to work on daily life: routines, home, weather, health, family, plans, hobbies, comparisons (〜のほうが), life experience (〜たことがあります), and first set-phrase keigo on the phone and at the bank.",
     "gate": {"min_pron_score": 70.0, "min_accuracy": 70.0, "min_completeness": 82.0},
     "units": UNITS,
 }

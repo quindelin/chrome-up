@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""JLPT N1 — formal & abstract.
+"""Band 1 (shown as N3) — formal & abstract.
 
 Pimsleur-style, but the register now moves with the situation: keigo to a
 client, です/ます to a colleague, plain form to a friend or in an aside.  That
@@ -930,9 +930,12 @@ UNITS: List[Dict[str, Any]] = [
 LEVEL = {
     "band": 1,
     "id": 5,
-    "code": "N1",
-    "title": "JLPT N1 · Formal & abstract",
-    "focus": "Keigo and business registers, reporting and hedging, abstract argument, and the fine-grained nuance between near-synonyms.",
+    # Business keigo set phrases plus N3 grammar (〜べきだ, 〜こそ, 〜ものだ,
+    # 〜と思われる) with a few N2 points (〜に基づいて, 〜た上で). Not N1:
+    # docs/COURSE_AUDIT.md, finding 1.
+    "code": "N3",
+    "title": "JLPT N3 · Keigo & argument",
+    "focus": "Business keigo (〜と申します, 〜いたします, 〜いただけますでしょうか), declining and calling politely, and N3 tools for argument: 〜べきだ, 〜こそ, 〜ものだ, 〜と思われる, with a first look at N2's 〜に基づいて and 〜た上で.",
     "gate": {"min_pron_score": 80.0, "min_accuracy": 80.0, "min_completeness": 88.0},
     "units": UNITS,
 }

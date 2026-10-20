@@ -187,12 +187,15 @@ def entries(group: str = "") -> list:
     return []
 
 
-def kana_for_lesson(lesson_id: int, per_lesson: int = 5, through_lesson: int = 8) -> list:
+def kana_for_lesson(lesson_id: int, per_lesson: int = 8, through_lesson: int = 13) -> list:
     """The slice of the syllabary that belongs with one early lesson.
 
-    Five a lesson is roughly a week of looking at them before the next
-    five arrive. After `through_lesson` the syllabary has been covered and
-    the lessons go back to being about the language.
+    Eight a lesson over thirteen lessons is the whole table (104 rows), so
+    the voiced and contracted sounds are taught before the end of N5 rather
+    than never: lesson 1 already says ございます and げんき. After
+    `through_lesson` the lessons go back to being about the language.
+    `per_lesson * through_lesson` must stay >= len(KANA); the smoke test
+    checks it.
     """
     if lesson_id > through_lesson:
         return []

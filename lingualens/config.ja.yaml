@@ -6,7 +6,7 @@
 #   ./run.sh ja          # or: python -m server.main --config config.ja.yaml
 # ---------------------------------------------------------------------------
 
-language: ja              # ja = Japanese (JLPT N5, N4, N3, N2, N1, N1+)
+language: ja              # ja = Japanese (JLPT N5, N4, N4+, N4–N3, N3, N2 preview)
 
 server:
   host: 0.0.0.0
@@ -90,8 +90,8 @@ drills:
 # server/course/ja/kanji.py) rather than assumed.
 kana:
   enabled: true
-  per_lesson: 5        # five a lesson; the table covers both syllabaries
-  through_lesson: 8
+  per_lesson: 8        # 8 x 13 = all 104 rows: seion, dakuten, handakuten, yoon
+  through_lesson: 13
 
 kanji:
   enabled: true
@@ -149,10 +149,10 @@ ui:
   reading_by_level:
     1: always   # N5
     2: always   # N4
-    3: always   # N3
-    4: fade     # N2
-    5: fade     # N1
-    6: reveal   # N1+
+    3: always   # N4+
+    4: fade     # N4–N3
+    5: fade     # N3
+    6: reveal   # N2 preview
   # The English scene printed before a conversation starts: who you are talking
   # to, and where. It also tells you how politely to speak, which in Japanese
   # is half the sentence. For the same reason kana survives one band longer,
@@ -165,8 +165,8 @@ ui:
   scene_by_level:
     1: always   # N5
     2: always   # N4
-    3: always   # N3
-    4: first    # N2
-    5: first    # N1
-    6: tip      # N1+
+    3: always   # N4+
+    4: first    # N4–N3
+    5: first    # N3
+    6: tip      # N2 preview
   scene_seconds: 6

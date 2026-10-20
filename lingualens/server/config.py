@@ -106,8 +106,8 @@ DEFAULTS: Dict[str, Any] = {
     # fluency depends on.
     "kana": {
         "enabled": True,
-        "per_lesson": 5,      # kana drilled alongside the early lessons
-        "through_lesson": 8,  # stop once both syllabaries have been seen
+        "per_lesson": 8,       # kana drilled alongside the early lessons
+        "through_lesson": 13,  # 8 x 13 = every row of kana.KANA, yoon included
     },
     "kanji": {
         "enabled": True,
@@ -304,7 +304,7 @@ LANG_DEFAULTS: Dict[str, Any] = {
         # Literacy is a Japanese problem in a way it is not a Chinese one:
         # the syllabaries have to be taught outright, and a kanji is worth
         # drilling on its own terms rather than only as part of a word.
-        "kana": {"per_lesson": 5, "through_lesson": 8},
+        "kana": {"per_lesson": 8, "through_lesson": 13},
         "kanji": {"per_lesson": 3},
         # Reading matters more here too: the jump from a spoken line to a
         # newspaper is wider, so passages start early and stay.

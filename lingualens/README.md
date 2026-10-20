@@ -371,13 +371,19 @@ collects, so it needs no extra pass and no extra audio.
 review, the haptic menu and “think in the language” are the same code. What differs:
 
 ```
-N5  · First contact        15 lessons   greetings, please/sorry, directions, ordering
-N4  · Everyday errands     10 lessons   shopping, prices, paying, time, plans, opinions
-N3  · Daily life           12 lessons   routine, home, weather, health, family, 〜たことがある
-N2  · Precision            12 lessons   〜てしまう, 〜ておく, 〜てみる, 〜ば〜ほど, passive/causative
-N1  · Opinions & society   12 lessons   work, education, environment, culture, debate
-N1+ · Native register      12 lessons   四字熟語, ことわざ, 敬語, news, literature, nuance
+N5         · First contact           15 lessons   greetings, please/sorry, directions, ordering
+N4         · Everyday errands        10 lessons   shopping, prices, paying, time, plans, opinions
+N4+        · Daily life              12 lessons   routine, family, 〜のほうが, 〜たことがある, phone keigo
+N4–N3      · Opinions & reasons      12 lessons   〜そうだ, 〜ので, passive/causative, 〜たら/ば/なら, 〜ても, 〜はず
+N3         · Keigo & argument        12 lessons   business keigo, 〜べきだ, 〜こそ, 〜ものだ, 〜と思われる
+N2 preview · Media & formal register 12 lessons   headlines, editorials, Q&A, idiom, a formal address
 ```
+
+The bands are labelled by the grammar they teach, not by the exam they aim at
+(docs/COURSE_AUDIT.md, finding 1). 73 lessons do not reach N1: the top band is a
+preview, and anyone sitting the exam needs far more input than this. Each band's
+word bank is still sized to its original JLPT level (bank 3 = N3 … bank 0 = beyond N1),
+so the topic menus run ahead of the lessons.
 
 73 lessons · 17 units · dialogue, drills, recall and free response per lesson · a
 JLPT‑graded bank in themed topics (人と家族, 旅行, 仕事, 四字熟語 …).
@@ -387,15 +393,16 @@ problem than hanzi, so the kana crutch survives one band longer than pinyin does
 
 | band | mode | what you see |
 |---|---|---|
-| N5–N3 | `always` | kana on every line |
-| N2–N1 | `fade` | kana when a line is taught, hidden when you must retrieve it |
-| N1+ | `reveal` | hidden until you have failed twice |
+| N5, N4, N4+ | `always` | kana on every line |
+| N4–N3, N3 | `fade` | kana when a line is taught, hidden when you must retrieve it |
+| N2 preview | `reveal` | hidden until you have failed twice |
 
 `config.ja.yaml → ui.reading_mode`.
 
 The English **scene** runs one band longer for exactly the same reason — and it also
-carries information the reading line cannot: at N3 you still cannot guess whether you
-are meant to be speaking です/ます or 敬語. N5–N3 `always`, N2–N1 `first`, N1+ `tip`
+carries information the reading line cannot: at N4+ you still cannot guess whether you
+are meant to be speaking です/ます or 敬語. N5–N4+ `always`, N4–N3 and N3 `first`,
+N2 preview `tip`
 (`config.ja.yaml → ui.scene_mode`).
 
 **Scoring.** Azure AI Speech `ja-JP` is the default: accuracy / fluency / completeness /
@@ -608,7 +615,7 @@ server/course/
     pinyin_check.py       validates every syllable in the corpus
   ja/                     Japanese
     course_ja.py          hand-authored foundation units (N5-N4 content)
-    jlpt5.py … jlpt0.py   N5, N4, N3, N2, N1, N1+ levels
+    jlpt5.py … jlpt0.py   bands 5…0: N5, N4, N4+, N4–N3, N3, N2 preview
     freeform.py           146 free-response questions + model answers
     vocab_n*.py           960 words in 48 themed topics (the word bank)
     scenes.py             the English scene for each of the 73 lessons

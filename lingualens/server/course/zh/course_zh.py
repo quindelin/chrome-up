@@ -55,6 +55,7 @@ UNIT_1 = {
                 ("没关系", "méi guānxi", "it's nothing / no problem", ""),
                 ("请进", "qǐng jìn", "please come in", ""),
                 ("请坐", "qǐng zuò", "please sit down", ""),
+                ("我迟到了", "wǒ chídào le", "I'm late", "迟到 = to be late; 了 marks that it has already happened."),
             ],
             "dialogue": [
                 ("them", "请进。", "qǐng jìn.", "Please come in."),
@@ -155,6 +156,7 @@ UNIT_2 = {
                 ("一直走", "yìzhí zǒu", "go straight", ""),
                 ("往左拐", "wǎng zuǒ guǎi", "turn to the left", ""),
                 ("在右边", "zài yòubiān", "on the right", ""),
+                ("远", "yuǎn", "far", ""),
             ],
             "dialogue": [
                 ("you", "请问，厕所在哪里？", "qǐng wèn, cèsuǒ zài nǎlǐ?", "Excuse me, where is the restroom?"),
@@ -221,6 +223,7 @@ UNIT_2 = {
                 ("地图", "dìtú", "map", ""),
                 ("我找", "wǒ zhǎo", "I'm looking for", ""),
                 ("这里", "zhèlǐ", "here", ""),
+                ("酒店", "jiǔdiàn", "hotel", ""),
             ],
             "dialogue": [
                 ("you", "对不起，我迷路了。", "duìbuqǐ, wǒ mí lù le.", "Sorry, I'm lost."),
@@ -243,6 +246,9 @@ UNIT_2 = {
                 ("十、二十、一百", "shí, èrshí, yìbǎi", "ten, twenty, one hundred", ""),
                 ("我住在", "wǒ zhù zài", "I live at", ""),
                 ("几号房？", "jǐ hào fáng?", "which room number?", ""),
+                ("北京", "Běijīng", "Beijing", ""),
+                ("饭店", "fàndiàn", "hotel (in a name)", "北京饭店 is a hotel: in names 饭店 means hotel, not restaurant."),
+                ("零", "líng", "zero", ""),
             ],
             "dialogue": [
                 ("them", "你住在哪里？", "nǐ zhù zài nǎlǐ?", "Where are you staying?"),
