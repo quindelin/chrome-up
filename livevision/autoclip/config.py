@@ -230,13 +230,17 @@ DEFAULTS: Dict[str, Any] = {
     # ---------------------------------------------------------------- publish
     "publish": {
         "mode": "dry_run",          # dry_run | live  (per-platform override below)
-        "platforms": ["youtube", "instagram", "x"],
+        "platforms": ["youtube", "instagram"],
         "default_title": "Clip from the last 5 minutes",
         "default_tags": [],
-        "require_approval": True,   # when live, clips sit in outbox until approved
+        "require_approval": True,   # clips sit in the approval queue until approved
+        "queue": "always",          # always: queue in dry_run too | live_only
         "youtube": {
-            "privacy": "unlisted",
+            "privacy": "public",
             "category": "22",
+            "client_id": "",
+            "client_secret": "",
+            "refresh_token": "",
             "client_secrets": "",
             "credentials": "var/autoclip/youtube_creds.json",
             "made_for_kids": False,

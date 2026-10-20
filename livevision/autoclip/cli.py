@@ -27,6 +27,12 @@ Stream title (see docs/STREAM_TITLE.md):
   python -m autoclip title "Walking Shibuya at night"
   python -m autoclip title-auth twitch      # laptop: OAuth once, prints .env lines
 
+Clip posting (see docs/CLIP_POSTING.md):
+  python -m autoclip pending                # the approval queue
+  python -m autoclip post <id> --platforms youtube,instagram --caption "..."
+  python -m autoclip approve <id> | reject <id>
+  python -m autoclip ig-token --app-id ...  # laptop: Instagram Page token, prints .env lines
+
 Privacy blur (see docs/PRIVACY_BLUR.md):
   python -m autoclip privacy                # on/off, drivers, faces seen
   python -m autoclip privacy on | off | toggle
@@ -105,6 +111,15 @@ def main(argv: list[str] | None = None) -> int:
     p_ta.add_argument("--client-id", required=True)
     p_ta.add_argument("--client-secret", required=True)
     p_ta.add_argument("--port", type=int, default=8765)
+    p_post = sub.add_parser("post", help="post a queued clip (see docs/CLIP_POSTING.md)")
+    p_post.add_argument("id")
+    p_post.add_argument("--platforms", default="")
+    p_post.add_argument("--title", default=None)
+    p_post.add_argument("--caption", default=None)
+    p_post.add_argument("--privacy", default=None, choices=["public", "unlisted", "private"])
+    p_ig = sub.add_parser("ig-token", help="Instagram Page token + IG user id, print .env lines")
+    p_ig.add_argument("--app-id", required=True)
+    p_ig.add_argument("--page", default="", help="Page id or name if you run several")
     p_pri = sub.add_parser("privacy", help="face blur switch (see docs/PRIVACY_BLUR.md)")
     p_pri.add_argument("action", nargs="?", default="status",
                        choices=["status", "on", "off", "toggle"])
@@ -138,6 +153,22 @@ def main(argv: list[str] | None = None) -> int:
               f"#   ./gcp.sh env {up}_REFRESH_TOKEN\n"
               f"{up}_CLIENT_ID={args.client_id}\n{up}_CLIENT_SECRET={args.client_secret}\n"
               f"{up}_REFRESH_TOKEN={tok['refresh_token']}")
+        return 0
+
+    if args.cmd == "ig-token":
+        import getpass
+
+        from .publishers.instagram import page_token
+        # prompted, not argv: keeps both out of shell history
+        secret = getpass.getpass("Meta app secret: ")
+        short = getpass.getpass("short-lived user token (Graph API Explorer): ")
+        version = str(cfg.get("publish", {}).get("instagram", {}).get("graph_version", "v23.0"))
+        got = page_token(args.app_id, secret, short, version, args.page)
+        if got["others"]:
+            print(f"# other Pages with Instagram: {got['others']} (pick with --page)")
+        print(f"# Page {got['page']!r}. Into the VM's .env, from deploy/obs-vps (prompts, hidden):\n"
+              f"#   ./gcp.sh env INSTAGRAM_USER_ID\n#   ./gcp.sh env INSTAGRAM_ACCESS_TOKEN\n"
+              f"INSTAGRAM_USER_ID={got['ig_user_id']}\nINSTAGRAM_ACCESS_TOKEN={got['access_token']}")
         return 0
 
     rt = build_pipeline(args.config)
@@ -204,6 +235,11 @@ def main(argv: list[str] | None = None) -> int:
     elif args.cmd == "approve":
         _print({"results": rt.approve(args.id,
                                       [p for p in args.platforms.split(",") if p] or None)})
+    elif args.cmd == "post":
+        rec = rt.poster.post(args.id, [p for p in args.platforms.split(",") if p] or None,
+                             wait=True, title=args.title, caption=args.caption,
+                             youtube_privacy=args.privacy)
+        _print(rec)
     elif args.cmd == "reject":
         _print({"rejected": rt.reject(args.id)})
     elif args.cmd == "clips":

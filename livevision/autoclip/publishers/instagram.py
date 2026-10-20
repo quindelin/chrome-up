@@ -2,7 +2,9 @@
 
 Requires:
   - A Business/Creator Instagram account linked to a Facebook Page
-  - A Page access token with instagram_content_publish (env var, see config)
+  - A Page access token with instagram_content_publish (env var, see config);
+    `python -m autoclip ig-token` turns a short-lived user token into a Page
+    token that does not expire and prints the IG user id
   - A publicly reachable URL for the video -> set publish.instagram.hosting
       static : this app serves /outbox/<file>, so publish.server.public_base_url
                must be a public URL (ngrok / cloudflared / your domain)
@@ -28,6 +30,17 @@ class InstagramPublisher(Publisher):
         ig = cfg.get("instagram", {}) or {}
         env = ig.get("access_token_env", "INSTAGRAM_ACCESS_TOKEN")
         return bool(ig.get("ig_user_id")) and bool(os.environ.get(env))
+
+    def missing(self, cfg: dict) -> str:
+        ig = cfg.get("instagram", {}) or {}
+        need = []
+        if not ig.get("ig_user_id"):
+            need.append("INSTAGRAM_USER_ID")
+        if not os.environ.get(ig.get("access_token_env", "INSTAGRAM_ACCESS_TOKEN")):
+            need.append(ig.get("access_token_env", "INSTAGRAM_ACCESS_TOKEN"))
+        if not need and not str((cfg.get("server", {}) or {}).get("public_base_url") or ""):
+            return "server.public_base_url is not set (Instagram fetches the clip from it)"
+        return f"set {', '.join(need)} (python -m autoclip ig-token)" if need else ""
 
     def _token(self, cfg: dict) -> str:
         ig = cfg.get("instagram", {}) or {}
@@ -101,3 +114,39 @@ class InstagramPublisher(Publisher):
                              media_id=media_id, message="published",
                              url=f"https://www.instagram.com/reel/{media_id}/" if published.get("id") else "",
                              raw=published)
+
+
+# --------------------------------------------------------------------------- token helper
+# `python -m autoclip ig-token` on a laptop. Facebook Login path: a Page token
+# made from a long-lived user token does not expire, so nothing has to
+# refresh it on the VM.
+def page_token(app_id: str, app_secret: str, user_token: str,
+               version: str = "v23.0", page: str = "") -> dict:
+    """short-lived user token -> long-lived user token -> Page token + IG user id."""
+    base = f"https://graph.facebook.com/{version}"
+
+    def get(path: str, **params) -> dict:
+        url = f"{base}/{path}?{urllib.parse.urlencode(params)}"
+        try:
+            with urllib.request.urlopen(url, timeout=30) as resp:
+                return json.loads(resp.read().decode("utf-8", "replace"))
+        except urllib.error.HTTPError as exc:
+            body = json.loads(exc.read().decode("utf-8", "replace") or "{}")
+            msg = (body.get("error") or {}).get("message", "") if isinstance(body, dict) else ""
+            raise SystemExit(f"Graph API {path} -> {exc.code}: {msg[:300]}") from None
+
+    long_user = get("oauth/access_token", grant_type="fb_exchange_token", client_id=app_id,
+                    client_secret=app_secret, fb_exchange_token=user_token)["access_token"]
+    pages = get("me/accounts", access_token=long_user,
+                fields="id,name,access_token,instagram_business_account").get("data") or []
+    pages = [p for p in pages if p.get("instagram_business_account")]
+    if page:
+        pages = [p for p in pages if page in (p.get("id"), p.get("name"))]
+    if not pages:
+        raise SystemExit("no Facebook Page with a linked Instagram business account "
+                         "(token needs pages_show_list, instagram_basic, "
+                         "instagram_content_publish, pages_read_engagement)")
+    p = pages[0]
+    return {"page": p.get("name", ""), "page_id": p["id"], "access_token": p["access_token"],
+            "ig_user_id": p["instagram_business_account"]["id"],
+            "others": [x.get("name") for x in pages[1:]]}

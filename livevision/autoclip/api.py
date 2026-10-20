@@ -15,6 +15,15 @@ GET  /api/autoclip/stack             -> whole-box health for the companion app
 POST /api/autoclip/approve/{id}      -> publish a held clip
 POST /api/autoclip/reject/{id}       -> drop a held clip
 
+Clip posting from the phone (see docs/CLIP_POSTING.md):
+GET   /api/autoclip/platforms          -> mode + which platforms are set up, limits
+GET   /api/autoclip/clips/{id}         -> one queue record with per-platform status
+PATCH /api/autoclip/clips/{id}         -> {title?, caption?, hashtags?, youtube_privacy?}
+POST  /api/autoclip/clips/{id}/post    -> 202, posts youtube/instagram in the background
+POST  /api/autoclip/clips/{id}/shared  -> the phone shared tiktok / x: {platform, state}
+POST  /api/autoclip/clips/{id}/reject  -> drop it
+GET   /api/autoclip/posted             -> recently posted records with links
+
 Voice / HUD integration (see docs/VOICE_COMMANDS.md):
 GET  /api/autoclip/events            -> Server-Sent Events stream of StreamEvents
 GET  /api/autoclip/events/history    -> last N events (JSON)
@@ -109,6 +118,27 @@ class TitleRequest(BaseModel):
     platforms: List[str] = Field(default_factory=list)
 
 
+class ClipEdit(BaseModel):
+    """Edits to a queued clip; omitted fields stay as they are."""
+    title: Optional[str] = None
+    caption: Optional[str] = None
+    hashtags: Optional[List[str]] = None
+    youtube_privacy: Optional[str] = None
+
+
+class ClipPost(ClipEdit):
+    """Post to server platforms (youtube, instagram); [] = the clip's own."""
+    platforms: List[str] = Field(default_factory=list)
+
+
+class ClipShared(BaseModel):
+    """The phone handed the clip to TikTok / X: shared | cancelled | failed."""
+    platform: str
+    state: str = "shared"
+    message: str = ""
+    url: str = ""
+
+
 class PrivacyRequest(BaseModel):
     """Face blur switch: on / off / toggle."""
     on: Optional[bool] = None
@@ -176,6 +206,21 @@ def create_app(pipeline: Optional[Pipeline] = None, config_path: str = "autoclip
                 {"name": "pending", "method": "GET", "path": "/api/autoclip/pending"},
                 {"name": "approve", "method": "POST", "path": "/api/autoclip/approve/{id}"},
                 {"name": "reject", "method": "POST", "path": "/api/autoclip/reject/{id}"},
+                {"name": "platforms", "method": "GET", "path": "/api/autoclip/platforms",
+                 "description": "publish mode, configured platforms, caption limits"},
+                {"name": "clip", "method": "GET", "path": "/api/autoclip/clips/{id}"},
+                {"name": "clip_edit", "method": "PATCH", "path": "/api/autoclip/clips/{id}",
+                 "body": {"title": "str?", "caption": "str?", "hashtags": ["str"],
+                          "youtube_privacy": "public | unlisted | private"}},
+                {"name": "clip_post", "method": "POST", "path": "/api/autoclip/clips/{id}/post",
+                 "description": "202: posts in the background; poll clip or watch clip_status events",
+                 "body": {"platforms": ["youtube", "instagram"], "title": "str?",
+                          "caption": "str?", "hashtags": ["str"]}},
+                {"name": "clip_shared", "method": "POST",
+                 "path": "/api/autoclip/clips/{id}/shared",
+                 "body": {"platform": "tiktok | x", "state": "shared | cancelled | failed"}},
+                {"name": "clip_reject", "method": "POST", "path": "/api/autoclip/clips/{id}/reject"},
+                {"name": "posted", "method": "GET", "path": "/api/autoclip/posted"},
                 {"name": "events", "method": "GET", "path": "/api/autoclip/events",
                  "description": "SSE stream of voice_command + transcript_chunk events"},
                 {"name": "events_history", "method": "GET", "path": "/api/autoclip/events/history",
@@ -222,7 +267,7 @@ def create_app(pipeline: Optional[Pipeline] = None, config_path: str = "autoclip
                               "unmute", "volume", "record", "unrecord", "vcam",
                               "unvcam", "broadcast", "unbroadcast", "replay",
                               "transition", "blur", "unblur"],
-            "event_types": ["voice_command", "transcript_chunk", "stream_gap",
+            "event_types": ["voice_command", "transcript_chunk", "stream_gap", "clip_status",
                             "stream_status", "obs_status", "privacy_status",
                             "stream_title"],
             "obs_intents": sorted((cfg.get("obs", {}).get("voice", {})
@@ -378,11 +423,60 @@ def create_app(pipeline: Optional[Pipeline] = None, config_path: str = "autoclip
             return JSONResponse({"results": await run_in_threadpool(rt.approve, item_id, platforms)})
         except KeyError as exc:
             raise HTTPException(status_code=404, detail=str(exc))
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
 
     @app.post("/api/autoclip/reject/{item_id}")
     async def reject(item_id: str, _: None = Depends(auth)) -> JSONResponse:
         rt: Pipeline = app.state.pipeline
         return JSONResponse({"rejected": await run_in_threadpool(rt.reject, item_id)})
+
+    # ------------------------------------------------------------------ posting
+    @app.get("/api/autoclip/platforms")
+    async def platforms(_: None = Depends(auth)) -> JSONResponse:
+        rt: Pipeline = app.state.pipeline
+        return JSONResponse(rt.poster.platforms())
+
+    @app.get("/api/autoclip/posted")
+    async def posted(_: None = Depends(auth)) -> JSONResponse:
+        rt: Pipeline = app.state.pipeline
+        return JSONResponse({"posted": rt.poster.posted()})
+
+    def _guard(fn, *a, **kw):
+        try:
+            return fn(*a, **kw)
+        except KeyError as exc:
+            raise HTTPException(status_code=404, detail=str(exc).strip("'\""))
+        except ValueError as exc:
+            raise HTTPException(status_code=422, detail=str(exc))
+
+    @app.get("/api/autoclip/clips/{item_id}")
+    async def clip_get(item_id: str, _: None = Depends(auth)) -> JSONResponse:
+        rt: Pipeline = app.state.pipeline
+        return JSONResponse(_guard(rt.poster.get, item_id))
+
+    @app.patch("/api/autoclip/clips/{item_id}")
+    async def clip_edit(item_id: str, body: ClipEdit, _: None = Depends(auth)) -> JSONResponse:
+        rt: Pipeline = app.state.pipeline
+        return JSONResponse(_guard(rt.poster.edit, item_id, **body.model_dump()))
+
+    @app.post("/api/autoclip/clips/{item_id}/post")
+    async def clip_post(item_id: str, body: ClipPost, _: None = Depends(auth)) -> JSONResponse:
+        rt: Pipeline = app.state.pipeline
+        edits = body.model_dump(exclude={"platforms"})
+        rec = _guard(rt.poster.post, item_id, body.platforms or None, **edits)
+        return JSONResponse(rec, status_code=202)
+
+    @app.post("/api/autoclip/clips/{item_id}/shared")
+    async def clip_shared(item_id: str, body: ClipShared, _: None = Depends(auth)) -> JSONResponse:
+        rt: Pipeline = app.state.pipeline
+        return JSONResponse(_guard(rt.poster.mark, item_id, body.platform, body.state,
+                                   body.message, body.url))
+
+    @app.post("/api/autoclip/clips/{item_id}/reject")
+    async def clip_reject(item_id: str, _: None = Depends(auth)) -> JSONResponse:
+        rt: Pipeline = app.state.pipeline
+        return JSONResponse({"rejected": rt.poster.reject(item_id)})
 
     @app.get("/", response_model=None)
     async def index(request: Request):

@@ -151,6 +151,15 @@ KICK_REFRESH_TOKEN=
 KICK_USER_TOKEN=
 ENV
 fi
+# clip posting from the companion app (docs/CLIP_POSTING.md): YouTube reuses
+# the YOUTUBE_* lines above; Instagram needs a Page token (autoclip ig-token)
+if ! grep -q '^INSTAGRAM_USER_ID=' .env; then
+  cat >> .env <<'ENV'
+# clip posting (docs/CLIP_POSTING.md): Instagram Reels via the Graph API
+INSTAGRAM_USER_ID=
+INSTAGRAM_ACCESS_TOKEN=
+ENV
+fi
 
 # GPU or not decides the compose files; compose reads COMPOSE_FILE from .env,
 # so every `docker compose` (here, gcp.sh obs-reset, ...) picks it up

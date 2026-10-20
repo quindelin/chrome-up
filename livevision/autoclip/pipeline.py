@@ -24,6 +24,7 @@ from .ingest import ReplayBufferSource, Source, build_source, refresh_window
 from .livestream import LiveStreamManager
 from .obs import OBSClient
 from .obsctl import OBSController
+from .posting import ClipPoster, new_record
 from .privacy import build_privacy
 from .publishers import PublishResult, publish_all
 from .signals import Analysis, analyze_window
@@ -107,6 +108,10 @@ class Pipeline:
         if self.live is not None:
             self.live.on_start = self.title.reapply_async
 
+        # The approval queue the phone edits and posts from (docs/CLIP_POSTING.md)
+        self.poster = ClipPoster(cfg, self.workdir, self.state, self._state_lock,
+                                 self._save_state, on_status=self._clip_event)
+
         # Privacy blur (face blur, togglable by voice). The OBS driver only
         # needs a socket when it is actually switched on, so the client is
         # created lazily on first use.
@@ -155,6 +160,12 @@ class Pipeline:
         self.events.publish(StreamEvent(
             type="stream_title", ts=time.time(), text=result.get("title", ""),
             source="manual", extra={"results": result.get("results", [])}))
+
+    def _clip_event(self, status: dict) -> None:
+        self.events.publish(StreamEvent(
+            type="clip_status", ts=time.time(), text=status.get("message", ""),
+            target=status.get("platform", ""), value=status.get("state", ""),
+            source="manual", extra=status))
 
     def title_status(self) -> dict:
         return self.title.status()
@@ -354,6 +365,10 @@ class Pipeline:
         do_publish = publish if publish is not None else True
         require_approval = bool(pub_cfg.get("require_approval", True))
         live = str(pub_cfg.get("mode", "dry_run")).lower() == "live"
+        # queue: always -> every clip waits for the phone, dry_run or not;
+        # publish.mode then only decides whether Post reaches the platforms
+        queue = require_approval and (
+            live or str(pub_cfg.get("queue", "always")).lower() == "always")
 
         for i, decision in enumerate(approved):
             try:
@@ -376,15 +391,13 @@ class Pipeline:
 
             if not do_publish:
                 continue
-            if live and require_approval:
+            if queue:
                 for res in publish_all(clip, ["local"], {"mode": "dry_run"}, self.workdir):
-                    res.message = "pending approval (publish.mode=live, require_approval=true)"
+                    res.message = f"pending approval (publish.mode={'live' if live else 'dry_run'})"
                     result.results.append(res.to_dict())
                 with self._state_lock:
-                    self.state.setdefault("pending", []).append({
-                        "id": f"{result.id}_{i}", "cycle": result.id,
-                        "clip": clip.to_dict(), "platforms": platforms,
-                    })
+                    self.state.setdefault("pending", []).append(
+                        new_record(f"{result.id}_{i}", result.id, clip, platforms))
                 continue
 
             for res in publish_all(clip, platforms, pub_cfg, self.workdir):
@@ -470,39 +483,16 @@ class Pipeline:
 
     # ------------------------------------------------------------------ approvals
     def pending(self) -> List[dict]:
-        return self.state.get("pending", [])
+        return self.poster.pending()
 
     def approve(self, item_id: str, platforms: Optional[List[str]] = None) -> List[dict]:
-        """Publish a clip that was held for approval."""
-        pub_cfg = self.cfg.get("publish", {})
-        with self._state_lock:
-            remaining, target = [], None
-            for item in self.state.get("pending", []):
-                if item.get("id") == item_id:
-                    target = item
-                else:
-                    remaining.append(item)
-            if target is None:
-                raise KeyError(f"no pending clip {item_id!r}")
-            self.state["pending"] = remaining
-
-        clip_info = target["clip"]
-        clip = Clip(path=Path(clip_info["path"]), start=float(clip_info["start"]),
-                    end=float(clip_info["end"]), duration=float(clip_info["duration"]),
-                    decision=ClipDecision.from_any(clip_info["decision"], {}) or ClipDecision(0, 0),
-                    srt=Path(clip_info["srt"]) if clip_info.get("srt") else None,
-                    thumb=Path(clip_info["thumb"]) if clip_info.get("thumb") else None)
-        out = [r.to_dict() for r in publish_all(clip, platforms or target.get("platforms", []),
-                                                {**pub_cfg, "mode": "live"}, self.workdir)]
-        self._save_state()
-        return out
+        """Post a held clip and wait for it (CLI / MCP / web page). publish.mode
+        decides whether it reaches the platforms; the phone uses post()."""
+        self.poster.post(item_id, platforms or None, wait=True)
+        return self.poster.results(item_id)
 
     def reject(self, item_id: str) -> bool:
-        with self._state_lock:
-            before = len(self.state.get("pending", []))
-            self.state["pending"] = [i for i in self.state.get("pending", []) if i.get("id") != item_id]
-            self._save_state()
-            return len(self.state["pending"]) < before
+        return self.poster.reject(item_id)
 
     # ------------------------------------------------------------------ events
     def _emit_transcript_chunks(self, window: Window, transcript: Transcript,

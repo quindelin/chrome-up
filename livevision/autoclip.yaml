@@ -262,21 +262,26 @@ voice:
 
 publish:
   mode: dry_run             # dry_run | live
-  platforms: [youtube, instagram, x]
+  platforms: [youtube, instagram]   # server-side; tiktok and x are shared from the phone
   default_title: "From the last five minutes"
   default_tags: []
-  require_approval: true    # live posts wait in outbox until approved
+  require_approval: true    # clips wait in the queue until approved (phone / CLI / web)
+  queue: always             # always: queue in dry_run too | live_only: old behaviour
 
   youtube:
-    privacy: unlisted       # private | unlisted | public
+    privacy: public         # private | unlisted | public (the phone can override per clip)
     category: "22"
-    client_secrets: ""      # Google OAuth desktop client JSON
+    # same OAuth client + refresh token as stream_title.youtube (title-auth youtube)
+    client_id: "${YOUTUBE_CLIENT_ID}"
+    client_secret: "${YOUTUBE_CLIENT_SECRET}"
+    refresh_token: "${YOUTUBE_REFRESH_TOKEN}"
+    client_secrets: ""      # laptop fallback: Google OAuth desktop client JSON
     credentials: var/autoclip/youtube_creds.json
     made_for_kids: false
 
   instagram:
     graph_version: v23.0
-    ig_user_id: ""
+    ig_user_id: "${INSTAGRAM_USER_ID}"   # python -m autoclip ig-token prints it
     access_token_env: INSTAGRAM_ACCESS_TOKEN
     share_to_feed: true
     hosting: static         # static (this server + public_base_url) | s3

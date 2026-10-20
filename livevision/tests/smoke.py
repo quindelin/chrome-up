@@ -10,6 +10,7 @@ import json
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -1385,6 +1386,177 @@ def t_stream_title():
         assert started == ["kick"], started
 
 
+def t_clip_posting():
+    """Queue in dry_run, edits, async per-platform posting, retry, device
+    shares, and the REST surface the phone uses (docs/CLIP_POSTING.md)."""
+    import threading
+    from types import SimpleNamespace
+
+    from autoclip import pipeline as pl
+    from autoclip import posting
+    from autoclip.agents import ClipDecision
+    from autoclip.buffer import Window
+    from autoclip.clips import Clip
+    from autoclip.publishers import PublishResult
+
+    p = _bare_pipeline()
+    try:
+        assert p.cfg["publish"]["mode"] == "dry_run" and p.cfg["publish"]["queue"] == "always"
+        # one cycle with everything but the queueing stubbed out
+        win = Window(path=p.windows_dir / "w.mkv", start_wall=1000.0, duration=300.0, source="t")
+        p.capture_window = lambda: win
+        p.analyze = lambda w, with_frames=True: SimpleNamespace(to_dict=lambda: {}, moments=[])
+        p.transcribe = lambda w: SimpleNamespace(note="", slice=lambda a, b: None)
+        p.context = lambda *a: None
+        p._emit_transcript_chunks = lambda *a: None
+        p._emit_voice_commands = lambda *a: []
+        p.agent = SimpleNamespace(name="t", propose=lambda ctx: [ClipDecision(
+            start=10, end=35, score=0.9, title="Big jump", caption="send it",
+            hashtags=["skate"], platforms=["youtube", "instagram"])])
+
+        def fake_render(path, decision, cfg, out_dir, transcript=None, name=None, privacy=None):
+            mp4, jpg = Path(out_dir) / f"{name}.mp4", Path(out_dir) / f"{name}.jpg"
+            mp4.write_bytes(b"\x00" * 64)
+            jpg.write_bytes(b"\xff")
+            return Clip(path=mp4, start=decision.start, end=decision.end, duration=25.0,
+                        decision=decision, thumb=jpg)
+
+        real_render, pl.render_clip = pl.render_clip, fake_render
+        try:
+            res = p.run_cycle()
+        finally:
+            pl.render_clip = real_render
+        pend = p.pending()
+        assert len(pend) == 1, (pend, res.notes)          # queued although dry_run
+        rec = pend[0]
+        cid = rec["id"]
+        assert rec["status"] == "ready" and rec["edits"]["title"] == "Big jump"
+        assert rec["video_url"] == f"outbox/{cid}.mp4" and rec["thumb_url"] == f"outbox/{cid}.jpg"
+        assert (p.workdir / "outbox" / f"{cid}.mp4").exists()   # preview is playable
+
+        # edits
+        rec = p.poster.edit(cid, caption="  new caption ", hashtags=["#a", "b", ""],
+                            youtube_privacy="unlisted")
+        assert rec["edits"]["caption"] == "new caption" and rec["edits"]["hashtags"] == ["a", "b"]
+        try:
+            p.poster.edit(cid, youtube_privacy="secret")
+            raise AssertionError("bad privacy accepted")
+        except ValueError:
+            pass
+
+        # posting is async: youtube blocks until released, instagram fails once
+        gate, seen, ig_fail = threading.Event(), [], [True]
+
+        def fake_publish(clip, platform, cfg, workdir):
+            seen.append((platform, clip.decision.caption, list(clip.decision.hashtags),
+                         (cfg.get("youtube") or {}).get("privacy"),
+                         (cfg.get("server") or {}).get("public_base_url", None) is not None))
+            if platform == "youtube":
+                gate.wait(5)
+                return PublishResult(platform="youtube", ok=True, url="https://youtube.com/shorts/v1",
+                                     media_id="v1", message="uploaded")
+            if ig_fail[0]:
+                ig_fail[0] = False
+                return PublishResult(platform="instagram", ok=False, message="container error")
+            return PublishResult(platform="instagram", ok=True, url="https://instagram.com/reel/1")
+
+        real_pub, posting.publish_one = posting.publish_one, fake_publish
+        try:
+            from fastapi.testclient import TestClient
+            from autoclip.api import create_app
+            client = TestClient(create_app(pipeline=p))
+
+            plats = client.get("/api/autoclip/platforms").json()
+            assert plats["mode"] == "dry_run" and plats["youtube_privacy"] == "public"
+            by = {x["name"]: x for x in plats["platforms"]}
+            assert by["youtube"]["path"] == "server" and by["tiktok"]["path"] == "device"
+            assert by["x"]["limits"]["caption"] == 280
+            if not by["youtube"]["configured"]:
+                assert "YOUTUBE_REFRESH_TOKEN" in by["youtube"]["reason"], by["youtube"]
+
+            r = client.post(f"/api/autoclip/clips/{cid}/post", json={"title": "Bigger jump"})
+            assert r.status_code == 202, r.text
+            assert r.json()["status"] == "posting", r.json()     # answered before youtube finished
+            for _ in range(100):
+                if client.get(f"/api/autoclip/clips/{cid}").json()["posts"]["instagram"]["state"] == "failed":
+                    break
+                time.sleep(0.02)
+            gate.set()
+            for _ in range(100):
+                rec = client.get(f"/api/autoclip/clips/{cid}").json()
+                if rec["status"] != "posting":
+                    break
+                time.sleep(0.02)
+            assert rec["status"] == "partial", rec
+            assert rec["posts"]["youtube"]["state"] == "posted"
+            assert rec["posts"]["youtube"]["url"].endswith("/v1")
+            assert rec["posts"]["instagram"]["message"] == "container error"
+            assert rec["edits"]["title"] == "Bigger jump"
+            assert seen[0][1] == "new caption" and seen[0][2] == ["a", "b"]
+            assert {s[3] for s in seen} == {"unlisted"} and all(s[4] for s in seen)
+
+            # retry posts only what failed
+            gate.clear()
+            gate.set()
+            r = client.post(f"/api/autoclip/clips/{cid}/post", json={})
+            assert r.status_code == 202
+            for _ in range(100):
+                rec = client.get(f"/api/autoclip/clips/{cid}").json()
+                if rec["status"] != "posting":
+                    break
+                time.sleep(0.02)
+            assert [s[0] for s in seen].count("youtube") == 1, seen
+            assert rec["status"] == "done", rec
+
+            # done records leave the queue for the posted list
+            assert client.get("/api/autoclip/pending").json()["pending"] == []
+            assert client.get("/api/autoclip/posted").json()["posted"][0]["id"] == cid
+
+            # device platforms are the phone's: refused here, reported back
+            assert client.post(f"/api/autoclip/clips/{cid}/post",
+                               json={"platforms": ["tiktok"]}).status_code == 422
+            r = client.post(f"/api/autoclip/clips/{cid}/shared", json={"platform": "tiktok"})
+            assert r.json()["posts"]["tiktok"]["state"] == "shared", r.json()
+            assert client.post(f"/api/autoclip/clips/{cid}/shared",
+                               json={"platform": "youtube"}).status_code == 422
+            assert client.get("/api/autoclip/clips/nope").status_code == 404
+
+            # clip_status events reach the bus
+            evs = [e for e in p.events.history(200) if e.type == "clip_status"]
+            assert {e.extra["platform"] for e in evs} >= {"youtube", "instagram", "tiktok"}
+        finally:
+            posting.publish_one = real_pub
+
+        # dry_run really is dry: the real publishers only touch the outbox
+        p.state["pending"].append(posting.new_record(
+            "d_0", "d", Clip(path=p.clips_dir / f"{cid}.mp4", start=0, end=25, duration=25,
+                             decision=ClipDecision(start=0, end=25, title="t")), ["youtube"]))
+        results = p.approve("d_0")
+        assert results and results[0]["dry_run"] and results[0]["ok"], results
+        assert p.poster.get("d_0")["posts"]["youtube"]["state"] == "dry_run"
+
+        # a restart fails posts that were mid-upload instead of spinning forever
+        p.state["pending"].append({"id": "x_0", "clip": {"path": "x.mp4"},
+                                   "posts": {"youtube": {"state": "uploading"}}})
+        again = posting.ClipPoster(p.cfg, p.workdir, p.state, p._state_lock, p._save_state)
+        assert again.get("x_0")["posts"]["youtube"]["state"] == "failed"
+        assert again.reject("x_0") and not again.reject("x_0")
+
+        # YouTube: Shorts tag, public by default, configured from the refresh token
+        from autoclip.publishers.youtube import YouTubePublisher, video_body
+        clip = Clip(path=Path("c.mp4"), start=0, end=1, duration=1,
+                    decision=ClipDecision(start=0, end=1, title="T", caption="C", hashtags=["#ski"]))
+        body = video_body(clip, {"youtube": {}})
+        assert body["status"]["privacyStatus"] == "public"
+        assert body["snippet"]["description"].endswith("#ski #Shorts") and body["snippet"]["tags"] == ["ski"]
+        yt = {"youtube": {"client_id": "i", "client_secret": "s", "refresh_token": "r",
+                          "credentials": str(p.workdir / "none.json")}}
+        assert YouTubePublisher().enabled(yt) and YouTubePublisher().missing(yt) == ""
+        assert "YOUTUBE_REFRESH_TOKEN" in YouTubePublisher().missing({"youtube": {"client_id": "i"}})
+    finally:
+        p.shutdown()
+
+
 def main() -> int:
     print("autoclip smoke test\n")
     for name, fn in [
@@ -1411,6 +1583,7 @@ def main() -> int:
         ("retention keeps disk bounded", t_retention_keeps_disk_bounded),
         ("captions one file per clip", t_captions_one_file_per_clip),
         ("voice fires once + rumble", t_voice_once_and_rumble),
+        ("clip posting", t_clip_posting),
     ]:
         check(name, fn)
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed")
