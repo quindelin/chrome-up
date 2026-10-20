@@ -27,6 +27,7 @@ from .obsctl import OBSController
 from .privacy import build_privacy
 from .publishers import PublishResult, publish_all
 from .signals import Analysis, analyze_window
+from .stream_title import StreamTitle
 from .transcript import Transcript, transcript_for_window
 from .util import ensure_dir
 from .voice import StreamEvent, build_parser
@@ -96,6 +97,16 @@ class Pipeline:
             self.live = LiveStreamManager(cfg["live_streams"],
                                           self.workdir / "live")
 
+        # Stream title on every platform that has an API for it. Always
+        # built: without credentials each platform just answers ok=false.
+        live_cfg = cfg.get("live_streams", {}) or {}
+        self.title = StreamTitle(cfg.get("stream_title", {}) or {}, self.workdir,
+                                 platforms=[t.get("name") for t in live_cfg.get("targets") or []
+                                            if t.get("name")] or None,
+                                 on_change=self._title_event)
+        if self.live is not None:
+            self.live.on_start = self.title.reapply_async
+
         # Privacy blur (face blur, togglable by voice). The OBS driver only
         # needs a socket when it is actually switched on, so the client is
         # created lazily on first use.
@@ -138,6 +149,18 @@ class Pipeline:
             return {"ok": False, "action": intent, "target": target,
                     "message": "obs voice control disabled (set obs.voice.enabled)"}
         return self.obs.handle(intent, target, value).to_dict()
+
+    # ------------------------------------------------------------------ title
+    def _title_event(self, result: dict) -> None:
+        self.events.publish(StreamEvent(
+            type="stream_title", ts=time.time(), text=result.get("title", ""),
+            source="manual", extra={"results": result.get("results", [])}))
+
+    def title_status(self) -> dict:
+        return self.title.status()
+
+    def title_set(self, title: str, platforms: Optional[List[str]] = None) -> dict:
+        return self.title.set(title, platforms)
 
     # ------------------------------------------------------------------ live
     def live_status(self) -> dict:

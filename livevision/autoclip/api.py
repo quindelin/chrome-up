@@ -19,6 +19,10 @@ Voice / HUD integration (see docs/VOICE_COMMANDS.md):
 GET  /api/autoclip/events            -> Server-Sent Events stream of StreamEvents
 GET  /api/autoclip/events/history    -> last N events (JSON)
 POST /api/autoclip/command           -> inject a manual voice event (testing / hotkeys)
+
+Stream title (see docs/STREAM_TITLE.md):
+GET  /api/autoclip/live/title        -> last title + per-platform results
+POST /api/autoclip/live/title        -> {"title", "platforms"?}: set it everywhere
 """
 from __future__ import annotations
 
@@ -97,6 +101,12 @@ class OBSRequest(BaseModel):
     intent: str
     target: str = ""
     value: str = ""
+
+
+class TitleRequest(BaseModel):
+    """Live stream title; no platforms = every restream target."""
+    title: str
+    platforms: List[str] = Field(default_factory=list)
 
 
 class PrivacyRequest(BaseModel):
@@ -185,6 +195,13 @@ def create_app(pipeline: Optional[Pipeline] = None, config_path: str = "autoclip
                  "path": "/api/autoclip/live/start_all"},
                 {"name": "live_stop_all", "method": "POST",
                  "path": "/api/autoclip/live/stop_all"},
+                {"name": "live_title", "method": "GET",
+                 "path": "/api/autoclip/live/title",
+                 "description": "last stream title + per-platform results"},
+                {"name": "live_title_set", "method": "POST",
+                 "path": "/api/autoclip/live/title",
+                 "body": {"title": "str", "platforms": ["str?"]},
+                 "description": "set the title on twitch/youtube/kick; x, rumble: not supported"},
                 {"name": "obs_status", "method": "GET",
                  "path": "/api/autoclip/obs",
                  "description": "OBS scenes, sources, armed intents"},
@@ -206,7 +223,8 @@ def create_app(pipeline: Optional[Pipeline] = None, config_path: str = "autoclip
                               "unvcam", "broadcast", "unbroadcast", "replay",
                               "transition", "blur", "unblur"],
             "event_types": ["voice_command", "transcript_chunk", "stream_gap",
-                            "stream_status", "obs_status", "privacy_status"],
+                            "stream_status", "obs_status", "privacy_status",
+                            "stream_title"],
             "obs_intents": sorted((cfg.get("obs", {}).get("voice", {})
                                    or {}).get("intents", []) or []),
             "live_platforms": [t.get("name") for t in
@@ -461,6 +479,19 @@ def create_app(pipeline: Optional[Pipeline] = None, config_path: str = "autoclip
     async def live_stop_all(_: None = Depends(auth)) -> JSONResponse:
         rt: Pipeline = app.state.pipeline
         return JSONResponse({"results": await run_in_threadpool(rt.live_stop_all)})
+
+    @app.get("/api/autoclip/live/title")
+    async def live_title(_: None = Depends(auth)) -> JSONResponse:
+        """The last title set, and what each platform said."""
+        rt: Pipeline = app.state.pipeline
+        return JSONResponse(rt.title_status())
+
+    @app.post("/api/autoclip/live/title")
+    async def live_title_set(body: TitleRequest, _: None = Depends(auth)) -> JSONResponse:
+        """Set the title on every platform with an API: {"title": "..."}."""
+        rt: Pipeline = app.state.pipeline
+        return JSONResponse(await run_in_threadpool(rt.title_set, body.title,
+                                                    body.platforms or None))
 
     # ------------------------------------------------------------------- obs
     @app.get("/api/autoclip/obs")

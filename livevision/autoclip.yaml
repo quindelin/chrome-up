@@ -116,6 +116,26 @@ live_streams:
     #   key: "${CUSTOM_STREAM_KEY}"
     #   enabled: false
 
+# Live stream title, set from the companion app or
+# POST /api/autoclip/live/title. See docs/STREAM_TITLE.md for the tokens.
+stream_title:
+  retry_delays: [30, 90]     # a restream that starts later gets the title again
+  twitch:
+    client_id: "${TWITCH_CLIENT_ID}"
+    client_secret: "${TWITCH_CLIENT_SECRET}"
+    refresh_token: "${TWITCH_REFRESH_TOKEN}"
+    user_token: "${TWITCH_USER_TOKEN}"         # instead of secret + refresh (expires)
+    broadcaster_id: "${TWITCH_BROADCASTER_ID}" # optional: looked up from the token
+  youtube:
+    client_id: "${YOUTUBE_CLIENT_ID}"
+    client_secret: "${YOUTUBE_CLIENT_SECRET}"
+    refresh_token: "${YOUTUBE_REFRESH_TOKEN}"
+  kick:
+    client_id: "${KICK_CLIENT_ID}"
+    client_secret: "${KICK_CLIENT_SECRET}"
+    refresh_token: "${KICK_REFRESH_TOKEN}"
+    user_token: "${KICK_USER_TOKEN}"
+
 window:
   seconds: 300              # "the past five minutes"
   stride_seconds: 60

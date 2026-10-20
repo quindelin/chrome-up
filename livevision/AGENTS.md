@@ -173,6 +173,13 @@ goes live unless you set `enabled: true`.
 
 REST: `GET /api/autoclip/live`, `POST /api/autoclip/live/{start,stop}/{name}`,
 `POST /api/autoclip/live/{start_all,stop_all}`.
+
+**Stream title** ([`docs/STREAM_TITLE.md`](docs/STREAM_TITLE.md)):
+`GET|POST /api/autoclip/live/title {"title", "platforms"?}` sets it on
+Twitch / YouTube / Kick (X and Rumble: `ok: false`, no API), answering
+`{platform, ok, message}` each. No credentials means `ok: false`, never an
+exception. The last title is re-applied when a restream starts. CLI
+`python -m autoclip title "..."`, MCP `autoclip_live_title`, event `stream_title`.
 CLI: `python -m autoclip live status|start|stop|start-all|stop-all`.
 
 ## 3d. Voice commands → OBS (on the VM)

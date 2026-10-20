@@ -72,6 +72,36 @@ private func parseISO(_ s: String) -> Date? {
     return f.date(from: s)
 }
 
+/// GET/POST /api/autoclip/live/title: the stream title and what each platform said.
+struct TitleState: Decodable {
+    var title: String?
+    var results: [Result]?
+    var platforms: [Platform]?
+
+    struct Result: Decodable, Identifiable {
+        var platform: String
+        var ok: Bool
+        var message: String?
+        var id: String { platform }
+    }
+
+    struct Platform: Decodable {
+        var name: String
+        var supported: Bool?
+        var configured: Bool?
+    }
+
+    /// "Twitch ✓ · YouTube: no OAuth client set · X: no title API"
+    var summary: String {
+        (results ?? []).map { r in
+            let name = r.platform == "youtube" ? "YouTube" : r.platform.count <= 2 ? r.platform.uppercased() : r.platform.capitalized
+            if r.ok { return "\(name) ✓" }
+            let why = r.message ?? "failed"
+            return "\(name): \(why.hasPrefix("not supported") ? "no title API" : why)"
+        }.joined(separator: " · ")
+    }
+}
+
 enum StackError: LocalizedError {
     case noHost, unauthorized, unreachable(String), server(Int), refused(String)
 
@@ -140,6 +170,25 @@ struct StackClient {
         let r = try? JSONDecoder().decode(Result.self, from: data)
         if r?.ok == false { throw StackError.refused(r?.message ?? "refused") }
     }
+
+    func title() async throws -> TitleState {
+        try Self.decoder.decode(TitleState.self, from: try await send(request("api/autoclip/live/title")))
+    }
+
+    /// Sets it on every restream platform with an API; the answer has one result each.
+    func setTitle(_ title: String) async throws -> TitleState {
+        var r = request("api/autoclip/live/title", method: "POST")
+        r.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        r.httpBody = try JSONEncoder().encode(["title": title])
+        r.timeoutInterval = 30          // a few round trips to each platform
+        return try Self.decoder.decode(TitleState.self, from: try await send(r))
+    }
+
+    private static let decoder: JSONDecoder = {
+        let d = JSONDecoder()
+        d.keyDecodingStrategy = .convertFromSnakeCase
+        return d
+    }()
 
     /// The approval queue page (Safari asks for the same login).
     var approvalPage: URL { URL(string: base.absoluteString + "/") ?? base }

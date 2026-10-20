@@ -132,6 +132,25 @@ if [ -s "${HOME:-/nonexistent}/lingualens_url" ]; then
   sed -i "s|^LINGUALENS_URL=.*|LINGUALENS_URL='${LL}'|" .env
 fi
 grep -q '^RUMBLE_URL=' .env || printf 'RUMBLE_URL=\nRUMBLE_STREAM_KEY=\n' >> .env
+# stream title from the companion app (docs/STREAM_TITLE.md): OAuth apps +
+# refresh tokens, minted on a laptop with `python -m autoclip title-auth <x>`
+if ! grep -q '^TWITCH_CLIENT_ID=' .env; then
+  cat >> .env <<'ENV'
+# stream title (docs/STREAM_TITLE.md). x and rumble have no title API.
+TWITCH_CLIENT_ID=
+TWITCH_CLIENT_SECRET=
+TWITCH_REFRESH_TOKEN=
+TWITCH_USER_TOKEN=
+TWITCH_BROADCASTER_ID=
+YOUTUBE_CLIENT_ID=
+YOUTUBE_CLIENT_SECRET=
+YOUTUBE_REFRESH_TOKEN=
+KICK_CLIENT_ID=
+KICK_CLIENT_SECRET=
+KICK_REFRESH_TOKEN=
+KICK_USER_TOKEN=
+ENV
+fi
 
 # GPU or not decides the compose files; compose reads COMPOSE_FILE from .env,
 # so every `docker compose` (here, gcp.sh obs-reset, ...) picks it up

@@ -22,6 +22,11 @@ OBS voice control (see docs/OBS_VOICE_CONTROL.md):
   python -m autoclip obs volume 50
   python -m autoclip obs record | unrecord | broadcast
 
+Stream title (see docs/STREAM_TITLE.md):
+  python -m autoclip title                  # last title + per-platform results
+  python -m autoclip title "Walking Shibuya at night"
+  python -m autoclip title-auth twitch      # laptop: OAuth once, prints .env lines
+
 Privacy blur (see docs/PRIVACY_BLUR.md):
   python -m autoclip privacy                # on/off, drivers, faces seen
   python -m autoclip privacy on | off | toggle
@@ -92,6 +97,14 @@ def main(argv: list[str] | None = None) -> int:
     p_obs.add_argument("intent", nargs="?", default="")
     p_obs.add_argument("target", nargs="?", default="")
     p_obs.add_argument("value", nargs="?", default="")
+    p_tit = sub.add_parser("title", help="live stream title (see docs/STREAM_TITLE.md)")
+    p_tit.add_argument("title", nargs="?", default="")
+    p_tit.add_argument("--platforms", nargs="*", default=None)
+    p_ta = sub.add_parser("title-auth", help="OAuth once for the title API, print .env lines")
+    p_ta.add_argument("platform", choices=["twitch", "youtube", "kick"])
+    p_ta.add_argument("--client-id", required=True)
+    p_ta.add_argument("--client-secret", required=True)
+    p_ta.add_argument("--port", type=int, default=8765)
     p_pri = sub.add_parser("privacy", help="face blur switch (see docs/PRIVACY_BLUR.md)")
     p_pri.add_argument("action", nargs="?", default="status",
                        choices=["status", "on", "off", "toggle"])
@@ -115,6 +128,17 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.cmd == "doctor":
         return _doctor(cfg)
+
+    if args.cmd == "title-auth":
+        from .stream_title import oauth_login
+        tok = oauth_login(args.platform, args.client_id, args.client_secret, args.port)
+        up = args.platform.upper()
+        print(f"# into the VM's .env, from deploy/obs-vps (each prompts, hidden):\n"
+              f"#   ./gcp.sh env {up}_CLIENT_ID\n#   ./gcp.sh env {up}_CLIENT_SECRET\n"
+              f"#   ./gcp.sh env {up}_REFRESH_TOKEN\n"
+              f"{up}_CLIENT_ID={args.client_id}\n{up}_CLIENT_SECRET={args.client_secret}\n"
+              f"{up}_REFRESH_TOKEN={tok['refresh_token']}")
+        return 0
 
     rt = build_pipeline(args.config)
 
@@ -203,6 +227,8 @@ def main(argv: list[str] | None = None) -> int:
             _print(rt.obs_status())
         else:
             _print(rt.obs_action(args.intent, args.target, args.value))
+    elif args.cmd == "title":
+        _print(rt.title_set(args.title, args.platforms) if args.title else rt.title_status())
     elif args.cmd == "privacy":
         if args.action == "status":
             _print(rt.privacy_status())

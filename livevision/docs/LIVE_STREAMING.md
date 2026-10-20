@@ -300,7 +300,7 @@ MediaMTX path — it accepts the publish and you can watch it with `ffplay`.
   1080p Twitch + 720p YouTube split, add two targets with a
   `-vf scale=1280:720 -c:v libx264` `extra_args` on one — accepting the
   re-encode cost on that one leg only.
-- **Chat / title / category updates.** Out of scope; those are platform
-  REST APIs and belong in a separate integration.
+- **Chat / category updates.** Out of scope; those are platform REST
+  APIs. The stream **title** is handled: see [`STREAM_TITLE.md`](STREAM_TITLE.md).
 - **Simulcast to non-RTMP.** SRT and WHIP targets would need a different
   muxer. RTMP covers every mainstream platform today.

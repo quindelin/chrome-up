@@ -30,7 +30,7 @@ import threading
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 from .util import ensure_dir, expand_env, require_ffmpeg
 
@@ -104,6 +104,8 @@ class LiveStreamManager:
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self._watchdog: Optional[threading.Thread] = None
+        # called with the target name after a fresh start (the title re-apply)
+        self.on_start: Optional[Callable[[str], None]] = None
         # restore previous "enabled" so a restart resumes live sessions
         self._restore_state()
         self._start_watchdog()
@@ -162,6 +164,11 @@ class LiveStreamManager:
             self._last_error.pop(name, None)
             self._spawn_locked(t)
             self._save_state()
+        if self.on_start:
+            try:
+                self.on_start(name)
+            except Exception:
+                pass
         return {"ok": True, "platform": name, "message": "started",
                 "pid": self._procs.get(name, None) and self._procs[name].pid}
 

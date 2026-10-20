@@ -1269,6 +1269,122 @@ def t_heartbeat_config():
     finally:
         hud.RT = old
 
+def t_stream_title():
+    """Title on twitch/youtube/kick with HTTP mocked; x/rumble say unsupported;
+    missing creds are ok=false, never an exception; tokens never in results."""
+    from autoclip import stream_title as st
+    calls = []
+
+    def fake(method, url, *, headers=None, json_body=None, form=None, timeout=10.0):
+        calls.append((method, url, headers or {}, json_body, form))
+        if url == st.TWITCH_TOKEN:
+            return 200, {"access_token": "tw_new", "refresh_token": "tw_r2", "expires_in": 3600}
+        if url.startswith(st.TWITCH_API + "/users"):
+            return 200, {"data": [{"id": "4242"}]}
+        if url.startswith(st.TWITCH_API + "/channels"):
+            return (204, None) if headers["Authorization"] == "Bearer tw_new" else (401, {"message": "bad"})
+        if url == st.GOOGLE_TOKEN:
+            return 200, {"access_token": "yt_tok", "expires_in": 3599}
+        if "liveBroadcasts?part=snippet&broadcastStatus=active" in url:
+            return 200, {"items": []}
+        if "broadcastStatus=upcoming" in url:
+            return 200, {"items": [{"id": "b1", "snippet": {
+                "title": "old", "description": "desc", "scheduledStartTime": "2026-10-20T10:00:00Z"}}]}
+        if method == "PUT" and "liveBroadcasts" in url:
+            return 200, {"id": "b1"}
+        if url == st.KICK_API + "/channels":
+            return 204, None
+        raise AssertionError(f"unexpected call {method} {url}")
+
+    real = st._http
+    st._http = fake
+    try:
+        with tempfile.TemporaryDirectory() as td:
+            cfg = {"retry_delays": [],
+                   "twitch": {"client_id": "cid", "client_secret": "csec",
+                              "refresh_token": "tw_r1", "user_token": "stale"},
+                   "youtube": {"client_id": "g", "client_secret": "gs", "refresh_token": "yr"},
+                   "kick": {"client_id": "", "client_secret": "", "refresh_token": "",
+                            "user_token": "kick_tok"}}
+            events = []
+            t = st.StreamTitle(cfg, Path(td), on_change=events.append)
+            assert all(p["configured"] for p in t.status()["platforms"] if p["supported"])
+            out = t.set("  Walking   Shibuya at night ")
+            by = {r["platform"]: r for r in out["results"]}
+            assert out["title"] == "Walking Shibuya at night", out
+            assert set(by) == {"twitch", "youtube", "kick", "x", "rumble"}, by
+            assert by["twitch"]["ok"] and by["youtube"]["ok"] and by["kick"]["ok"], by
+            assert not by["x"]["ok"] and "not supported" in by["x"]["message"]
+            assert not by["rumble"]["ok"] and "not supported" in by["rumble"]["message"]
+            # twitch: stale token got 401 -> refreshed -> retried; id looked up
+            patch = [c for c in calls if c[0] == "PATCH" and "helix/channels" in c[1]]
+            assert patch[-1][1].endswith("broadcaster_id=4242") and patch[-1][3] == {"title": out["title"]}
+            assert patch[-1][2]["Client-Id"] == "cid"
+            # youtube: upcoming broadcast, snippet carried over, title swapped
+            put = next(c for c in calls if c[0] == "PUT")
+            assert put[3] == {"id": "b1", "snippet": {"title": out["title"], "description": "desc",
+                              "scheduledStartTime": "2026-10-20T10:00:00Z"}}, put
+            kick = next(c for c in calls if c[1] == st.KICK_API + "/channels")
+            assert kick[3] == {"stream_title": out["title"]} and kick[2]["Authorization"] == "Bearer kick_tok"
+            # rotated refresh token persisted privately; nothing secret in answers
+            saved = json.loads((Path(td) / "title_tokens.json").read_text())
+            assert saved["twitch"]["refresh_token"] == "tw_r2", saved
+            assert ((Path(td) / "title_tokens.json").stat().st_mode & 0o077) == 0
+            blob = json.dumps([out, t.status(), events[0]])
+            for secret in ("tw_new", "tw_r1", "tw_r2", "csec", "yt_tok", "yr", "gs", "kick_tok", "stale"):
+                assert secret not in blob, secret
+            # remembered across restarts, re-applied to one platform
+            t2 = st.StreamTitle(cfg, Path(td))
+            assert t2.status()["title"] == out["title"]
+            n = len(calls)
+            assert t2.apply("kick")["ok"] and len(calls) == n + 1
+            # subset + long title cut for youtube
+            r = t2.set("x" * 120, ["yt"])["results"]
+            assert len(r) == 1 and r[0]["ok"] and "cut to 100" in r[0]["message"], r
+            assert next(c for c in reversed(calls) if c[0] == "PUT")[3]["snippet"]["title"] == "x" * 100
+
+        # nothing configured: ok=false per platform with a reason, no calls made
+        with tempfile.TemporaryDirectory() as td:
+            n = len(calls)
+            t = st.StreamTitle({}, Path(td), platforms=["twitch", "youtube", "kick", "custom"])
+            out = t.set("hello")
+            assert out["ok"] is False and len(calls) == n, out
+            assert all(not r["ok"] and r["message"] for r in out["results"]), out
+            assert t.set("   ")["ok"] is False
+            # a network failure is an answer too
+            st._http = lambda *a, **k: (_ for _ in ()).throw(OSError("dns"))
+            t = st.StreamTitle({"kick": {"user_token": "k"}}, Path(td), platforms=["kick"])
+            r = t.set("hi")["results"][0]
+            assert r["ok"] is False and "unreachable" in r["message"], r
+    finally:
+        st._http = real
+
+    # REST: advertised, answers with no creds, the restream start hook is wired
+    from autoclip.api import create_app
+    from fastapi.testclient import TestClient
+    p = _bare_pipeline()
+    with TestClient(create_app(pipeline=p)) as client:
+        sch = client.get("/api/autoclip/schema").json()
+        assert {"live_title", "live_title_set"} <= {op["name"] for op in sch["operations"]}
+        assert "stream_title" in sch["event_types"]
+        r = client.post("/api/autoclip/live/title", json={"title": "Hi", "platforms": ["x"]})
+        assert r.status_code == 200 and r.json()["results"][0]["ok"] is False, r.text
+        g = client.get("/api/autoclip/live/title").json()
+        assert g["title"] == "Hi" and {q["name"] for q in g["platforms"]} >= {"twitch", "rumble"}, g
+        assert any(e["type"] == "stream_title" for e in
+                   client.get("/api/autoclip/events/history").json()["events"])
+    from autoclip.livestream import LiveStreamManager
+    with tempfile.TemporaryDirectory() as td:
+        mgr = LiveStreamManager({"targets": [{"name": "kick", "url": "rtmp://x", "key": "k"}]}, Path(td))
+        mgr._spawn_locked = lambda t: None
+        mgr._stop.set()
+        started = []
+        mgr.on_start = started.append
+        mgr.start("kick")
+        mgr.start("nope")
+        assert started == ["kick"], started
+
+
 def main() -> int:
     print("autoclip smoke test\n")
     for name, fn in [
@@ -1279,7 +1395,7 @@ def main() -> int:
         ("filter escaping", t_escape), ("rtmp cloud source", t_rtmp_source),
         ("voice parser", t_voice_parser), ("event bus", t_event_bus),
         ("voice stream commands", t_voice_stream_commands),
-        ("live stream manager", t_live_manager), ("command dispatcher", t_dispatcher),
+        ("live stream manager", t_live_manager), ("stream title", t_stream_title), ("command dispatcher", t_dispatcher),
         ("obs voice patterns", t_obs_voice_patterns),
         ("obs controller", t_obs_controller),
         ("obs dispatcher routing", t_dispatcher_obs),

@@ -132,6 +132,14 @@ DEFAULTS: Dict[str, Any] = {
         "targets": [],             # [{name, url, key, enabled}]
     },
 
+    # ---------------------------------------------------------------- title
+    # Live stream title on twitch / youtube / kick (x and rumble have no API).
+    # Credentials come from .env; see docs/STREAM_TITLE.md.
+    "stream_title": {
+        "retry_delays": [30, 90],   # re-apply after a restream starts
+        "twitch": {}, "youtube": {}, "kick": {},
+    },
+
     # ---------------------------------------------------------------- privacy
     # Face blur for bystanders. One switch ("blur faces" / "unblur"), two
     # drivers: blur faces in rendered clips, and/or blur them on the live OBS

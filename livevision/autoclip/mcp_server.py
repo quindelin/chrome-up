@@ -74,6 +74,9 @@ def build_tools(config_path: str) -> List[dict]:
          "description": "Start live streaming to one platform (or 'all')."},
         {"name": "autoclip_live_stop",
          "description": "Stop live streaming to one platform (or 'all')."},
+        {"name": "autoclip_live_title",
+         "description": "Set the live stream title on every platform with an API "
+                        "(no title = show the current one)."},
         {"name": "autoclip_obs_status",
          "description": "OBS connection, scenes, sources, armed voice intents."},
         {"name": "autoclip_obs_command",
@@ -188,6 +191,14 @@ def run_stdio(config_path: str = "autoclip.yaml") -> None:
               "properties": {"name": {"type": "string"}}, "required": ["name"]},
              lambda a: (rt.live_stop_all() if a["name"].lower() in ("all", "*", "everywhere")
                         else [rt.live_stop(a["name"])])),
+        tool("autoclip_live_title",
+             "Set the live stream title on twitch/youtube/kick (x, rumble have no API). "
+             "No title = current title and per-platform results.",
+             {"type": "object",
+              "properties": {"title": {"type": "string"},
+                             "platforms": {"type": "array", "items": {"type": "string"}}}},
+             lambda a: (rt.title_set(a["title"], a.get("platforms") or None)
+                        if a.get("title") else rt.title_status())),
         tool("autoclip_obs_status", "OBS scenes, sources, and armed voice intents.",
              {"type": "object", "properties": {}},
              lambda a: rt.obs_status()),

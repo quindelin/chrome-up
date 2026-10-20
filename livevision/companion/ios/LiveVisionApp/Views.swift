@@ -15,6 +15,7 @@ struct DashboardView: View {
 
                 if let s = store.stack {
                     FeedsSection(stack: s)
+                    TitleSection()
                     RestreamSection(stack: s)
                     ClipsSection(stack: s)
                     HostSection(host: s.host)
@@ -37,7 +38,7 @@ struct DashboardView: View {
             .sheet(isPresented: $showSettings) {
                 SettingsView { Task { await store.refresh() } }
             }
-            .alert("Restream", isPresented: Binding(
+            .alert("Stream", isPresented: Binding(
                 get: { store.actionError != nil },
                 set: { if !$0 { store.actionError = nil } })) {
                 Button("OK", role: .cancel) {}
@@ -154,6 +155,46 @@ private struct FeedRow: View {
         if let k = feed?.bitrateKbps { parts.append(k >= 1000 ? String(format: "%.1f Mb/s", Double(k) / 1000) : "\(k) kb/s") }
         if let d = feed?.sinceDate { parts.append(Fmt.duration(Date().timeIntervalSince(d))) }
         return parts.joined(separator: " · ")
+    }
+}
+
+private struct TitleSection: View {
+    @Environment(StackStore.self) private var store
+    @State private var draft = ""
+    @FocusState private var editing: Bool
+
+    var body: some View {
+        let saved = store.title?.title ?? ""
+        Section {
+            HStack {
+                TextField("What's happening on stream", text: $draft)
+                    .focused($editing)
+                    .submitLabel(.done)
+                    .onSubmit(save)
+                if store.titleBusy {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Button("Save", action: save)
+                        .disabled(draft.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            }
+            if let summary = store.title?.summary, !summary.isEmpty {
+                Text(summary).font(.caption).foregroundStyle(.secondary)
+            }
+        } header: {
+            Text("Stream title")
+        } footer: {
+            Text("Sets it on Twitch, YouTube and Kick. X and Rumble have no API for it. A restream you start later gets it too.")
+        }
+        .onAppear { if !editing { draft = saved } }
+        .onChange(of: saved) { _, new in if !editing { draft = new } }
+    }
+
+    private func save() {
+        let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !text.isEmpty else { return }
+        editing = false
+        Task { await store.saveTitle(text) }
     }
 }
 

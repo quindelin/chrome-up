@@ -15,6 +15,9 @@ final class StackStore {
     private(set) var reach: Reach = .unknown
     private(set) var updated: Date?
     private(set) var busyTargets: Set<String> = []
+    /// The stream title on the VPS and the last per-platform answers
+    private(set) var title: TitleState?
+    private(set) var titleBusy = false
     var actionError: String?
     /// The VM itself, from the start/stop function (nil if not configured)
     private(set) var vm: VMClient.State?
@@ -88,6 +91,9 @@ final class StackStore {
             reach = .ok
             if vmAction == "start" { vmAction = nil }      // it's up and serving
             if polls % 12 == 1 { await refreshVM() }       // the Stop button's state, now and then
+            if title == nil || polls % 12 == 1, !titleBusy { // voice or another device may change it
+                title = (try? await StackClient.fromSettings().title()) ?? title
+            }
             let isLive = !s.liveOn.isEmpty
             if isLive != wasLive {    // went live / dropped: you feel it in your pocket
                 UINotificationFeedbackGenerator().notificationOccurred(isLive ? .success : .warning)
@@ -114,6 +120,18 @@ final class StackStore {
         vmAction = action
         do { vm = try await call(c) } catch {
             vmAction = nil
+            actionError = error.localizedDescription
+        }
+    }
+
+    func saveTitle(_ text: String) async {
+        titleBusy = true
+        defer { titleBusy = false }
+        do {
+            title = try await StackClient.fromSettings().setTitle(text)
+            let ok = title?.results?.contains { $0.ok } ?? false
+            UINotificationFeedbackGenerator().notificationOccurred(ok ? .success : .warning)
+        } catch {
             actionError = error.localizedDescription
         }
     }
