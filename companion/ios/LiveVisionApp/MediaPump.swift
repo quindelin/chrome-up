@@ -90,7 +90,7 @@ final class MediaPump: @unchecked Sendable {
         video = vc
         audio = ac
         clock.reset()
-        counters.withLock { _ in sawFrame = false }
+        counters.withLock { _ in sawFrame = false; videoFlowing = false }
         consumers = [
             Task.detached(priority: .userInitiated) { for await f in v { await uplink.append(video: f) } },
             Task.detached(priority: .userInitiated) { for await (b, t) in a { await uplink.append(audio: b, when: t) } },
@@ -136,6 +136,10 @@ final class MediaPump: @unchecked Sendable {
 
     private let decoder = FrameDecoder()
     private var sawFrame = false
+    /// No audio until video flows: MediaMTX sets up the path's tracks from the
+    /// first packets, and an audio-only start made it drop the publish
+    /// ("received a video packet, but track is not set up") on the first frame.
+    private var videoFlowing = false
 
     private func enqueue(_ pixels: CVPixelBuffer, timing: inout CMSampleTimingInfo) {
         var format: CMVideoFormatDescription?
@@ -151,6 +155,7 @@ final class MediaPump: @unchecked Sendable {
     private func enqueue(_ frame: CMSampleBuffer) {
         guard let video else { return }
         let r = video.yield(frame)
+        videoFlowing = true
         counters.withLock { c in
             c.framesIn += 1
             if case .dropped = r { c.dropped += 1 }
@@ -159,12 +164,13 @@ final class MediaPump: @unchecked Sendable {
 
     /// Glasses mic audio from DAT (same clock as its video).
     func pushGlassesAudio(_ buffer: AVAudioPCMBuffer, pts: CMTime) {
-        guard let host = clock.mapAudio(pts.seconds) else { return }
+        guard videoFlowing, let host = clock.mapAudio(pts.seconds) else { return }
         audio?.yield((buffer, AVAudioTime(hostTime: AVAudioTime.hostTime(forSeconds: host))))
     }
 
     /// Phone mic audio: already on the host clock.
     func pushPhoneAudio(_ buffer: AVAudioPCMBuffer, hostTime: UInt64) {
+        guard videoFlowing else { return }
         audio?.yield((buffer, AVAudioTime(hostTime: hostTime)))
     }
 }
