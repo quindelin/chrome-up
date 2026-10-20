@@ -187,6 +187,60 @@ def t_zh_beginner_word_lists_cover_learner_lines():
     assert not bad, bad
 
 
+# Words a Spanish line can hold without a lesson teaching them: articles,
+# pronouns, prepositions, conjunctions, quantifiers and interjections.
+_ES_FUNCTION_WORDS = """a al algo alguien algún alguna alguno algunas algunos ante antes aquel
+aquella aquello aquí allí ahí así aun aún bajo bastante cada como cómo con contra cual cuál
+cuales cuando cuándo cuanto cuánto de del desde donde dónde durante e el él ella ellas ello
+ellos en entre esa ese eso esas esos esta este esto estas estos hacia hasta la las le les lo
+los me mi mis mí muy más mas ni no nos nosotros nosotras o os para pero poco por porque qué
+que quien quién quienes se sea según si sí sin sino so sobre su sus te ti tu tú tus u un una
+unos unas usted ustedes vosotros y ya yo nada nadie nunca también tampoco todo toda todos
+todas otro otra otros otras mucho mucha muchos muchas tan tanto mismo misma ah oh uy eh ja
+pues""".split()
+
+
+def t_es_word_lists_cover_learner_lines():
+    """Every content word you say in a Spanish dialogue was met in an earlier
+    lesson or is in this lesson's word list - the model step is a safety net,
+    not a plan. Lesson 1 asked for 'Bien, gracias' with gracias taught nowhere.
+
+    A word counts as met if it shares a 5-letter stem with one that was
+    (hablando / hablar), so this checks words, not every inflection. Names
+    (capitalised mid-sentence) and words quoted in 'single quotes' are skipped.
+    """
+    import re
+    from server.pronunciation import _fold
+    course, cfg = Course("es"), load_config("config.es.yaml")
+    sess = Session(course, cfg, {"lesson_id": 1, "completed": [], "mastery": {},
+                                 "words": {}, "stats": {}})
+    stop = {_fold(w) for w in _ES_FUNCTION_WORDS}
+
+    def names(text):
+        out = set()
+        for m in re.finditer(r"[^\W\d_]+", text):
+            before = text[:m.start()].rstrip(" '\"«")
+            if m.group(0)[0].isupper() and before and before[-1] not in ".!?¿¡:":
+                out.add(_fold(m.group(0)))
+        return out
+
+    bad = []
+    for lid in course.lesson_ids:
+        lesson = course.lesson(lid)
+        known = sess._known_before(lesson)
+        for v in lesson.vocab:
+            known |= sess._units(v.text)
+        stems = {w[:5] for w in known if len(w) >= 5}
+        for t in lesson.dialogue:
+            if t.speaker != "you":
+                continue
+            words = sess._units(re.sub(r"'[^']*'", "", t.text)) - known - stop - names(t.text)
+            new = sorted(w for w in words if not (len(w) >= 5 and w[:5] in stems))
+            if new:
+                bad.append(f"L{lid} {t.text}: {', '.join(new)}")
+    assert not bad, (len(bad), bad[:5])
+
+
 def t_readings():
     assert not readings.check(), readings.check()[:5]
     assert readings.stats()["passages"] == 73, readings.stats()
