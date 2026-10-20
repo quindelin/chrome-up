@@ -57,8 +57,10 @@ hands after 0.6 s (out of the camera's view), the rest after 2 s.
 - **Wrist level**: every wrist axis drifts back to neutral over
   `body.wrist_level_s` (8 s): the first Watch sample is usually the arm raised
   to tap Start, which otherwise left the hand bent ~100° for good. The avatar
-  bends the hand at most 40° / 30° / 60° (pitch / yaw / twist), since the sensor
-  reads whole-arm turns as wrist turns too.
+  uses only the forearm twist (±60°): the other two axes are mostly the whole
+  arm moving and made the hand look crooked.
+- **Mapping**: `avatar.mirror: false` (default) maps the avatar like your body:
+  Watch (left wrist) → its left hand, Neural Band (right) → its right.
 
 ## Punches
 

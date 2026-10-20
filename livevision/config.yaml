@@ -150,11 +150,14 @@ avatar:
   # bust: shoulders up in the corner (landscape sources with no bars)
   layout: full
   render_scale: 0.75        # WebGL resolution of the full-body canvas (CPU on the VPS)
-  mirror: true              # turn your head left -> avatar turns screen-left, like a webcam
+  # false: mapped like your body - the Watch on your left wrist drives the
+  # avatar's left hand, the Neural Band on your right its right, and turning
+  # your head left turns its head to its left. true mirrors it like a webcam.
+  mirror: false
   # the camera video lags the body/head data by the stream pipeline (phone
   # encoder + RTMP + OBS media buffer); the avatar waits this long so it moves
   # with the video. Measured 2.2-2.4 s on the VPS (camera pans vs avatar).
-  sync_delay_ms: 2200
+  sync_delay_ms: 2500        # 2.2 s measured before HEVC passthrough; nudged up: still a bit early
 
 overlay:
   # "Download Vicinity" QR card in the left black bar, above the battery

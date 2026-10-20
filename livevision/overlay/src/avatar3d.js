@@ -274,10 +274,11 @@ class Rig {
       // adding to the current rotation would spin the hand)
       const r = THREE.MathUtils.degToRad, k = this.wristW[side], wp = this.wristPose[side];
       const clamp = (v, m) => Math.max(-m, Math.min(m, v));
-      // a real wrist bends ~±70 deg, but the sensor also reads whole-arm
-      // turns as wrist turns: keep it to a believable bend
-      this._pose(side + "Hand", r(clamp(wp.pitch, 40)) * k,
-                 r(clamp(wp.yaw, 30)) * k * flip, r(clamp(wp.roll, 60)) * k * flip);
+      // only the forearm twist (rotation about the Watch's x axis, which
+      // runs along the forearm: HeadPose calls it pitch). The other two axes
+      // are mostly the whole arm moving, and as hand bends they left the hand
+      // sitting crooked
+      this._pose(side + "Hand", r(clamp(wp.pitch, 60)) * k, 0, 0);
     }
   }
 
