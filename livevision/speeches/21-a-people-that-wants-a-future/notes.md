@@ -4,8 +4,8 @@
 - kind: original
 - category: birth-rate (the call to action that closes the 17 to 21 series)
 - rhetorical model: Napoleon's farewell to the Old Guard at Fontainebleau (20 April 1814) and the close of Lincoln's Second Inaugural (4 March 1865)
-- word count: WORDCOUNT
-- estimated runtime at 140 wpm: RUNTIME
+- word count: 16,052 (speech.md, `wc -w`)
+- estimated runtime at 140 wpm: about 115 minutes (1 hour 55 minutes), slightly under the 16,800-word target and above the 15,000 minimum
 
 ## What the models teach, and how they are used
 
@@ -131,6 +131,18 @@ Rhetorical models
 - Napoleon's adieux, 20 April 1814, Cour du Cheval-Blanc, General Petit and the eagle; legend and propaganda caveat: Fondation Napoleon, https://www.napoleon.org/en/history-of-the-two-empires/articles/napoleons-adieux-to-the-old-guard-at-fontainebleau-20-april-1814 and https://www.napoleon.org/histoire-des-2-empires/tableaux/les-adieux-de-fontainebleau/ ; text, The History Place, https://www.historyplace.com/speeches/napoleon.htm
 - Lincoln's Second Inaugural, 4 March 1865, about seven hundred words, 41 days before his death: https://shawlocal.com/daily-chronicle/opinion/2024/02/28/historic-highlights-lincolns-second-inaugural-stands-test-of-time
 
+- Hungary Family Protection Action Plan (2019): seven-seat car grant for families with three or more children, grandparent childcare allowance, 21,000 nursery places: Hungarian government, https://2015-2019.kormany.hu/en/news/about-the-family-protection-action-plan ; Daily News Hungary, https://dailynewshungary.com/orban-state-of-the-nation-address-in-budapest-here-are-the-surprising-announcements/
+- Hungary inflation 25.7 percent in January 2023, highest in the EU for most of 2023: Telex/Eurostat, https://telex.hu/english/2023/04/20/eurostat-hungarian-inflation-still-highest-in-eu-at-25-6-percent
+- Hungary 2015-2019 government notes, baby loan of 10 million forints for women 18 to 40: same Family Protection Action Plan sources above.
+- Israel Jewish births up 2.6 percent in first half of 2026 (66,753 vs 65,091), CBS via The Algemeiner, 19 August 2026: https://algemeiner.com/2026/08/19/israeli-jewish-births-surge-in-2026-defying-fertility-slump-across-wealthy-world
+- UN World Population Prospects 2024: global TFR about 2.25 (3.1 in 1990), more than half of countries below replacement, peak about 10.3 billion in mid-2080s: summary at https://ruralindiaonline.org/en/library/resource/world-population-prospects-2024/
+- Japan's decline running about 15 years ahead of IPSS projections: https://harici.com.tr/en/japans-births-hit-record-low-for-10th-year-as-demographic-crisis-outpaces-government-forecasts/?amp=1
+- France: nearly all three-year-olds (97.6 percent, 2015-16) in ecole maternelle before the 2019 law on compulsory instruction from age 3: https://www.education.gouv.fr/la-loi-pour-une-ecole-de-la-confiance-454371 ; Europe 1, https://www.europe1.fr/societe/lassemblee-vote-linstruction-obligatoire-des-lage-de-3-ans-3857378 ; family spending around 3 to 3.5 percent of GDP vs OECD average about 2.3: OECD PF1.1, https://oecd.org/els/soc/pf1_1_public_spending_on_family_benefits.pdf
+- Infant care costing more than in-state public college tuition in most states (41): Child Care Aware via Truthout, https://truthout.org/articles/average-child-care-cost-for-a-baby-exceeds-in-state-college-tuition-in-41-states
+- Georgia mass baptisms of hundreds of infants at Tbilisi's Holy Trinity Cathedral: Moscow Times 2012, https://www.themoscowtimes.com/2012/05/10/georgias-patriarch-baptizes-400-babies-a14638
+- Korea 2024 rise first in nine years; marriage-driven rebound: Korea Times and AFP sources above.
+- US the only one of 41 OECD/EU nations with no national paid leave for new parents: Pew Research Center (OECD data), https://www.pewresearch.org/short-reads/2019/12/16/u-s-lacks-mandated-paid-parental-leave/ ; no national law found since.
+
 ## Unverified or cut
 
 - Booyoung Group's bonus of 100 million won per baby: not verified, cut.
@@ -138,3 +150,8 @@ Rhetorical models
 - The new Hungarian government's family policy: not found; the speech says only that it inherits the program.
 - Milligan's 12 percent figure is reported by the Globe and Mail; the speech says "roughly twelve percent" and attributes it to the study as reported.
 - Israel's group fertility figures come from secondary sources and different years; the speech says "about" and "around."
+- France: cuts and caps on family benefits in the 2010s are presented only as one explanation that "some point to," not as an established cause.
+- State takeover of Hungarian IVF clinics: not verified, cut.
+- "Poorer than much of Africa" for 1950s Korea: softened to "among the poorest in the world."
+- Napoleon and Lincoln are paraphrased, not quoted; the Fontainebleau scene is flagged in the speech as partly legend.
+- Section count: 14, the top of the brief's range.

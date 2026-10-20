@@ -48,7 +48,7 @@ For the Phoenician sailors and marines will not put to sea in order to incur dan
 
 ## IV. Before Gaugamela: This Is Our Last Conflict
 
-*Quintus Curtius Rufus IV.13 (tr. Peter Pratt, 1821). The field of Gaugamela, near Arbela, 331 B.C., on the eve of the decisive battle with Darius.*
+*Quintus Curtius Rufus IV.14 (tr. Peter Pratt, 1821). The field of Gaugamela, near Arbela, 331 B.C., on the eve of the decisive battle with Darius.*
 
 As the stunning complicated din from the two armies, prevented his troops from hearing in a body, Alexander rode from station to station, and thus addressed the captains, and such soldiers as stood nearest.
 
@@ -112,17 +112,13 @@ The soldiers who coveted money as well as glory, and who had never known his pro
 
 Do ye fear that your advance will be stopped in the future by any other barbarians? Of whom some submit to us of their own accord, and others are captured in the act of fleeing, while others, succeeding in their efforts to escape, hand over to us their deserted land, which we add to that of our allies, or to that of those who have voluntarily submitted to us.
 
-CHAPTER XXVI.
-
-ALEXANDER’S SPEECH (continued).
-
 “I, for my part, think, that to a brave man there is no end to labours except the labours themselves, provided they lead to glorious achievements. But if any one desires to hear what will be the end to the warfare itself, let him learn that the distance still remaining before we reach the river Ganges and the Eastern Sea is not great; and I inform you that the Hyrcanian Sea will be seen to be united with this, because the Great Sea encircles the whole earth. I will also demonstrate both to the Macedonians and to the Grecian allies, that the Indian Gulf is confluent with the Persian, and the Hyrcanian Sea with the Indian Gulf.
 
 From the Persian Gulf our expedition will sail round into Libya as far as the Pillars of Heracles. From the pillars all the interior of Libya becomes ours, and so the whole of Asia will belong to us, and the limits of our empire, in that direction, will be those which God has made also the limits of the earth. But, if we now return, many warlike nations are left unconquered beyond the Hyphasis as far as the Eastern Sea, and many besides between these and Hyrcania in the direction of the north wind, and not far from these the Scythian races.
 
-[BUILD]
-
 Wherefore, if we go back, there is reason to fear that the races which are now held in subjection, not being firm in their allegiance, may be excited to revolt by those who are not yet subdued. Then our many labours will prove to have been in vain; or it will be necessary for us to incur over again fresh labours and dangers, as at the beginning. But, O Macedonians and Grecian allies, stand firm!
+
+[BUILD]
 
 Glorious are the deeds of those who undergo labour and run the risk of danger; and it is delightful to live a life of valour and to die leaving behind immortal glory. Do ye not know that our ancestor reached so great a height of glory as from being a man to become a god, or to seem to become one, not by remaining in Tiryns or Argos, or even in the Peloponnese or at Thebes? The labours of Dionysus were not few, and he was too exalted a deity to be compared with Heracles.
 
@@ -293,10 +289,6 @@ Babylon, Bactra, and Susa are yours. The wealth of the Lydians, the treasures of
 What then have I reserved to myself after all these labours, except this purple robe and this diadem? I have appropriated nothing myself, nor can any one point out my treasures, except these possessions of yours or the things which I am guarding on your behalf. Individually, however, I have no motive to guard them, since I feed on the same fare as you do, and I take only the same amount of sleep.
 
 Nay, I do not think that my fare is as good as that of those among you who live luxuriously; and I know that I often sit up at night to watch for you, that you may be able to sleep.
-
-CHAPTER X.
-
-ALEXANDER’S SPEECH (continued).
 
 [SLOW]
 
