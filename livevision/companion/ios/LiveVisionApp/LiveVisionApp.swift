@@ -9,6 +9,7 @@ struct LiveVisionApp: App {
     @State private var glasses = GlassesStreamer()
     @State private var sensors = SensorBridge()
     @State private var prompter = Teleprompter()
+    @State private var navigator = RouteNavigator()
     @State private var bodyTracker = BodyTracker()
     @State private var watch = WatchLink()
     @Environment(\.scenePhase) private var phase
@@ -26,13 +27,16 @@ struct LiveVisionApp: App {
             .environment(glasses)
             .environment(sensors)
             .environment(prompter)
+            .environment(navigator)
             .environment(bodyTracker)
             .environment(watch)
             .task {
                 glasses.configure()
+                navigator.start(sensors: sensors, glasses: glasses)
                 bodyTracker.start(glasses: glasses, sensors: sensors, watch: watch)
             }
-            // the lens rides on the glasses session: re-attach after reconnects
+            // the lens (prompter + directions, LensRouter) rides on the glasses
+            // session: re-attach after reconnects
             .onChange(of: glasses.link) {
                 prompter.sessionChanged(glasses)
                 bodyTracker.sessionChanged(glasses)        // DAT Motion rides the same session

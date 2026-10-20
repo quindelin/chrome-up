@@ -212,3 +212,9 @@ export function fmtDistance(m) {
   if (v >= 100) return `${Math.round(v / 10) * 10} m`;
   return `${Math.round(v)} m`;
 }
+
+export function fmtDuration(s) {
+  const min = Math.max(1, Math.round((Number(s) || 0) / 60));
+  if (min < 60) return `${min} min`;
+  return `${Math.floor(min / 60)} h ${String(min % 60).padStart(2, "0")} min`;
+}

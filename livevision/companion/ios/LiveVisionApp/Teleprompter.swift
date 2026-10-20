@@ -1,5 +1,4 @@
 import Foundation
-import MWDATCore
 import MWDATDisplay
 import MWDATInputs
 
@@ -7,7 +6,8 @@ import MWDATInputs
 /// session: the glasses allow one session at a time, and ours already holds
 /// the camera, so a separate teleprompter app can't connect while we stream.
 /// DeviceSession takes a Display beside the Camera, so the script goes out on
-/// the same link.
+/// the same link. That Display is LensRouter's: Apple Maps directions share
+/// it (a next-turn line above the page when both are on).
 ///
 /// The script is paged on the phone (DAT has no partial updates: every send
 /// replaces the whole view). The lens dims after 20 s without a send and
@@ -27,21 +27,16 @@ final class Teleprompter {
         let words: Int
     }
 
-    enum Lens: Equatable {
-        case off
-        case waiting        // asked to show, no glasses session yet
-        case starting
-        case showing
-        case failed(String)
-    }
+    typealias Lens = LensRouter.State
 
     private(set) var pages: [Page] = []
     private(set) var index = 0
-    private(set) var lens: Lens = .off
     /// Advance by itself at `wordsPerMinute`.
     private(set) var autoScroll = false
+
+    var lens: Lens { router.clients.contains(.prompter) ? router.state : .off }
     /// The last input the glasses reported, for the status line.
-    private(set) var lastInput: String?
+    var lastInput: String? { router.lastInput }
 
     var script: String {
         didSet {
@@ -75,12 +70,7 @@ final class Teleprompter {
     var wantsLens: Bool { lens != .off }
 
     @ObservationIgnored private static let defaults = UserDefaults.standard
-    @ObservationIgnored private var display: Display?
-    @ObservationIgnored private var inputs: Inputs?
-    @ObservationIgnored private weak var attachedTo: DeviceSession?
-    @ObservationIgnored private var tokens = ListenerTokenBag()
-    @ObservationIgnored private var inputTask: Task<Void, Never>?
-    @ObservationIgnored private var keepAwake: Task<Void, Never>?
+    private var router: LensRouter { .shared }
     @ObservationIgnored private var autoTask: Task<Void, Never>?
 
     init() {
@@ -116,132 +106,48 @@ final class Teleprompter {
 
     // MARK: - the lens
 
-    /// "Show on glasses": attaches once the glasses session is up (connecting
-    /// it if needed) and keeps re-attaching after reconnects until `hide()`.
+    /// "Show on glasses": the router attaches once the glasses session is up
+    /// (connecting it if needed) and re-attaches after reconnects until `hide()`.
     func show(on glasses: GlassesStreamer) {
-        if lens == .off || lens.isFailure { lens = .waiting }
-        if glasses.link == .idle || glasses.link == .unregistered { glasses.connect() }
-        sessionChanged(glasses)
+        router.prompter = self
+        router.want(.prompter, on: glasses)
     }
 
     func hide() {
-        lens = .off
-        detach()
+        router.release(.prompter)
     }
 
     /// Call when the glasses link changes (connect, pause, reconnect).
     func sessionChanged(_ glasses: GlassesStreamer) {
-        guard wantsLens else { return }
-        guard glasses.link == .connected, let session = glasses.deviceSession else {
-            if glasses.deviceSession == nil, attachedTo != nil { detach(); lens = .waiting }
-            return
-        }
-        if session === attachedTo, display != nil { return }
-        attach(to: session)
+        router.sessionChanged(glasses)
     }
 
-    private func attach(to session: DeviceSession) {
-        detach()
-        lens = .starting
-        attachedTo = session
-        let d: Display
-        do {
-            d = try session.addDisplay()
-        } catch {
-            lens = .failed("No lens: \(error.localizedDescription). The teleprompter needs Meta Ray-Ban Display glasses.")
-            log.error("addDisplay: \(String(describing: error))")
-            return
-        }
-        display = d
-        d.statePublisher.listen { [weak self] state in
-            Task { @MainActor in self?.displayChanged(state) }
-        }.store(in: tokens)
-        d.start()
-        if d.state == .started { displayChanged(.started) }
-
-        // Neural Band / temple swipes. Experimental in DAT: without it the
-        // lens tap, the phone and auto-scroll still work.
-        do {
-            if let i = try session.addInputs() {
-                inputs = i
-                inputTask = Task { [weak self] in
-                    for await event in i.events { self?.handle(event) }
-                }
-            }
-        } catch {
-            log.notice("inputs unavailable: \(String(describing: error))")
-        }
-    }
-
-    private func detach() {
-        keepAwake?.cancel(); keepAwake = nil
-        inputTask?.cancel(); inputTask = nil
-        display?.stop()
-        display = nil
-        if inputs != nil { try? attachedTo?.removeInputs() }
-        inputs = nil
-        attachedTo = nil
-        let old = tokens
-        tokens = ListenerTokenBag()
-        Task { await old.cancelAll() }
-    }
-
-    private func displayChanged(_ state: DisplayState) {
-        switch state {
-        case .started:
-            lens = .showing
-            sendPage()
-            startKeepAwake()
-        case .stopped:
-            // the wearer ended it (two-finger tap) or the session went away
-            keepAwake?.cancel(); keepAwake = nil
-            display = nil
-            if lens == .showing || lens == .starting { lens = .waiting }
-        case .starting, .stopping:
-            break
-        }
-    }
-
-    private func handle(_ event: InputEvent) {
+    /// Neural Band / temple input, from the router while the script is up.
+    func lensInput(_ event: InputEvent) {
         switch event {
-        case .nav(let dir, let source, _):
-            lastInput = "\(dir) · \(source)"
+        case .nav(let dir, _, _):
             switch dir {
             case .right, .down: next()
             case .left, .up: previous()
             @unknown default: break
             }
-        case .select(let source, _):
-            lastInput = "select · \(source)"
+        case .select:
             toggleAuto()
-        case .back(let source, _):
-            lastInput = "back · \(source)"
+        case .back:
             previous()
         default:
             break
         }
     }
 
-    private func startKeepAwake() {
-        keepAwake?.cancel()
-        keepAwake = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(12))
-                self?.sendPage()
-            }
-        }
-    }
-
     private func sendPage() {
-        guard let display, lens == .showing else { return }
-        let view = lensView()
-        Task {
-            do { try await display.send(view) }
-            catch { log.error("display send: \(String(describing: error))") }
-        }
+        guard wantsLens else { return }
+        router.refresh()
     }
 
-    private func lensView() -> FlexBox {
+    /// The page for the lens; the router adds the frame, the tap and any
+    /// directions line above it.
+    func lensBody() -> FlexBox {
         let header: String
         if let page {
             let section = page.section.isEmpty ? "" : "\(page.section) · "
@@ -250,11 +156,10 @@ final class Teleprompter {
             header = "Teleprompter"
         }
         let body = page?.text ?? "Paste a script in LiveVision's Prompter tab."
-        return FlexBox(direction: .column, spacing: 10, padding: EdgeInsets(all: 12)) {
+        return FlexBox(direction: .column, spacing: 10) {
             Text(header, style: .meta, color: .secondary)
             Text(body, style: .body)
         }
-        .onTap { [weak self] in Task { @MainActor in self?.next() } }
     }
 
     // MARK: - auto-scroll
@@ -353,6 +258,3 @@ final class Teleprompter {
     }
 }
 
-private extension Teleprompter.Lens {
-    var isFailure: Bool { if case .failed = self { return true } else { return false } }
-}

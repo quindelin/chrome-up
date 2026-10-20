@@ -98,6 +98,13 @@ struct HUDClient {
         if r.ok == false { throw StackError.refused(r.error ?? "couldn't find that place") }
     }
 
+    /// The place Apple Maps resolved on the phone: the server keeps it as its
+    /// fallback objective while the phone's turn-by-turn route is fresh.
+    func setDestination(lat: Double, lon: Double, name: String) async throws {
+        _ = try await send(root.appending(path: "api/destination"), method: "POST",
+                           json: ["lat": lat, "lon": lon, "name": name])
+    }
+
     func clearDestination() async throws {
         _ = try await send(root.appending(path: "api/destination"), method: "POST", json: ["clear": true])
     }

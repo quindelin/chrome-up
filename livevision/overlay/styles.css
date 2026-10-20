@@ -70,6 +70,17 @@ html, body {
   opacity: 0.92;
 }
 #objective .dist { margin-left: 12px; opacity: 0.75; }
+/* Apple Maps turn-by-turn: the instruction stays the main line, the trip
+   to the destination sits under it, smaller and dimmer (no box, as vanilla) */
+#objective { text-align: center; }
+#objective .sub {
+  display: block;
+  margin-top: 2px;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
 
 /* ------------------------------------------------------------- crosshair */
 #crosshair {

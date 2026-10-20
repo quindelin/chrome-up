@@ -1194,6 +1194,40 @@ def t_body_tracking():
     assert b.snapshot()["wrists"]["left"]["source"] == "watch"
 
 
+def t_phone_route():
+    """Apple Maps turn-by-turn from the companion: fresh = source of truth
+    (marker on the next maneuver, the phone's along-route distance), stale or
+    {"active": false} = back to the server's own objective."""
+    from server import navigation as navmod
+    nav = navmod.Navigation({"enabled": True, "provider": "manual",
+                             "origin": {"lat": 37.7749, "lon": -122.4194},
+                             "destination": {"lat": 37.80, "lon": -122.41}})
+    assert nav.tick()["objective"]["mode"] == "straight"
+    route = {"active": True, "instruction": "Turn left onto Market St", "step_distance": 120,
+             "maneuver": {"lat": 37.7749, "lon": -122.4180, "bearing": 90, "type": "left"},
+             "next_instruction": "Turn right onto 3rd St", "remaining_m": 1400, "eta_s": 1080,
+             "destination": {"name": "Ferry Building", "lat": 37.7955, "lon": -122.3937},
+             "transport": "walking"}
+    assert nav.set_phone_route(route)
+    st = nav.tick()
+    obj = st["objective"]
+    assert st["active"] and st["source"] == "apple" and obj["mode"] == "apple"
+    assert obj["step"] == "Turn left onto Market St" and obj["distance"] == 120
+    assert 85 < obj["bearing"] < 95, obj            # re-aimed at the maneuver, due east
+    assert obj["maneuver"] == "left"
+    assert st["destination"] == {"name": "Ferry Building", "distance": 1400, "eta": 1080}
+    assert not nav.set_phone_route({"active": True, "maneuver": {}}), "no target, no route"
+    nav.phone_route_ts -= 60                         # phone went quiet
+    assert nav.tick().get("source") != "apple"
+    nav.set_phone_route(route)
+    nav.set_phone_route({"active": False, "arrived": True, "remaining_m": 4,
+                         "destination": {"name": "Ferry Building"}})
+    st = nav.tick()
+    assert st["arrived"] and not st["active"]
+    nav.set_phone_route({"active": False})
+    assert nav.tick().get("source") != "apple"
+
+
 def main() -> int:
     print("autoclip smoke test\n")
     for name, fn in [
@@ -1214,6 +1248,7 @@ def main() -> int:
         ("dedupe across windows", t_dedupe_across_windows),
         ("head pose", t_head_pose),
         ("body tracking", t_body_tracking),
+        ("apple maps phone route", t_phone_route),
         ("retention keeps disk bounded", t_retention_keeps_disk_bounded),
         ("captions one file per clip", t_captions_one_file_per_clip),
         ("voice fires once + rumble", t_voice_once_and_rumble),

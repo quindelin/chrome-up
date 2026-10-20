@@ -1,5 +1,5 @@
 import { Net, fetchConfig, delta, lerp } from "./net.js";
-import { Compass, fmtDistance } from "./compass.js";
+import { Compass, fmtDistance, fmtDuration } from "./compass.js";
 import { Hud } from "./hud.js";
 import { Ring } from "./ring.js";
 import { Avatar } from "./avatar.js";
@@ -90,8 +90,15 @@ function frame(now) {
     const obj = nav.active ? nav.objective : null;
     compass.setObjective(obj);
     if (obj) {
+      // Apple Maps (phone): the marker is the next maneuver, so the line says
+      // what to do there; the trip to the destination goes underneath
+      const dest = nav.source === "apple" ? nav.destination : null;
+      const sub = dest
+        ? `<span class="sub">${escapeHtml(dest.name)} ${fmtDistance(dest.distance)}` +
+          (dest.eta > 0 ? ` · ${fmtDuration(dest.eta)}` : "") + "</span>"
+        : "";
       objectiveEl.innerHTML =
-        `${obj.step || obj.name}<span class="dist">${fmtDistance(obj.distance)}</span>`;
+        `${escapeHtml(obj.step || obj.name)}<span class="dist">${fmtDistance(obj.distance)}</span>${sub}`;
       objectiveEl.classList.remove("hidden");
     } else if (nav.status) {
       objectiveEl.textContent = nav.status;
@@ -132,3 +139,7 @@ function frame(now) {
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
+
+function escapeHtml(s) {
+  return String(s ?? "").replace(/[&<>"]/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[ch]);
+}

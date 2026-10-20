@@ -16,6 +16,9 @@ final class SensorBridge: NSObject, CLLocationManagerDelegate {
     /// thigh, so its gravity vector says standing or sitting (server/body.py).
     var postureOn = false { didSet { applyToggles() } }
     @ObservationIgnored private var motionTick = 0
+    /// RouteNavigator follows the same fixes and heading (no second CLLocationManager).
+    @ObservationIgnored var onFix: (@MainActor (CLLocation) -> Void)?
+    @ObservationIgnored var onHeading: (@MainActor (Double) -> Void)?
 
     private(set) var running = false
     private(set) var connected = false
@@ -148,14 +151,17 @@ final class SensorBridge: NSObject, CLLocationManagerDelegate {
             self.heading = deg
             self.headingAccuracy = acc
             self.send(["heading": deg, "accuracy": max(0, acc), "source": "ios"])
+            self.onHeading?(deg)
         }
     }
 
     nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locs: [CLLocation]) {
-        guard let c = locs.last?.coordinate else { return }
+        guard let fix = locs.last else { return }
+        let c = fix.coordinate
         Task { @MainActor in
             self.location = c
             self.send(["lat": c.latitude, "lon": c.longitude])
+            self.onFix?(fix)
         }
     }
 

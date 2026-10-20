@@ -167,6 +167,10 @@ class Runtime:
             except (TypeError, ValueError):
                 pass
 
+        # Apple Maps turn-by-turn from the companion (MKDirections on the phone)
+        if isinstance(data.get("route"), dict):
+            self.nav.set_phone_route(data["route"])
+
         # glasses battery (DAT DeviceState), flat or nested under "glasses"
         g = data.get("glasses") if isinstance(data.get("glasses"), dict) else data
         if "glasses_battery" in data or (g is not data and "battery" in g):
@@ -559,9 +563,15 @@ async def api_destination(request: Request):
 async def api_route(request: Request):
     """Paste directions from Meta Maps / Google Maps / Apple Maps:
     {"destination": {"lat","lon","name"}, "steps": [{"lat","lon","instruction","distance"}]}
+
+    Or {"route": {...}}: the companion's Apple Maps progress message, as it
+    arrives on /ws/phone (for testing the overlay without a phone).
     """
     assert RT is not None
     body = await request.json()
+    if isinstance(body.get("route"), dict):
+        ok = RT.nav.set_phone_route(body["route"])
+        return JSONResponse({"ok": ok, "nav": RT.nav.tick()})
     RT.nav.set_route(body.get("destination"), body.get("steps"))
     return JSONResponse({"ok": True, "nav": RT.nav.tick()})
 

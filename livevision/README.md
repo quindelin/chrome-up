@@ -82,8 +82,16 @@ transport is live and how stale it is.
 
 ## 2. Maps directions → compass objective
 
-Three ways in, all producing the same quest marker (bearing + distance +
-"turn left onto Market St"):
+**Best path: Apple Maps on the phone.** The LiveVision companion resolves the
+place with MapKit, routes it with MKDirections, tracks you along it and sends
+`{"route": …}` over `/ws/phone`; while that is fresh it wins, the quest marker
+points at the *next maneuver*, and the line under the compass reads
+"Turn left onto Market St 120 m" over "FERRY BUILDING 1.4 KM · 18 MIN". It can
+also draw the compass on the Ray-Ban Display lens. Contract:
+[`docs/NAVIGATION.md`](docs/NAVIGATION.md).
+
+Without the phone's route, three server-side ways in, all producing the same
+quest marker (bearing + distance + "turn left onto Market St"):
 
 1. `navigation.destination` in `config.yaml` (lat/lon, or `query` geocoded via
    Nominatim). Route comes from OSRM (free, no API key).
@@ -238,7 +246,7 @@ publishes, and optionally on the live OBS output. **"unblur faces"** /
 | `GET /api/config` | markers, gesture map, tick rate |
 | `GET /api/navigation` | current objective |
 | `POST /api/destination` | `{lat,lon}` \| `{query}` \| `{link}` \| `{clear:true}` |
-| `POST /api/route` | pre-computed steps from any maps app |
+| `POST /api/route` | pre-computed steps from any maps app, or `{route}`: the phone's Apple Maps progress (testing) |
 | `POST /api/gesture` | `{gesture}` |
 | `POST /api/desktop` | `{app, title}` from an external agent (informational only) |
 | `POST /api/focus` | `{kind}` to force-set reading/coding/other (testing) |

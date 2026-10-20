@@ -6,7 +6,6 @@ import SwiftUI
 struct ControlView: View {
     @Environment(SensorBridge.self) private var sensors
     @State private var status: HUDClient.Status?
-    @State private var destination = ""
     @State private var busy = false
     @State private var error: String?
 
@@ -40,27 +39,7 @@ struct ControlView: View {
 
                 BodyTrackingSection()
 
-                Section("Navigation") {
-                    if let obj = status?.nav?.objective, status?.nav?.active == true {
-                        LabeledContent(obj.step ?? obj.name ?? "Objective") {
-                            if let d = obj.distance { Text(d >= 1000 ? String(format: "%.1f km", d / 1000) : "\(Int(d)) m") }
-                        }
-                    } else if let s = status?.nav?.status, !s.isEmpty {
-                        Text(s).foregroundStyle(.secondary)
-                    }
-                    TextField("Maps link or place name", text: $destination)
-                        .textInputAutocapitalization(.never)
-                        .autocorrectionDisabled()
-                        .submitLabel(.go)
-                        .onSubmit { run { try await $0.setDestination(destination); destination = "" } }
-                    HStack {
-                        Button("Set destination") { run { try await $0.setDestination(destination); destination = "" } }
-                            .disabled(destination.trimmingCharacters(in: .whitespaces).isEmpty)
-                        Spacer()
-                        Button("Clear", role: .destructive) { run { try await $0.clearDestination() } }
-                    }
-                    .buttonStyle(.borderless)
-                }
+                NavigationSection(status: status, reload: load)
 
                 Section {
                     Grid(horizontalSpacing: 10, verticalSpacing: 10) {
@@ -133,5 +112,108 @@ struct ControlView: View {
             do { try await action(try HUDClient.fromSettings()); await load() }
             catch { self.error = error.localizedDescription }
         }
+    }
+}
+
+/// Apple Maps turn-by-turn (RouteNavigator): the place is resolved and routed
+/// on the phone; the HUD's quest marker follows the next maneuver. When Apple
+/// Maps can't place it, the HUD server tries (coordinates in the link, or
+/// OpenStreetMap by name) and steers straight at it.
+private struct NavigationSection: View {
+    @Environment(RouteNavigator.self) private var nav
+    @Environment(Teleprompter.self) private var prompter
+    var status: HUDClient.Status?
+    var reload: () async -> Void
+    @State private var destination = ""
+    @State private var busy = false
+    @State private var error: String?
+
+    var body: some View {
+        @Bindable var nav = nav
+        Section {
+            if nav.active {
+                if let p = nav.progress {
+                    LabeledContent(p.instruction) { Text(Self.distance(p.stepDistance)).monospacedDigit() }
+                    Text("\(nav.destinationName ?? "Destination") · \(Self.distance(p.remaining)) · \(max(1, Int((p.eta / 60).rounded()))) min")
+                        .font(.caption).foregroundStyle(.secondary)
+                    if let s = nav.status { Text(s).font(.caption).foregroundStyle(.orange) }
+                } else {
+                    LabeledContent(nav.destinationName ?? "Destination") {
+                        Text(nav.status ?? "Waiting for GPS…").foregroundStyle(.secondary)
+                    }
+                }
+            } else if let obj = status?.nav?.objective, status?.nav?.active == true {
+                LabeledContent(obj.step ?? obj.name ?? "Objective") {
+                    if let d = obj.distance { Text(Self.distance(d)) }
+                }
+            } else if let s = nav.status ?? status?.nav?.status, !s.isEmpty {
+                Text(s).foregroundStyle(.secondary)
+            }
+            TextField("Maps link or place name", text: $destination)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+                .submitLabel(.go)
+                .onSubmit(go)
+            Picker("Directions", selection: $nav.transport) {
+                ForEach(RouteNavigator.Transport.allCases) { Text($0.label).tag($0) }
+            }
+            .pickerStyle(.segmented)
+            HStack {
+                Button("Set destination", action: go)
+                    .disabled(busy || destination.trimmingCharacters(in: .whitespaces).isEmpty)
+                if busy { ProgressView().padding(.leading, 6) }
+                Spacer()
+                Button("Clear", role: .destructive) {
+                    nav.clear()
+                    Task {
+                        do { try await HUDClient.fromSettings().clearDestination() }
+                        catch { self.error = error.localizedDescription }
+                        await reload()
+                    }
+                }
+            }
+            .buttonStyle(.borderless)
+            Toggle("Directions on glasses", isOn: $nav.lensOn)
+            if nav.lensOn {
+                Toggle("Compass on the lens", isOn: $nav.lensCompass)
+                if case .failed(let why) = LensRouter.shared.state {
+                    Text(why).font(.caption).foregroundStyle(.orange)
+                }
+            }
+            if let error { Text(error).font(.caption).foregroundStyle(.orange) }
+        } header: {
+            Text("Navigation · Apple Maps")
+        } footer: {
+            Text(prompter.wantsLens && nav.lensOn
+                 ? "The next turn shows as a line above the teleprompter's page; hide the script for the compass."
+                 : "The HUD's quest marker points at the next turn. On the glasses: a compass with the marker and the instruction (compass off = an arrow, lighter on Bluetooth). It turns with the phone's heading.")
+        }
+    }
+
+    private func go() {
+        let text = destination
+        guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return }
+        Task {
+            busy = true
+            error = nil
+            defer { busy = false }
+            do {
+                try await nav.setDestination(text)
+                destination = ""
+            } catch {
+                // Apple Maps couldn't place it: the HUD server tries
+                do {
+                    try await HUDClient.fromSettings().setDestination(text)
+                    destination = ""
+                } catch {
+                    self.error = error.localizedDescription
+                }
+            }
+            await reload()
+        }
+    }
+
+    static func distance(_ d: Double) -> String {
+        d >= 1000 ? String(format: "%.1f km", d / 1000) : "\(Int(d.rounded())) m"
     }
 }
