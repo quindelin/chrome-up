@@ -9,12 +9,27 @@ import Observation
 @MainActor
 @Observable
 final class SensorBridge: NSObject, CLLocationManagerDelegate {
-    var compassOn = true { didSet { applyToggles() } }
-    var gpsOn = true { didSet { applyToggles() } }
-    var motionOn = false { didSet { applyToggles() } }
+    // saved: these used to reset (motion and posture to off) on every launch,
+    // so a rebuild silently stopped the phone IMU reaching the HUD
+    var compassOn = SensorBridge.saved("sensors.compassOn") { didSet { save(); applyToggles() } }
+    var gpsOn = SensorBridge.saved("sensors.gpsOn") { didSet { save(); applyToggles() } }
+    var motionOn = SensorBridge.saved("sensors.motionOn") { didSet { save(); applyToggles() } }
     /// Posture for the avatar: the phone in a front pocket lies along your
     /// thigh, so its gravity vector says standing or sitting (server/body.py).
-    var postureOn = false { didSet { applyToggles() } }
+    var postureOn = SensorBridge.saved("sensors.postureOn") { didSet { save(); applyToggles() } }
+
+    /// On unless you turned it off.
+    private static func saved(_ key: String) -> Bool {
+        UserDefaults.standard.object(forKey: key) == nil ? true : UserDefaults.standard.bool(forKey: key)
+    }
+
+    private func save() {
+        let d = UserDefaults.standard
+        d.set(compassOn, forKey: "sensors.compassOn")
+        d.set(gpsOn, forKey: "sensors.gpsOn")
+        d.set(motionOn, forKey: "sensors.motionOn")
+        d.set(postureOn, forKey: "sensors.postureOn")
+    }
     @ObservationIgnored private var motionTick = 0
     /// RouteNavigator follows the same fixes and heading (no second CLLocationManager).
     @ObservationIgnored var onFix: (@MainActor (CLLocation) -> Void)?
