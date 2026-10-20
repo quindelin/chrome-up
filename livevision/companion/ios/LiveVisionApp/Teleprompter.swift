@@ -62,6 +62,10 @@ final class Teleprompter {
     }
 
     var page: Page? { pages.indices.contains(index) ? pages[index] : nil }
+    /// The script's top "# " heading, if it has one (the speech's title).
+    var scriptTitle: String? {
+        script.split(separator: "\n", maxSplits: 20).first { $0.hasPrefix("# ") }.map { String($0.dropFirst(2)) }
+    }
     var totalWords: Int { pages.reduce(0) { $0 + $1.words } }
     /// Spoken time left from the start of the current page.
     var remaining: TimeInterval {

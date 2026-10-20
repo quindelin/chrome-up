@@ -23,7 +23,10 @@ struct TeleprompterView: View {
                         Button("Hide from glasses", role: .destructive) { p.hide() }
                     } else {
                         Button("Show on glasses") { p.show(on: glasses) }
-                            .disabled(p.pages.isEmpty)
+                        if p.pages.isEmpty {
+                            Text("No script yet: paste or import one under Script below.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
                     }
                     if case .failed(let why) = p.lens {
                         Text(why).font(.caption).foregroundStyle(.orange)
@@ -76,6 +79,9 @@ struct TeleprompterView: View {
                 }
 
                 Section {
+                    NavigationLink { SpeechLibraryView() } label: {
+                        LabeledContent("Speech library", value: p.scriptTitle ?? "")
+                    }
                     NavigationLink("Edit script") { ScriptEditor() }
                     Button("Paste from clipboard") {
                         if let s = UIPasteboard.general.string, !s.isEmpty { p.script = s }
