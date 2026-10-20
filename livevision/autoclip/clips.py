@@ -86,10 +86,13 @@ def hud_stack_graph(hud: dict, width: int, height: int) -> Tuple[str, int]:
     """One filtergraph (single in, single out) that cuts the HUD out of a
     program frame and stacks it into `width`x`height`:
 
-        compass strip      (scaled to full width)
-        camera             (crop-to-fill whatever height is left)
-        heart rate + Magicka | avatar   (the bottom band)
+        camera             (crop-to-fill everything above the band)
+        compass            |
+        heart rate         | avatar      (the bottom band, on black)
+        Magicka            |
 
+    The whole HUD lives in the band: a compass strip on top would leave black
+    corners (it is narrower than a 9:16 frame) and cost camera height.
     Returns (graph, band_height); captions go above the band. The graph is
     comma-chainable, so it drops into -vf, the privacy scan and
     privacy_filter_complex like the plain crop chain does.
@@ -101,41 +104,49 @@ def hud_stack_graph(hud: dict, width: int, height: int) -> Tuple[str, int]:
     hx, hy, hw, hh = _box(hud, "heartbeat")
     mx, my, mw, mh = _box(hud, "magicka")
 
-    top_h = _even(width * kh / kw)
     band_h = _even(min(int(hud.get("bottom_height", 560)), height // 3))
-    mid_h = height - top_h - band_h
-    if mid_h < height // 3:
-        raise ValueError(f"hud_stack: camera gets only {mid_h}px of {height}")
+    mid_h = height - band_h
 
-    # camera: crop-to-fill the middle, focus_y picks which slice survives
+    # camera: crop-to-fill the top, focus_y picks which slice survives
     src_h = min(ch, _even(cw * mid_h / width))
     src_w = min(cw, _even(src_h * width / mid_h))
     fy = clamp(float(hud.get("camera_focus_y", 0.5)), 0.0, 1.0)
     cam_x = cx + (cw - src_w) // 2
     cam_y = cy + int((ch - src_h) * fy)
 
-    # bottom band: vitals column on the left, avatar to full band height right
+    # bottom band: compass + vitals column on the left, avatar full height right
     pad = 20
     av_h = band_h - 2 * pad
     av_w = _even(av_h * aw / ah)
     vit_w = _even(min(float(hud.get("vitals_width", 600)), width - av_w - 4 * pad))
+    gap = _even(int(hud.get("vitals_gap", 24)))
+    k_h = _even(vit_w * kh / kw)
     hb_h = _even(vit_w * hh / hw)
     mg_h = _even(vit_w * mh / mw)
+    col_h = k_h + gap + hb_h + mg_h
+    if col_h > band_h:
+        raise ValueError(f"hud_stack: compass + vitals need {col_h}px, band is {band_h}")
     vit_x = max(0, (width - av_w - 2 * pad - vit_w) // 2)
-    vit_y = max(0, (band_h - hb_h - mg_h) // 2)
+    vit_y = max(0, (band_h - col_h) // 2)
+    # the compass is drawn over the camera: darken the camera inside its crop
+    # so it reads as HUD on black, not a stray slice of video
+    dim = clamp(float(hud.get("compass_dim", 0.7)), 0.0, 1.0)
+    dx0, dx1 = max(kx, cx), min(kx + kw, cx + cw)
+    k_dim = (f",drawbox=x={dx0 - kx}:y=0:w={dx1 - dx0}:h={kh}:color=black@{dim:g}:t=fill"
+             if dim > 0 and dx1 > dx0 else "")
     av_x = width - av_w - 2 * pad
 
     graph = (
         f"scale={bw}:{bh},setsar=1,split=5[hk][hc][ha][hh][hm];"
-        f"[hk]crop={kw}:{kh}:{kx}:{ky},scale={width}:{top_h}[htop];"
         f"[hc]crop={src_w}:{src_h}:{cam_x}:{cam_y},scale={width}:{mid_h}[hmid];"
+        f"[hk]crop={kw}:{kh}:{kx}:{ky}{k_dim},scale={vit_w}:{k_h},pad={vit_w}:{k_h + gap}:0:0:black[hkp];"
         f"[hh]crop={hw}:{hh}:{hx}:{hy},scale={vit_w}:{hb_h}[hhb];"
         f"[hm]crop={mw}:{mh}:{mx}:{my},scale={vit_w}:{mg_h}[hmg];"
-        f"[hhb][hmg]vstack=inputs=2,"
+        f"[hkp][hhb][hmg]vstack=inputs=3,"
         f"pad={width}:{band_h}:{vit_x}:{vit_y}:black[hvit];"
         f"[ha]crop={aw}:{ah}:{ax}:{ay},scale={av_w}:{av_h}[hav];"
         f"[hvit][hav]overlay={av_x}:{pad}[hbot];"
-        f"[htop][hmid][hbot]vstack=inputs=3,setsar=1"
+        f"[hmid][hbot]vstack=inputs=2,setsar=1"
     )
     return graph, band_h
 

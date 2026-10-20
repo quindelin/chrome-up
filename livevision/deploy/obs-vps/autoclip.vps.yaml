@@ -20,7 +20,7 @@ source:
     chunk_seconds: 30
 
 render:
-  layout: hud_stack                    # compass / camera / vitals + avatar
+  layout: hud_stack                    # camera / compass + vitals + avatar
 
 obs:
   password: "${OBS_WS_PASSWORD}"

@@ -1587,15 +1587,14 @@ def t_hud_stack_graph():
     hud = load_config(ROOT / "autoclip.yaml")["render"]["hud_stack"]
     graph, band = hud_stack_graph(hud, 1080, 1920)
     assert graph.startswith("scale=1920:1080,"), graph
-    assert "split=5" in graph and graph.endswith("vstack=inputs=3,setsar=1"), graph
+    assert "split=5" in graph and graph.endswith("vstack=inputs=2,setsar=1"), graph
     for box in ("compass", "camera", "avatar", "heartbeat", "magicka"):
         x, y, w, h = hud[box]
         assert f"crop={w}:{h}:{x}:{y}" in graph or box == "camera", (box, graph)
-    # top strip + camera + band add up to the full height
-    sizes = [int(m.split(":")[1].split("[")[0]) for m in
-             (graph.split("[htop]")[0].rsplit("scale=", 1)[1],
-              graph.split("[hmid]")[0].rsplit("scale=", 1)[1])]
-    assert sum(sizes) + band == 1920, (sizes, band)
+    # camera + band add up to the full height; the compass is in the band
+    cam_h = int(graph.split("[hmid]")[0].rsplit("scale=", 1)[1].split(":")[1])
+    assert cam_h + band == 1920, (cam_h, band)
+    assert "[hkp][hhb][hmg]vstack" in graph, "compass stacks with the vitals"
     assert band == hud["bottom_height"], band
 
     assert resolve_layout("hud_stack", 1920, 1080, hud) == "hud_stack"
