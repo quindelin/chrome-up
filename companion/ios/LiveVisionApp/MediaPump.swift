@@ -74,7 +74,8 @@ final class ClockMapper: @unchecked Sendable {
 /// (cheap) and queued; one consumer per medium appends to the encoder in
 /// order. A backed-up video queue drops its oldest frame and counts it.
 final class MediaPump: @unchecked Sendable {
-    struct Counters { var framesIn = 0; var dropped = 0 }
+    /// received: frames DAT handed us; framesIn: frames queued for the encoder.
+    struct Counters { var received = 0; var framesIn = 0; var dropped = 0 }
 
     let clock = ClockMapper()
     private let counters = OSAllocatedUnfairLock(initialState: Counters())
@@ -89,6 +90,7 @@ final class MediaPump: @unchecked Sendable {
         video = vc
         audio = ac
         clock.reset()
+        counters.withLock { _ in sawFrame = false }
         consumers = [
             Task.detached(priority: .userInitiated) { for await f in v { await uplink.append(video: f) } },
             Task.detached(priority: .userInitiated) { for await (b, t) in a { await uplink.append(audio: b, when: t) } },
@@ -110,6 +112,10 @@ final class MediaPump: @unchecked Sendable {
     /// A DAT video frame on the glasses' clock: raw pixels from real glasses,
     /// HEVC from the mock (it passes its video file's samples through).
     func pushVideo(_ sb: CMSampleBuffer) {
+        let first = counters.withLock { c in c.received += 1; defer { sawFrame = true }; return !sawFrame }
+        if first {
+            log.notice("first frame: image \(sb.imageBuffer != nil) data \(sb.dataBuffer != nil) samples \(sb.numSamples) pts \(sb.presentationTimeStamp.seconds) format \(String(describing: sb.formatDescription))")
+        }
         let arrival = CMClockGetTime(CMClockGetHostTimeClock()).seconds
         let pts = sb.presentationTimeStamp
         let host = pts.isValid ? clock.mapVideo(pts.seconds, arrival: arrival) : arrival
@@ -118,6 +124,7 @@ final class MediaPump: @unchecked Sendable {
                                         decodeTimeStamp: .invalid)
         if sb.imageBuffer == nil, sb.formatDescription?.mediaType == .video {
             if let pixels = decoder.decode(sb) { enqueue(pixels, timing: &timing) }
+            else if first { log.error("first frame has no pixels and does not decode") }
             return
         }
         var out: CMSampleBuffer?
@@ -128,6 +135,7 @@ final class MediaPump: @unchecked Sendable {
     }
 
     private let decoder = FrameDecoder()
+    private var sawFrame = false
 
     private func enqueue(_ pixels: CVPixelBuffer, timing: inout CMSampleTimingInfo) {
         var format: CMVideoFormatDescription?

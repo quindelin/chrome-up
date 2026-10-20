@@ -27,7 +27,7 @@ enum MockRig {
     static func refeed() {
         guard let g = glasses, let feed = Bundle.main.url(forResource: "MockGlassesFeed", withExtension: "mp4") else { return }
         g.services.camera.setCameraFeed(fileURL: feed)
-        log.notice("mock feed \(feed.lastPathComponent, privacy: .public)")
+        log.notice("mock feed \(feed.lastPathComponent)")
     }
 
     static func disable() async {

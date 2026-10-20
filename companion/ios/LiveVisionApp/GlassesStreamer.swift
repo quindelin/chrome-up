@@ -5,7 +5,36 @@ import MWDATCore
 import Observation
 import os
 
-let log = Logger(subsystem: "com.chromeup.livevision", category: "glasses")
+let log = GlassesLog()
+
+/// os_log plus Documents/glasses.log, so a run on a real phone can be read
+/// back without a Mac console: `xcrun devicectl device copy from --device <id>
+/// --domain-type appDataContainer --domain-identifier com.chromeup.livevision
+/// --source Documents/glasses.log --destination .`
+struct GlassesLog: Sendable {
+    private static let logger = Logger(subsystem: "com.chromeup.livevision", category: "glasses")
+    private static let queue = DispatchQueue(label: "glasses.log")
+    private static let url = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0]
+        .appending(path: "glasses.log")
+
+    func notice(_ s: String) { Self.logger.notice("\(s, privacy: .public)"); Self.write(s) }
+    func error(_ s: String) { Self.logger.error("\(s, privacy: .public)"); Self.write("ERROR " + s) }
+
+    private static func write(_ s: String) {
+        let line = "\(Date().formatted(.iso8601)) \(s)\n"
+        queue.async {
+            // keep it small: start over past 1 MB
+            if let size = try? FileManager.default.attributesOfItem(atPath: url.path)[.size] as? Int, size > 1_000_000 {
+                try? FileManager.default.removeItem(at: url)
+            }
+            if let h = try? FileHandle(forWritingTo: url) {
+                h.seekToEndOfFile(); h.write(Data(line.utf8)); try? h.close()
+            } else {
+                try? Data(line.utf8).write(to: url)
+            }
+        }
+    }
+}
 
 /// The phone half of the IRL stream: Meta Ray-Ban Display camera -> VM.
 ///
@@ -46,7 +75,9 @@ final class GlassesStreamer {
     private(set) var isMock = false
     /// The user asked to stream (survives reconnects and session pauses).
     private(set) var wantsStream = false
-    var lastError: String?
+    var lastError: String? {
+        didSet { if let lastError, lastError != oldValue { log.error(lastError) } }
+    }
 
     @ObservationIgnored private var configured = false
     @ObservationIgnored private var session: DeviceSession?
@@ -73,7 +104,7 @@ final class GlassesStreamer {
             configured = true
         } catch {
             link = .unavailable(error.localizedDescription)
-            log.error("Wearables.configure: \(String(describing: error), privacy: .public)")
+            log.error("Wearables.configure: \(String(describing: error))")
             return
         }
         if Settings.mockGlasses { enableMock() }
@@ -158,7 +189,7 @@ final class GlassesStreamer {
             let selector: any DeviceSelector = deviceIds.first.map { SpecificDeviceSelector(device: $0) }
                 ?? AutoDeviceSelector(wearables: Wearables.shared)
             let s = try Wearables.shared.createSession(deviceSelector: selector)
-            log.notice("session created for \(String(describing: selector.activeDevice), privacy: .public) of \(self.deviceIds.count) devices")
+            log.notice("session created for \(String(describing: selector.activeDevice)) of \(self.deviceIds.count) devices")
             session = s
             link = .connecting
             // Subscribe before start(): the streams do not replay, and a quick
@@ -167,7 +198,7 @@ final class GlassesStreamer {
             tasks.append(Task { [weak self] in
                 for await error in errors {
                     self?.lastError = error.localizedDescription
-                    log.error("session error: \(String(describing: error), privacy: .public)")
+                    log.error("session error: \(String(describing: error))")
                 }
             })
             tasks.append(Task { [weak self] in
@@ -192,7 +223,7 @@ final class GlassesStreamer {
 
     private func sessionChanged(_ state: DeviceSessionState, _ s: DeviceSession) {
         guard s === session else { return }
-        log.notice("session \(state.description, privacy: .public)")
+        log.notice("session \(state.description)")
         switch state {
         case .started:
             link = .connected
@@ -268,7 +299,11 @@ final class GlassesStreamer {
     }
 
     private func attachCamera() async {
-        guard let session, cam == nil, wantsStream else { return }
+        guard let session, cam == nil, wantsStream else {
+            log.notice("attachCamera skipped: session \(self.session != nil) cam \(self.cam != nil) wants \(self.wantsStream)")
+            return
+        }
+        log.notice("attachCamera: device \(self.deviceName ?? "?") mock \(self.isMock)")
         do {
             if try await Wearables.shared.checkPermissionStatus(.camera) != .granted,
                try await Wearables.shared.requestPermission(.camera) != .granted {
@@ -276,7 +311,7 @@ final class GlassesStreamer {
                 return
             }
         } catch {
-            log.notice("camera permission: \(String(describing: error), privacy: .public)")
+            log.notice("camera permission: \(String(describing: error))")
         }
         let glassesMic = Settings.audioSource == .glasses
         let config = StreamConfiguration(
@@ -296,13 +331,13 @@ final class GlassesStreamer {
             let pump = pump
             c.stream.statePublisher.listen { [weak self] state in
                 Task { @MainActor in
-                    log.notice("camera \(String(describing: state), privacy: .public)")
+                    log.notice("camera \(String(describing: state))")
                     self?.camera = state
                     if state == .streaming, self?.isMock == true { MockRig.refeed() }
                 }
             }.store(in: tokens)
             c.stream.errorPublisher.listen { [weak self] error in
-                log.error("camera: \(String(describing: error), privacy: .public)")
+                log.error("camera: \(String(describing: error))")
                 Task { @MainActor in self?.lastError = "Camera: \(error.localizedDescription)" }
             }.store(in: tokens)
             c.stream.videoFramePublisher.listen { frame in
@@ -316,7 +351,7 @@ final class GlassesStreamer {
             c.stream.start()
         } catch {
             lastError = "Camera: \(error.localizedDescription)"
-            log.error("addCamera: \(String(describing: error), privacy: .public)")
+            log.error("addCamera: \(String(describing: error))")
         }
     }
 
@@ -324,12 +359,17 @@ final class GlassesStreamer {
     private func startMeter() {
         meter?.cancel()
         meter = Task { [weak self] in
+            var tick = 0
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1))
                 guard let self else { return }
                 let c = self.pump.takeCounters()
                 self.fpsIn = c.framesIn
                 self.droppedFrames += c.dropped
+                tick += 1
+                if tick % 5 == 0 {
+                    log.notice("meter rx \(c.received)/s queued \(c.framesIn)/s dropped \(self.droppedFrames) camera \(self.camera.map { String(describing: $0) } ?? "nil") uplink \(String(describing: self.uplink)) link \(String(describing: self.link))")
+                }
             }
         }
     }
