@@ -11,6 +11,7 @@
 #   ./gcp.sh ssh       shell on the VM
 #   ./gcp.sh static-ip keep this boot's IP for good (the companion app's host)
 #   ./gcp.sh companion write the LiveVision iOS app's Secrets.xcconfig from the VM
+#   ./gcp.sh env K [V] set K=V in the VM's .env and apply it (no V: prompts, hidden)
 #   ./gcp.sh destroy   delete VM, IP and firewall rule
 #
 # The external IP is ephemeral by default, so it changes on every start and
@@ -25,7 +26,7 @@ PROJECT="${PROJECT:-chrome-up-irl-e8d7}"
 REGION="${REGION:-us-central1}"
 ZONE="${ZONE:-${REGION}-a}"
 NAME="${NAME:-obs-irl}"
-MACHINE="${MACHINE:-e2-standard-4}"     # 4 vCPU / 16 GB: OBS + Chromium + x264 720p30
+MACHINE="${MACHINE:-e2-standard-8}"     # 8 vCPU / 32 GB: OBS alone saturated 4 (software HUD + avatar)
 DISK_GB="${DISK_GB:-15}"                 # OS + images use ~7 GB
 DISK_TYPE="${DISK_TYPE:-pd-standard}"    # $0.04/GB-mo; pd-balanced is $0.10
 STATIC_IP="${STATIC_IP:-0}"
@@ -57,6 +58,10 @@ upload() {
   ssh_ "mkdir -p $REMOTE && tar -xzf chrome_up.tgz -C $REMOTE && \
         (mv -f ~/*.wav ~/*.ogg ~/*.mp3 $REMOTE/overlay/assets/sfx/ 2>/dev/null || true) && \
         (SETUP_BUILD=1 nohup bash $REMOTE/deploy/obs-vps/setup.sh > ~/setup.log 2>&1 < /dev/null &)"
+  wait_setup
+}
+
+wait_setup() {
   echo "setup running on the VM (log: ~/setup.log)..."
   for _ in $(seq 1 60); do
     sleep 20
@@ -137,11 +142,29 @@ TXT"
       | grep -E '^(//|LIVEVISION_)' > "$OUT.tmp" && mv "$OUT.tmp" "$OUT" && chmod 600 "$OUT"
     grep LIVEVISION_HOST "$OUT"
     ;;
+  env)
+    # e.g. ./gcp.sh env TWITCH_STREAM_KEY   (asks for the value; never in argv
+    # or shell history), ./gcp.sh env AUTOCLIP_LIVE_STREAMS 1
+    K="${2:-}"
+    [[ "$K" =~ ^[A-Z_][A-Z0-9_]*$ ]] || { echo "usage: ./gcp.sh env NAME [value]" >&2; exit 1; }
+    if [ $# -ge 3 ]; then V="$3"; else read -rsp "$K: " V; echo; fi
+    # the value goes over stdin, not the remote command line
+    printf '%s' "$V" | ssh_ "cd $REMOTE/deploy/obs-vps && python3 -c '
+import sys
+k, v = sys.argv[1], sys.stdin.read()
+lines = open(\".env\").read().splitlines()
+out = [l for l in lines if not l.startswith(k + \"=\")]
+out.append(k + \"=\" + v)
+open(\".env\", \"w\").write(\"\\n\".join(out) + \"\\n\")
+' $K && (nohup bash ~/$REMOTE/deploy/obs-vps/setup.sh > ~/setup.log 2>&1 < /dev/null &)"
+    echo "$K set on the VM; applying..."
+    wait_setup
+    ;;
   ssh)     shift; ssh_ "$@" ;;
   destroy)
     "${G[@]}" compute instances delete "$NAME" --zone "$ZONE" || true
     "${G[@]}" compute addresses delete "$NAME-ip" --region "$REGION" || true
     "${G[@]}" compute firewall-rules delete "$NAME-ingest" || true
     ;;
-  *) sed -n '2,15p' "$0" ;;
+  *) sed -n '2,16p' "$0" ;;
 esac
