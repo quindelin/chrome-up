@@ -82,7 +82,11 @@ final class GlassesStreamer {
     @ObservationIgnored private var configured = false
     @ObservationIgnored private var session: DeviceSession?
     @ObservationIgnored private var cam: Camera?
-    @ObservationIgnored private let tokens = ListenerTokenBag()
+    /// One bag per camera attempt, so a retry starts with clean listeners.
+    @ObservationIgnored private var tokens = ListenerTokenBag()
+    /// Which rung of `cameraTiers` the next attach uses; a failed start steps down.
+    @ObservationIgnored private var cameraTier = 0
+    @ObservationIgnored private var cameraAttempts = 0
     @ObservationIgnored private var deviceToken: (any AnyListenerToken)?
     @ObservationIgnored private var watchedDevice: DeviceIdentifier?
     @ObservationIgnored private var deviceIds: [DeviceIdentifier] = []
@@ -267,11 +271,9 @@ final class GlassesStreamer {
         if !(await AVAudioApplication.requestRecordPermission()) {
             lastError = "Microphone access is off (Settings > LiveVision): streaming video only."
         }
-        do {
-            try mic.start(forward: !useGlassesMic, into: pump)
-        } catch {
-            lastError = "Mic: \(error.localizedDescription)"
-        }
+        micForward = !useGlassesMic
+        cameraTier = 0
+        cameraAttempts = 0
         pump.start(into: up)
         await up.start(.init(transport: Settings.transport, host: host,
                              streamKey: Settings.streamKey, srtPassphrase: Settings.srtPassphrase))
@@ -298,12 +300,53 @@ final class GlassesStreamer {
         startedAt = nil
     }
 
+    /// Resolution / fps to ask for, best first. DAT's own sample starts at low/24.
+    private static let cameraTiers: [(StreamingResolution, UInt)] = [(.high, 30), (.medium, 24), (.low, 24)]
+    @ObservationIgnored private var micForward = true
+
+    /// The phone mic starts once the camera streams: claiming the audio
+    /// session first is one suspect for the camera never reaching the glasses.
+    private func startMicIfNeeded() {
+        guard wantsStream, !mic.running else { return }
+        do { try mic.start(forward: micForward, into: pump) }
+        catch { lastError = "Mic: \(error.localizedDescription)" }
+    }
+
+    private func deviceSummary() -> String {
+        guard let id = session?.device?.identifier ?? deviceIds.first,
+              let d = Wearables.shared.deviceForIdentifier(id) else { return "no device" }
+        return "\(d.nameOrId()) type \(d.deviceType()) link \(d.linkState) don \(d.donState) hinge \(d.hingeState) "
+            + "thermal \(d.thermalLevel) battery \(d.batteryLevel.map(String.init) ?? "?") \(d.compatibility())"
+    }
+
+    /// The camera gave up (DAT waits ~30 s for the glasses' camera link).
+    /// Try again one rung lower, a few times, while the user still wants to stream.
+    private func cameraFailed(_ error: StreamError) async {
+        guard wantsStream, cam != nil else { return }
+        log.notice("camera failed: \(String(describing: error)); \(deviceSummary())")
+        cam?.stop()
+        cam = nil
+        camera = nil
+        let old = tokens
+        tokens = ListenerTokenBag()
+        await old.cancelAll()
+        cameraAttempts += 1
+        guard cameraAttempts < 6 else {
+            lastError = "Camera: \(error.localizedDescription). Gave up after \(cameraAttempts) tries - take the glasses off and on, or restart them."
+            return
+        }
+        cameraTier = min(cameraTier + 1, Self.cameraTiers.count - 1)
+        lastError = "Camera: \(error.localizedDescription) - retrying (\(cameraAttempts))…"
+        try? await Task.sleep(for: .seconds(3))
+        if wantsStream, link == .connected { await attachCamera() }
+    }
+
     private func attachCamera() async {
         guard let session, cam == nil, wantsStream else {
             log.notice("attachCamera skipped: session \(self.session != nil) cam \(self.cam != nil) wants \(self.wantsStream)")
             return
         }
-        log.notice("attachCamera: device \(self.deviceName ?? "?") mock \(self.isMock)")
+        log.notice("attachCamera tier \(self.cameraTier) mock \(self.isMock): \(self.deviceSummary())")
         do {
             if try await Wearables.shared.checkPermissionStatus(.camera) != .granted,
                try await Wearables.shared.requestPermission(.camera) != .granted {
@@ -320,8 +363,9 @@ final class GlassesStreamer {
             // MediaPump decodes that back to pixels so it takes the same path.
             videoCodec: isMock ? .hvc1 : .raw,
             audioCodec: glassesMic ? .pcm(sampleRate: .rate48000, numberOfChannels: 1) : nil,
-            resolution: .high,      // 720x1280; DAT steps down by itself on a weak link
-            frameRate: 30)
+            // 720x1280@30 first; DAT also steps down by itself on a weak link
+            resolution: Self.cameraTiers[cameraTier].0,
+            frameRate: Self.cameraTiers[cameraTier].1)
         do {
             guard let c = try session.addCamera(config: config) else {
                 lastError = "These glasses have no camera stream."
@@ -333,12 +377,20 @@ final class GlassesStreamer {
                 Task { @MainActor in
                     log.notice("camera \(String(describing: state))")
                     self?.camera = state
-                    if state == .streaming, self?.isMock == true { MockRig.refeed() }
+                    if state == .streaming {
+                        self?.startMicIfNeeded()
+                        if self?.isMock == true { MockRig.refeed() }
+                    }
                 }
             }.store(in: tokens)
             c.stream.errorPublisher.listen { [weak self] error in
                 log.error("camera: \(String(describing: error))")
-                Task { @MainActor in self?.lastError = "Camera: \(error.localizedDescription)" }
+                Task { @MainActor in
+                    switch error {
+                    case .deviceNotConnected, .deviceNotFound, .timeout: await self?.cameraFailed(error)
+                    default: self?.lastError = "Camera: \(error.localizedDescription)"
+                    }
+                }
             }.store(in: tokens)
             c.stream.videoFramePublisher.listen { frame in
                 pump.pushVideo(frame.sampleBuffer)
