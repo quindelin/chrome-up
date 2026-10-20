@@ -10,8 +10,6 @@ On paper it was an army of some sixty thousand men. In fact, fewer than forty th
 
 The general was Napoleon Bonaparte. And the first thing he did was speak to them.
 
-It was not obvious that anyone should listen to him. He was a Corsican artillery officer who had made his name at the siege of Toulon. He was young, thin, foreign in accent, and owed his command partly to political connections. The veterans who had fought in those mountains for years were not impressed.
-
 He had no money to give them. He had no supplies to promise them. He had no victories yet to point to. He had only words.
 
 He did not lie to them about their condition. That is what makes the proclamation famous. He told them, in effect: you are naked, you are hungry, the government owes you everything and can pay you nothing. Your patience is admirable. Your courage is real. And neither one has earned you a single thing.
@@ -34,7 +32,7 @@ Because here is what is different about our moment.
 
 Napoleon's soldiers were poor because their country was poor. France in seventeen ninety-six was bankrupt, exhausted, at war with half a continent. The abundance he promised lay somewhere else, in someone else's country, and the only way to get it was to take it.
 
-Our situation is the opposite. We are not a poor country. We are, by the measure of history, the richest society that has ever existed. And the abundance is not over the mountains. It is not in someone else's country. It is here. It is being built in Virginia and Texas and Arizona and Ohio, in buildings the size of airports, humming with racks of machines that each cost millions of dollars.
+Our situation is the opposite. We are not a poor country. We are, by the measure of history, the richest society that has ever existed. And the abundance is not over the mountains. It is not in someone else's country. It is here. It is being built in Virginia and Texas and Arizona and Ohio, in buildings the size of airports, humming with racks of machines.
 
 The plains are not over the Alps. The plains are down the road.
 
@@ -58,7 +56,7 @@ Over the next two hours I am going to make this argument in four movements, and 
 
 The first movement is the abundance. How large it is, where it sits, who owns it, and what has happened to the share of the national income that goes to people who work for a living.
 
-The second is the line itself, and the people on either side of it. The young workers who are the first to feel it, the canaries in this particular mine. And the army of one: the solo founder with a laptop and a dozen AI tools, who is real, and remarkable, and also a warning.
+The second is the line itself, and the people on either side of it. The young workers who are the first to feel it, the canaries in this particular mine. The army of one: the solo founder with a laptop and a dozen AI tools, who is real, and remarkable, and also a warning. And the inventors who never get to begin: the talent in the ranks that concentrated wealth leaves behind.
 
 The third is the reckoning. I am going to give you the very best argument against everything I am saying, and take it seriously. I am going to take you back two hundred years, to some men in Nottinghamshire who have been badly slandered by history. And I am going to show you where this abundance actually came from.
 
@@ -74,13 +72,13 @@ Let me show you the plains.
 
 This year, four companies, Amazon, Alphabet, Meta and Microsoft, are on track to spend somewhere around seven hundred billion dollars on capital investment. Most of it goes to the data centers and chips that train and run artificial intelligence.
 
-Last year the same four spent about four hundred and ten billion. That was a record too. One tally puts this year's figure higher still, at seven hundred and twenty-five billion.
+Last year the same four spent about four hundred and ten billion. That was a record too.
 
 Seven hundred billion dollars. In a single year. From four companies.
 
 [PAUSE]
 
-To put that in human terms: it is more than the entire economic output of most of the countries on earth. It is a sum that, a generation ago, only governments at war could spend. And the analysts are not predicting it will fall. Goldman Sachs has projected that those four firms together will spend something like five point three trillion dollars on capital investment between twenty twenty-five and twenty thirty.
+To put that in human terms: it is more than the entire economic output of most of the countries on earth. And the analysts are not predicting it will fall. Goldman Sachs has projected that those four firms together will spend something like five point three trillion dollars on capital investment between twenty twenty-five and twenty thirty.
 
 That is the building of the plains. Concrete, steel, copper, cooling towers, transmission lines, and above all, chips.
 
@@ -92,7 +90,7 @@ Now step back and look at the whole American stock market.
 
 There is a group of firms that Wall Street calls the Magnificent Seven: Apple, Microsoft, Alphabet, Amazon, Nvidia, Meta and Tesla. As of this autumn, those seven companies make up roughly a third of the total market value of the S&P five hundred. About thirty-four percent.
 
-Think about what that means. The S&P five hundred is supposed to be the broad measure of American enterprise. Five hundred of the largest companies in the country: banks and railroads, grocers and drug makers, oil producers and insurers. And seven of them, seven, are worth about as much as a third of the whole.
+Five hundred of the largest companies in the country, and seven of them are worth about a third of the whole.
 
 Ten years ago that share was around twelve percent. In a decade, it nearly tripled.
 
@@ -112,15 +110,15 @@ This is the deepest economic fact of our time. For all of human history, if you 
 
 What is being built on those plains is a set of machines whose explicit purpose, stated openly by the people building them, is to do cognitive work that until now only people could do.
 
-I do not say that as an accusation. Some of the people building these systems have been unusually candid about it. In the spring of twenty twenty-five, the chief executive of one of the leading AI companies, Dario Amodei of Anthropic, told the news site Axios that AI could eliminate up to half of all entry-level white-collar jobs, and push unemployment to somewhere between ten and twenty percent, within one to five years. He said that people did not believe it was coming. He urged his own industry and the government to stop sugarcoating it.
+I do not say that as an accusation. Some of the people building these systems have been unusually candid about it. In the spring of twenty twenty-five, the chief executive of one of the leading AI companies, Dario Amodei of Anthropic, told the news site Axios that AI could eliminate up to half of all entry-level white-collar jobs, and push unemployment to somewhere between ten and twenty percent, within one to five years. He urged his own industry and the government to stop sugarcoating it.
 
 He may be wrong about the size and the speed. I will come back to that. But notice who said it. Not a critic. Not a union leader. A builder.
 
-There is a name economists give to markets like these. Decades ago, the economist Sherwin Rosen described what he called the economics of superstars. In some markets, he observed, small differences in talent or quality produce enormous differences in reward, because the best performer can serve the whole market at almost no extra cost. One great singer on a recording can reach millions; the merely good singer reaches almost no one. Rosen was writing about entertainers and professionals. But the logic applies with even greater force to software, and greater still to artificial intelligence.
+Decades ago, the economist Sherwin Rosen described what he called the economics of superstars. In some markets, small differences in quality produce enormous differences in reward, because the best performer can serve the whole market at almost no extra cost. One great singer on a recording can reach millions. Rosen was writing about entertainers. The logic applies with even greater force to artificial intelligence.
 
-If the best model can be copied endlessly and served to everyone, then the company with the best model does not win a share of the market. It can win nearly all of it. And the company with the most chips can train the best model. And the company with the most money can buy the most chips. The returns to scale feed on themselves. That is why seven firms hold a third of the market's value. No conspiracy is required, and not much greed. The economics of the technology do the work: they reward the biggest and the first, and punish everyone else.
+If the best model can be copied endlessly and served to everyone, the company with the best model can win nearly all of the market. The company with the most chips can train the best model, and the company with the most money can buy the most chips. The returns to scale feed on themselves. That is why seven firms hold a third of the market's value. No conspiracy is required, and not much greed. The economics of the technology do the work: they reward the biggest and the first, and punish everyone else.
 
-I want to dwell on that, because it changes the moral shape of the argument. If the concentration I am describing were the result of a few bad actors, the answer would be simple: punish them. But it is not. It is the natural tendency of an economy built on compute, left to itself. And natural tendencies are not answered by outrage. They are answered by design.
+That changes the moral shape of the argument. If this concentration were the work of a few bad actors, the answer would be simple: punish them. But it is the natural tendency of an economy built on compute, left to itself. And natural tendencies are not answered by outrage. They are answered by design.
 
 The river does not flood because it is wicked. It floods because nobody built the levees.
 
@@ -132,7 +130,7 @@ The question Napoleon never had to answer, because he planned to take what he fo
 
 ## III. Who Holds the Plains
 
-Every quarter, the Federal Reserve publishes a set of numbers called the Distributional Financial Accounts. They are dry. They are technical. And they are the closest thing we have to an official map of who owns America.
+Every quarter, the Federal Reserve publishes a set of numbers called the Distributional Financial Accounts. They are dry, and they are the closest thing we have to an official map of who owns America.
 
 In September, the Fed released the figures for the second quarter of this year. According to those figures, the wealthiest one percent of American households now hold about thirty-two and a half percent of all household net worth.
 
@@ -154,15 +152,11 @@ The wealthiest households do not mainly own houses and savings accounts. They ow
 
 Now, a fair-minded listener will say: but many ordinary people own stock. They have a four-oh-one-k. They have an index fund. When Nvidia goes up, their retirement account goes up too.
 
-That is true, and it matters, and I do not want to wave it away. Tens of millions of working Americans do own a sliver of the plains through their retirement accounts, and that is one of the best things about the American system.
-
-But a sliver is a sliver. The arithmetic of ownership is merciless. If you own a few thousand dollars in an index fund, a thirty percent rise in the market makes you a few hundred dollars richer. If you own a few hundred million dollars, the same rise makes you tens of millions richer. The percentage is the same. The life is not.
+That is true, and it matters. Tens of millions of working Americans do own a sliver of the plains through their retirement accounts. But a sliver is a sliver. The arithmetic of ownership is merciless. If you own a few thousand dollars in an index fund, a thirty percent rise in the market makes you a few hundred dollars richer. If you own a few hundred million dollars, the same rise makes you tens of millions richer. The percentage is the same. The life is not.
 
 And there are tens of millions of American households who own no stock at all. Who rent. Who carry more debt than savings. For them, a booming market is something that happens on television.
 
-You know the old line about the gold rush: the miners mostly went home broke, and the fortunes went to the people who sold the shovels. In the AI rush, the shovels are chips and data centers and the models themselves. And the people who own the shovel companies are, overwhelmingly, the people who were already rich.
-
-The Minneapolis Federal Reserve noted this year that the United States now has more than eleven hundred billionaires. Eleven hundred. Each of them owns more than the lifetime earnings of several hundred ordinary workers combined. Many of the newest fortunes on that list were made in exactly the industries now building the plains.
+The Minneapolis Federal Reserve noted this year that the United States now has more than eleven hundred billionaires. Many of the newest fortunes on that list were made in exactly the industries now building the plains.
 
 I do not begrudge any of them their success. Some built things of genuine wonder. But I want you to see the shape of what is forming.
 
@@ -180,11 +174,9 @@ If you remove the bottom rungs, the ladder still exists. It just starts too high
 
 And there is a second asset that divides the compute age, quieter than stock but just as powerful, and that is the home.
 
-For most American families who have any wealth at all, the house is the wealth. Over the past several years, home prices and rents in much of the country have risen far faster than wages. For families who already own, that has been a windfall on paper. For families who do not, and above all for young people trying to buy a first home, it has been a wall. And the places where the compute economy is booming, the cities where its engineers and founders cluster, are very often the places where housing is most expensive of all.
+For most American families who have any wealth at all, the house is the wealth. For families who already own, rising home prices have been a windfall on paper. For young people trying to buy a first home, they have been a wall. And the cities where the compute economy's engineers and founders cluster are very often the places where housing is most expensive of all.
 
-So the compute class gains twice. Once in the market, as the plains rise in value. And again at home, as their neighborhoods bid up the price of shelter. Meanwhile the worker who serves them coffee, cleans their offices and teaches their children is priced further and further from the places where the new wealth lives.
-
-I am not blaming any individual for wanting to own a home in a good neighborhood. I want that for everyone. I am pointing out that the rewards of the new economy flow into old assets, stocks and land, which are owned by those who already own. Without deliberate action, a boom in compute becomes a boom in inheritance.
+So the compute class gains twice: once in the market, and again at home. I am not blaming anyone for wanting a home in a good neighborhood. I want that for everyone. I am pointing out that the rewards of the new economy flow into old assets, stocks and land, owned by those who already own. Without deliberate action, a boom in compute becomes a boom in inheritance.
 
 [PAUSE]
 
@@ -224,11 +216,7 @@ Now look at the paycheck itself. On October fourteenth, the Bureau of Labor Stat
 
 For production and nonsupervisory workers, the roughly four in five private-sector workers who are not managers, real hourly earnings fell six tenths of a percent over the year.
 
-Let me translate that into a kitchen table.
-
-Suppose a worker earned an average wage last September, and got a raise this year that felt decent, about three percent. Prices, over the same year, rose by three point seven percent. She is not imagining it when she says the raise disappeared. It did. She is working the same hours, perhaps harder, perhaps with new software watching her keystrokes, and at the end of the year her paycheck buys a little less than it did.
-
-Now multiply that by tens of millions of workers, and set it against the record profits and record market values I described a moment ago. The money did not vanish. The economy kept growing. The value was produced. It simply did not arrive in the paycheck. It arrived somewhere else.
+At the kitchen table, that means a raise of three percent, in a year when prices rose three point seven, was no raise at all. Multiply that by tens of millions of workers, and set it against the record profits I described a moment ago. The money did not vanish. The economy kept growing. The value was produced. It simply did not arrive in the paycheck. It arrived somewhere else.
 
 [BUILD]
 
@@ -278,11 +266,11 @@ Coal miners used to carry canaries into the shafts. The birds were more sensitiv
 
 In August of twenty twenty-five, three economists at Stanford's Digital Economy Lab, Erik Brynjolfsson, Bharat Chandar and Ruyu Chen, published a paper with a title borrowed from that old practice. They called it Canaries in the Coal Mine.
 
-They had access to something unusual: payroll records from ADP, the company that processes paychecks for a huge share of American employers. Millions of workers. Tens of thousands of firms. Month by month. Which meant they could see, in close to real time, who was being hired and who was not.
+They had payroll records from ADP, the company that processes paychecks for a huge share of American employers. Millions of workers, month by month. They could see, in close to real time, who was being hired and who was not.
 
 Here is what they found.
 
-Among workers aged twenty-two to twenty-five, in the occupations most exposed to artificial intelligence, employment fell by about thirteen percent relative to their peers in less exposed jobs. That gap held even when they compared workers inside the same firms. Coverage of the paper reported that young software developers were among the hardest hit.
+Among workers aged twenty-two to twenty-five, in the occupations most exposed to artificial intelligence, employment fell by about thirteen percent relative to their peers in less exposed jobs. That gap held even when they compared workers inside the same firms.
 
 But for older, more experienced workers in those very same occupations, employment was stable, or still growing.
 
@@ -322,13 +310,13 @@ I will say plainly what those numbers do not show. They do not show a mass layof
 
 [BUILD]
 
-But that is precisely the canary's warning. The danger was never that every job would vanish on a Tuesday. The danger is quieter. It is the class that is not hired. The posting that is not posted. The junior analyst position that becomes a prompt. The customer service team of forty that becomes a team of six and a model. The young paralegal, the young copywriter, the young coder, the young accountant, who sends out two hundred applications and hears nothing, not because she failed, but because the job she trained for is being done, at least in its first draft, by a machine.
+But that is precisely the canary's warning. The danger was never that every job would vanish on a Tuesday. The danger is quieter. It is the class that is not hired. The posting that is not posted. The junior analyst position that becomes a prompt. The young paralegal, the young coder, the young accountant, who sends out two hundred applications and hears nothing, not because she failed, but because the job she trained for is being done, at least in its first draft, by a machine.
 
 Nobody announces a layoff for the job that never existed. There is no press release for the career that never started.
 
 Let me make this concrete. I am going to describe a young woman who does not exist. She is not a real person, and I will not pretend she is. But every part of her story is drawn from the patterns the data describe. I will call her Jordan.
 
-Jordan graduated two years ago with a degree in communications. She took out loans to pay for it, because everyone told her that a degree was the price of admission to a decent life. In her junior year she did an internship at a marketing agency, where she wrote first drafts of social media posts, product descriptions and email campaigns. Her supervisor told her she was good at it. She was told there would probably be a job for her after graduation.
+Jordan graduated two years ago with a degree in communications. She took out loans to pay for it, because everyone told her that a degree was the price of admission to a decent life. In her junior year she did an internship at a marketing agency, where she wrote first drafts of posts and product descriptions. Her supervisor told her she was good at it. She was told there would probably be a job for her after graduation.
 
 By the time she graduated, the agency had started using AI tools to produce those first drafts. The senior copywriters stayed on, editing and directing the machine's output. Their productivity went up. Some of them got raises. The agency did not hire a new junior class that year, or the next.
 
@@ -346,7 +334,7 @@ The young are the canaries. They are telling us something. And the most dangerou
 
 ## VI. The Army of One
 
-Now I want to tell you about the other side of the line. Because the compute class is not only the billionaire owners of the chip makers and the cloud giants. It is also something new, something that has never existed before in economic history. It is the army of one.
+Now the other side of the line. The compute class is not only the owners of the chip makers and the cloud giants. It is also something that has never existed before in economic history. The army of one.
 
 In September of twenty twenty-four, a man named Matthew Gallagher started a company from his home in Los Angeles. He had about twenty thousand dollars. He had no employees.
 
@@ -356,7 +344,7 @@ And how many people worked there? Two. Gallagher, and his brother, Elliot, who w
 
 [LET IT LAND]
 
-How is that possible? The reporting describes it. He used AI models to write his code and his marketing copy. He used AI tools to generate his advertising images and video. He used an AI voice system to talk to customers. He stitched his systems together with custom AI agents. And the parts of the business that legally require human beings, the licensed physicians, the prescriptions, the pharmacy, the shipping, the compliance, he contracted out to other companies.
+How is that possible? He used AI models to write his code and his marketing copy, to make his advertising images and video, and to talk to customers. And the parts of the business that legally require human beings, the physicians, the pharmacy, the shipping, the compliance, he contracted out to other companies.
 
 For comparison, the Times pointed to Hims and Hers, an established company in the same line of business. Last year it reported about two point four billion dollars in revenue, with two thousand four hundred and forty-two employees.
 
@@ -364,63 +352,159 @@ Medvi was reporting a net profit margin of about sixteen percent. Hims and Hers:
 
 Two people. A quarter of a million customers. Profit margins nearly three times higher than a competitor with more than a thousand times the staff.
 
-Or consider Maor Shlomo. In the summer of twenty twenty-five, Shlomo, a thirty-one-year-old Israeli programmer, sold a company called Base44 to the website builder Wix for eighty million dollars in cash. Base44 let people build software applications by describing them in plain language. It was about six months old. It had never raised outside money. It had about a quarter of a million users. In the month before the sale, after paying its large bills for AI computing, it made a profit of about one hundred and eighty-nine thousand dollars.
+Or consider Maor Shlomo. In the summer of twenty twenty-five, Shlomo, a thirty-one-year-old Israeli programmer, sold a company called Base44 to the website builder Wix for eighty million dollars in cash. It was about six months old. It had never raised outside money. It had about a quarter of a million users. In the month before the sale, after paying its large bills for AI computing, it made a profit of about one hundred and eighty-nine thousand dollars.
 
 The press called him a solo founder. That is not quite right, and I want to get it right. By the time of the sale he had eight employees, who shared a twenty-five-million-dollar retention bonus. But eight people. Six months. Eighty million dollars.
 
 [SLOW]
 
-The heads of the leading AI companies have been predicting this for some time. Both Sam Altman of OpenAI and Dario Amodei of Anthropic have talked about the coming of the first one-person, billion-dollar company. Whether Medvi counts depends on whether you mean a billion in revenue or a billion in value, and on whether you count the brother. But the direction is unmistakable.
+Both Sam Altman of OpenAI and Dario Amodei of Anthropic have predicted the first one-person, billion-dollar company. Whether Medvi counts depends on what you mean by a billion, and whether you count the brother. But the direction is unmistakable.
 
-Here is what I want you to understand about these stories. They are genuinely remarkable. I am not here to sneer at them. Gallagher and Shlomo saw something, moved fast, and built something real. There is a version of this speech that is simply angry at success, and that is not the speech I came to give.
+These stories are genuinely remarkable, and I am not here to sneer at them. Gallagher and Shlomo saw something, moved fast, and built something real. A speech that is simply angry at success is not the speech I came to give.
 
 But look at what these stories reveal about the shape of the new economy.
 
 [BUILD]
 
-In the industrial age, if you wanted to build a business that served a quarter of a million customers, you needed hundreds of people. Accountants and clerks. Designers and copywriters. Customer service representatives and programmers. Every one of those people was paid a wage. Every one of them had a stake. Growth meant hiring, and hiring meant that the gains of a successful enterprise were spread, imperfectly but really, across a whole community of workers.
+In the industrial age, a business that served a quarter of a million customers needed hundreds of people: clerks and designers, copywriters and programmers. Every one of them was paid a wage. Growth meant hiring, and hiring spread the gains of a successful enterprise, imperfectly but really, across a whole community of workers.
 
-In the compute age, the same business can be built by two people and a stack of subscriptions. The gains do not spread. They concentrate. The copywriter, the designer, the coder, the customer service representative, they are not employed by the company. They are replaced by the software the company rents.
+In the compute age, the same business can be built by two people and a stack of subscriptions. The gains do not spread. They concentrate. The copywriter and the coder are not employed by the company. They are replaced by the software it rents.
 
 This is the meaning of the compute class. It is the class of people for whom AI is leverage. One person, wielding the machines, does the work of a hundred. And the hundred are, in economic terms, no longer needed.
 
-Now, the optimist hears these stories and says: wonderful. Anyone can be Matthew Gallagher. The tools are cheap. The barriers are gone. Every laid-off copywriter can become a founder.
+Now, the optimist hears these stories and says: wonderful. Anyone can be Matthew Gallagher. The tools are cheap. Every laid-off copywriter can become a founder.
 
-I want to take that seriously, and then I want to tell you why it is not enough.
+It is true that the tools are cheap. A subscription to the best AI models costs less than a cable bill. That is a real democratization, and I celebrate it. But the stories of the army of one are stories of winners. For every Medvi, there are thousands of solo ventures that make nothing. The skills that let Gallagher succeed, marketing instinct, capital to burn on advertising, the confidence to bet everything, are not evenly distributed. They cluster among people who already have savings, networks and education.
 
-It is true that the tools are cheap. A subscription to the best AI models costs less than a cable bill. That is a real democratization, and I celebrate it.
-
-But the stories of the army of one are stories of winners. For every Medvi, there are thousands of solo ventures that make nothing. The skills that let Gallagher succeed, marketing instinct, capital to burn on advertising, the confidence to bet everything, the knowledge of how to contract out a regulated business, are not evenly distributed. They cluster among people who already have savings, networks and education.
-
-And the reporting on Medvi itself carries a warning. Its customer service chatbot at one point invented drug prices, which the company then honored, and described product lines that did not exist. The founder became the only human backstop for everything the machines got wrong. That is not a criticism of him. It is a description of what one-person scale means: a single point of failure, with no one beneath you to catch what falls.
+And the reporting on Medvi itself carries a warning. Its customer service chatbot at one point invented drug prices, which the company then honored, and described product lines that did not exist. That is not a criticism of Gallagher. It is what one-person scale means: a single point of failure, with no one beneath you to catch what falls.
 
 [SLOW]
 
 An economy where everyone is a solo founder is not an economy of abundance. It is a lottery. And a lottery is a wonderful thing for the people holding the winning tickets, and a terrible way to organize a society.
 
-There is an old saying from the days of Napoleon's armies, often put in his mouth, that every French soldier carries a marshal's baton in his knapsack. A few of them did. Most of them carried a musket to their graves.
+And a word about the wielders, the most hopeful part of this story. A wielder is not necessarily rich. She may be a nurse who lets AI handle her charting and spends the saved hour with patients. He may be an electrician who uses it to price jobs, and wins more bids. You cannot buy a data center. You can learn to use what runs in one.
 
-Let me say a word about the wielders, because they are the most hopeful part of this story, and the most misunderstood.
+But the wielder needs a job to wield it in, time to learn, and the bargaining power to insist that when she does the work of three people, she is paid like more than one. Without those, the tool that could have made her more valuable makes her colleagues unnecessary, and then her. The line between wielder and replaced is not drawn by the technology. It is drawn by the terms under which it arrives at work.
 
-A wielder is not necessarily rich. She may be a nurse who uses AI to handle her charting and spends the saved hour with patients. He may be an electrician who uses it to read code books and price jobs, and wins more bids. She may be a small-business owner who uses it to do the marketing she could never afford to hire out. For these people, the machine is not a replacement. It is a tool, the way the power drill was a tool, and it makes them more valuable, not less.
-
-This is the strongest reason for hope in the whole picture. The capacity to wield these tools is far more learnable than the capacity to own them. You cannot buy a data center. You can learn to use what runs in one.
-
-But notice what the wielder needs in order to wield. She needs a job to wield it in. She needs time and training to learn. She needs an employer willing to let her productivity gains raise her pay rather than shrink her team. And she needs the bargaining power to insist that when she does the work of three people, she is paid like more than one.
-
-Without those things, the tool that could have made her more valuable becomes the tool that makes her colleagues unnecessary, and then makes her unnecessary too. The line between wielder and replaced is not drawn by the technology. It is drawn by the terms under which the technology arrives at work.
-
-So now you can see both halves of the compute class. At the top, the owners: the shareholders of the firms building the plains, whose wealth compounds with every rise in the market. And alongside them, the wielders: the founders, the engineers, the elite operators who have learned to command the machines, and whose individual productivity, and income, is rising faster than at any point in history.
+So now you can see both halves of the compute class. The owners, whose wealth compounds with every rise in the market. And the wielders: the founders, engineers and elite operators who have learned to command the machines, and whose productivity and income are rising fast.
 
 And on the other side of the line, the replaced. Not all at once. Not in a single wave. But steadily, function by function, rung by rung.
 
-## VII. Two Economies
+## VII. The Batons in the Knapsacks
 
-There is a phrase that economists and journalists have been using for several years now. They talk about a K-shaped economy. Picture the letter K. One arm goes up. One arm goes down. Two groups of people, starting from the same place, moving in opposite directions.
+There is an old saying from the days of Napoleon's armies, often put in his mouth, that every French soldier carries a marshal's baton in his knapsack.
 
-I handle this phrase with care, because the evidence for it is more contested than the people who use it like to admit.
+A few years earlier, that would have been a joke. In seventeen eighty-one, the French crown ruled that a man could not be commissioned as an officer in most of its army unless he could prove four generations of noble blood.
 
-Here is the case for it. The economic research firm Moody's Analytics estimates that the top ten percent of American households by income now account for more than forty-five percent of all consumer spending. The bottom sixty percent, they estimate, account for about twenty-three percent. In twenty twenty-five their estimate was even higher, near half. On these figures, the American consumer economy, which makes up about two-thirds of our economy, increasingly runs on the spending of the affluent.
+Then the Revolution tore that rule down, and look who came up through the ranks. Michel Ney, the son of a barrel-maker, had enlisted as a common hussar. Joachim Murat, the son of an innkeeper, had enlisted as a cavalry trooper. In eighteen oh four, both of them received the marshal's baton.
+
+[PAUSE]
+
+The Army of Italy won because it had stopped asking who a man's father was. It drew on the talent of the whole nation. That is the argument I want to make now, as forcefully as I can.
+
+Concentrated wealth does not only divide the harvest. It shrinks the harvest. When most people have no savings, no safety net, no access to capital and no spare time, they lose the power to invent, to start, to try. And a country where only the rich can afford to try will discover only what the rich think is worth trying.
+
+Inequality is not the price we pay for innovation. It is a tax on innovation. And the people who pay it are the inventors who never get to begin.
+
+Start with the inventors.
+
+A few years ago, five economists, Alex Bell, Raj Chetty, Xavier Jaravel, Neviana Petkova and John Van Reenen, linked patent records to tax records and school records, and followed more than a million American inventors back to their childhoods. They asked a simple question. Who becomes an inventor in America?
+
+The answer was: the children of the rich.
+
+For every thousand children whose parents were in the top one percent of income, about eight grew up to file a patent. For every thousand children whose parents earned less than the median, fewer than one did.
+
+Ten times.
+
+[LET IT LAND]
+
+Now, perhaps the rich children were simply more able. The researchers checked. They looked at math scores in the third grade, at eight and nine years old, which strongly predict who later invents. Among the children at the very top of their class, the ones from high-income families were far more likely to become inventors than the ones from poorer families. The ability was there. The outcome was not.
+
+What made the difference, as best they could tell, was exposure. Children who grew up around inventors became inventors, often in the very same field. The authors estimate that if girls were as exposed to women inventors as boys are to men, the gender gap in invention would fall by half.
+
+They had a name for the children who had the gift and never got the chance. Lost Einsteins.
+
+And their bottom line deserves to be read aloud in Congress. If women, minorities and children from low-income families invented at the same rate as white men from the top fifth of families, they wrote, the rate of innovation in America would quadruple.
+
+Quadruple.
+
+[PAUSE]
+
+That is the talent in the ranks. That is the sergeant who never gets the baton, not because he lacked the courage, but because nobody in his village had ever held one.
+
+Exposure is the first door. Money is the second.
+
+Most new businesses in this country are not started with venture capital. They are started with the founder's own money. When the Census Bureau surveyed employer businesses in twenty fourteen, nearly two in three named personal or family savings as their main source of startup capital. Fewer than one in five named a bank loan.
+
+Now set that beside the Federal Reserve's latest survey of household finances, which found that more than a third of American adults could not cover a four-hundred-dollar emergency with cash.
+
+You cannot bet your savings on an idea when a broken water heater is a crisis.
+
+Economists have tried to test this, and I will give you the evidence honestly, because not all of it is on my side.
+
+In France, the economists Martin Schmalz, David Sraer and David Thesmar compared homeowners whose houses rose in value with people who could not borrow against a house. When the value of their collateral rose, so did the odds that they started a business. And the firms they started were larger, and more likely to survive.
+
+In Taiwan, a study of lottery winners found that a large win raised the chance of starting a business by about one and a half percentage points, more than doubling the usual rate. The effect came from households that had been short of cash.
+
+But in Sweden, a careful study of lottery players found the opposite: winners earned less from self-employment, not more. And an influential American study by Erik Hurst and Annamaria Lusardi found that across most of the wealth distribution, more wealth barely changed who started a business. Only among the wealthiest twentieth of households did it clearly matter.
+
+So money alone is not the whole story. A windfall does not make an entrepreneur. But collateral, a floor, something to borrow against, keeps showing up as the thing that lets a person who already has an idea act on it.
+
+The third door is the safety net.
+
+In America, health insurance usually comes with a job. Leave the job to start something, and you may leave your family's coverage behind. Economists call the result job lock, and three of them, Robert Fairlie, Kanika Kapur and Susan Gates, found a way to see it. They compared men just before and just after their sixty-fifth birthday, the day Medicare begins. Business ownership rose at sixty-five. It did not rise at any other birthday from fifty-five to seventy-five.
+
+A great many Americans, it seems, wait until the government guarantees their health care before they dare to work for themselves. How many ideas are sitting in desk drawers, waiting for a birthday?
+
+Now put the doors together and look at the whole country.
+
+The economists Ryan Decker, John Haltiwanger, Ron Jarmin and Javier Miranda measured the American startup rate: new firms as a share of all firms. In the late nineteen eighties it averaged twelve percent. Just before the Great Recession, ten point six. When the recession hit, it fell below eight.
+
+I owe you two caveats. Economists at the New York Fed attribute a large part of that long decline to slower growth in the labor force. And since twenty twenty, applications to start new businesses have surged to their highest levels in more than a decade, though many of those businesses will never hire anyone.
+
+And beside the slower churn of new firms stands the rise of the giants. The economist Thomas Philippon, in a book called The Great Reversal, argued that American markets are no longer as free and competitive as they were a few decades ago, and he lays much of the blame on lobbying against competition and weak oversight.
+
+Fewer doors at the bottom. Higher walls at the top.
+
+[BUILD]
+
+Now let me give you the strongest answer to all of this, because it is a strong one.
+
+Concentrated wealth, it says, is what pays for innovation. Somebody has to write the venture checks and fund the research labs. Those four companies spending seven hundred billion dollars this year are not hoarding; they are building. And look at the results. According to Stanford's AI Index, private investment in American AI companies last year was about two hundred and eighty-six billion dollars, roughly twenty-three times China's. If inequality strangled innovation, one of the most unequal rich countries on earth would not lead the world in it.
+
+It is a real argument. Here is my answer.
+
+First, the pools of capital are deep, but they are getting deeper and narrower at the same time. Through September of this year, AI companies took about eighty-three percent of all American venture deal value. Funds of half a billion dollars or more took seventy-eight percent of the new money raised, while making up six percent of the funds. The river is enormous. It runs through fewer and fewer channels.
+
+Second, the Lost Einsteins researchers looked at this very question. The star inventors, whose patents matter most, already earn more than a million dollars a year. Would they stop inventing at nine hundred and fifty thousand? The authors doubted it. Their conclusion was that widening exposure has more potential to spark innovation than cutting taxes. The scarce ingredient is not reward at the summit. It is runway at the base.
+
+Third, America's lead was not built by concentration. It was built on public research, public universities and a broad middle class that could afford to take a chance, as I will show you before the night is out. We are spending that inheritance, not adding to it.
+
+And fourth, leading a race is not the same as running it with your whole army. If those researchers are right, we are leaving three in every four of our potential inventors in the barracks. That was the old royal army of France: brilliant officers, every one of them noble, and a ceiling over everyone else. It was the army that threw off the ceiling that marched into Italy.
+
+[SLOW]
+
+Now bring it home to the compute class.
+
+Matthew Gallagher started Medvi with about twenty thousand dollars and tools that cost less than a cable bill. Jordan has those same tools. What she does not have is twenty thousand dollars, or health insurance that does not depend on the coffee shop, or a year she can afford to spend earning nothing while she builds.
+
+That is the cruelty hidden inside the army of one. The tools have been democratized. The runway has not. And so the most powerful creative technology ever built is being picked up first, and fastest, by the people who could already afford to fail.
+
+Genius is born in every neighborhood. Runway is inherited.
+
+[LET IT LAND]
+
+An economy that lets only the rich take risks will only ever learn what the rich think is worth the risk.
+
+Every soldier, they said, carried a baton in his knapsack. Our task is not to hand out batons. It is to make sure every soldier has a knapsack, and enough bread in it to make the march.
+
+## VIII. Two Economies
+
+Economists and journalists have been talking for years about a K-shaped economy. Picture the letter K. One arm goes up. One arm goes down. Two groups of people, starting from the same place, moving in opposite directions.
+
+I handle this phrase with care, because the evidence for it is contested.
+
+Here is the case for it. The economic research firm Moody's Analytics estimates that the top ten percent of American households by income now account for more than forty-five percent of all consumer spending. In twenty twenty-five their estimate was even higher, near half. On these figures, the consumer economy increasingly runs on the spending of the affluent.
 
 Bank of America, looking at its own customers' card data, saw a gap open in the middle of twenty twenty-five, with the wages and spending of lower-income households falling well behind everyone else's. Only this summer did its data begin to suggest that gap was closing.
 
@@ -428,7 +512,7 @@ Bank of America, looking at its own customers' card data, saw a gap open in the 
 
 Now here is the case against, and I want you to hear it.
 
-In March of this year, the Federal Reserve Bank of Minneapolis published a careful review of all the evidence. They pointed out that the Moody's numbers are not a direct measure of spending. They are estimated backward from wealth and savings data, and some economists question the method. The government's own Consumer Expenditure Survey puts the top ten percent's share of spending at about twenty-three percent, not forty-five. An experimental measure from the Bureau of Labor Statistics shows the top ten percent's share barely moving at all over two decades. The New York Fed found spending growth since twenty twenty fairly similar across income groups.
+In March of this year, the Federal Reserve Bank of Minneapolis published a careful review of the evidence. It pointed out that the Moody's numbers are estimated backward from wealth and savings data, not measured directly. The government's own Consumer Expenditure Survey puts the top ten percent's share of spending at about twenty-three percent, not forty-five. The New York Fed found spending growth since twenty twenty fairly similar across income groups.
 
 The Minneapolis Fed's conclusion was that the available data do not clearly support the K-shaped story.
 
@@ -436,7 +520,7 @@ The Minneapolis Fed's conclusion was that the available data do not clearly supp
 
 So which is it?
 
-I will tell you what I think, and I will tell you it is my judgment, not a settled fact. I think the spending data are a noisy instrument, measuring the wrong thing. Spending is smoothed by credit cards and buy-now-pay-later loans and drawn-down savings. A family can keep spending for a long time after its position has started to slip. The Minneapolis Fed itself observes that wealth, not just income, drives spending, and that the very richest households, the billionaires, are barely captured by the surveys at all.
+I will tell you what I think, and it is my judgment, not a settled fact. Spending is a noisy instrument. It is smoothed by credit cards and drawn-down savings, and a family can keep spending long after its position has started to slip.
 
 What is not noisy is the ownership data. The top one percent's share of wealth is at a record. The labor share of income is at a record low. Real wages went backward this past year. Those are not estimates built on estimates. Those are the core accounts of the nation.
 
@@ -446,39 +530,37 @@ You do not need a K in the spending data to see a K in the ownership data. And o
 
 Let me describe the two economies as I see them forming, and you can judge whether I am exaggerating.
 
-In the first economy, artificial intelligence is a servant. It is a personal tutor for your children, available at any hour, in any subject. It is a research assistant, a financial planner, a lawyer who drafts your contracts, a doctor's aide who reads your test results before your appointment. Your portfolio rises with the companies that build it. Your own work is amplified by it. Every month the tools get better and your life gets easier. For the people in this first economy, we are approaching something that previous generations would have called near-total prosperity: not the end of all want, but the end of most friction, most drudgery, most waiting.
+In the first economy, artificial intelligence is a servant. It is a tutor for your children at any hour, a research assistant, a lawyer who drafts your contracts, a doctor's aide. Your portfolio rises with the companies that build it. Your work is amplified by it. For the people in this first economy, we are approaching something previous generations would have called near-total prosperity: not the end of all want, but the end of most friction, most drudgery, most waiting.
 
-In the second economy, artificial intelligence is a supervisor and a competitor. It is the scheduling algorithm that sets your shifts. It is the system that monitors your keystrokes and rates your productivity. It is the chatbot you must get past to reach a human being when your claim is denied. It is the tool your employer cites when your position is eliminated. It is the reason the entry-level job you trained for was never posted. Your rent goes up. Your wage, adjusted for prices, goes sideways or down.
+In the second economy, artificial intelligence is a supervisor and a competitor. It is the algorithm that sets your shifts and the system that monitors your keystrokes. It is the chatbot you must get past when your claim is denied. It is the tool your employer cites when your position is eliminated. It is the reason the entry-level job you trained for was never posted. Your rent goes up. Your wage, adjusted for prices, goes sideways or down.
 
 [LET IT LAND]
 
 Same technology. Same country. Same year. Two completely different experiences.
 
-The people in the first economy look at the second and cannot understand why anyone would be anxious. Look at what these tools can do, they say. Look at how much better everything is getting. And they are sincere. For them, it is getting better.
+The people in the first economy cannot understand why anyone would be anxious. Look at what these tools can do, they say. And they are sincere. For them, it is getting better.
 
 The people in the second economy look at the first and feel exactly what Napoleon's soldiers felt when they heard about the rich plains of Lombardy. It is out there. Somebody has it. It is not us.
 
-And here is the political danger, the danger that should frighten the first economy as much as the second.
+And here is the danger that should frighten the first economy as much as the second.
 
 A society can survive inequality. Every society has had it. What a society cannot survive for long is the belief, widely held, that the gains of progress are structurally closed to the majority. When people conclude that the game is rigged, not by bad luck but by design, they stop playing by its rules. They turn to whoever promises to burn it down. History is not short of examples.
 
 And there is a further danger, one that goes beyond income.
 
-Economic power has always tended to become political power. The great fortunes of the railroad age bought legislatures. The great fortunes of our own age fund campaigns and lobbies. But the compute class holds something no previous owning class has held: increasing influence over the systems through which people find information, form opinions and make decisions. When a few companies own the models that summarize the news, answer our questions, draft our letters and tutor our children, their choices, even their well-intentioned choices, shape what a whole society sees and thinks.
-
-I am not alleging any plot. I am describing a concentration of influence that would make any thoughtful democrat uneasy, whoever held it. In a free country, power that large should be accountable to the public, and the surest way to make it accountable is to make sure the public has a stake in it, a voice over it, and alternatives to it.
+Economic power has always tended to become political power. But the compute class holds something no previous owning class has held: growing influence over the systems through which people find information and form opinions. When a few companies own the models that summarize the news and tutor our children, their choices, even their well-intentioned ones, shape what a whole society sees. I am not alleging any plot. I am saying that power that large should be accountable, and the surest way is to give the public a stake in it, a voice over it, and alternatives to it.
 
 The compute class should want the second economy to shrink, not only out of decency, but out of self-preservation. Plains that are not shared do not stay peaceful.
 
 [PAUSE]
 
-We are an hour in. Let me tell you where we have been.
+We are a little past the hour. Let me tell you where we have been.
 
-We have seen the plains: seven hundred billion dollars a year of concrete and chips. We have seen who holds them: one percent of households with a third of the wealth, and a labor share at the lowest point ever recorded. We have met the canaries, and Jordan, who is not real but whose story is. We have met the army of one, and seen that a lottery is not a ladder.
+We have seen the plains: seven hundred billion dollars a year of concrete and chips. We have seen who holds them: one percent of households with a third of the wealth, and a labor share at the lowest point ever recorded. We have met the canaries, and Jordan, who is not real but whose story is. We have met the army of one, and seen that a lottery is not a ladder. And we have counted the Lost Einsteins, the talent in the ranks that concentrated wealth leaves in the barracks.
 
 That is the case for alarm. Now I owe you the case against it.
 
-## VIII. The Strongest Case Against Me
+## IX. The Strongest Case Against Me
 
 This is the third movement, the reckoning. I promised you the best argument against everything I have said. Here it is. And I want to make it as strongly as its best defenders would, because a speech that only argues with weak opponents is not worth two hours of anyone's life.
 
@@ -550,7 +632,7 @@ So here is where I come down. The case against me is right that technology need 
 
 That is not destiny. That is a choice. And choices can be changed.
 
-## IX. What the Luddites Knew
+## X. What the Luddites Knew
 
 I want to tell you a story about some of the most slandered people in English history.
 
@@ -562,9 +644,9 @@ That is not who they were.
 
 [SLOW]
 
-The Luddites were, for the most part, skilled workers. Many of them had used machines all their lives. Their quarrel was not with machinery as such. Historians who have studied them closely note that they were not opposed to machines in themselves. What they attacked, very often, were the machines of particular manufacturers who were using new equipment to tear up the customs of their trade: to drive down wages, to replace skilled workers with cheaper, less trained labor, to turn out shoddier goods, to put children on the frames.
+The Luddites were, for the most part, skilled workers. Many of them had used machines all their lives. Historians who have studied them closely note that they were not opposed to machines in themselves. What they attacked, very often, were the machines of particular manufacturers who were using new equipment to tear up the customs of their trade: to drive down wages, to replace skilled workers with cheaper, less trained labor, to turn out shoddier goods, to put children on the frames.
 
-They had grievances about wages. About working conditions. About child labor. About the quality of the work. They were fighting not against the future, but over the terms of the future. Over who would bear its costs and who would share its gains.
+They had grievances about wages, working conditions, child labor and the quality of the work. They were fighting not against the future, but over the terms of the future. Over who would bear its costs and who would share its gains.
 
 And how did the government of the day respond?
 
@@ -578,13 +660,13 @@ Twelve thousand soldiers. At the very moment Britain was at war with Napoleon's 
 
 In January of eighteen thirteen, at York, more than sixty men were put on trial. Thirty were acquitted. Of the rest, some were hanged and others transported to the penal colonies of Australia. And the movement was crushed.
 
-Now, I do not tell you this story to recommend breaking machines. Breaking machines did not work. It did not work for the Luddites, and it would not work now. You cannot smash a model that exists in a million copies across a hundred data centers. And the machines themselves, then and now, carried enormous promise. The power loom eventually clothed the world cheaply. The machines of our own day may cure diseases and teach every child.
+Now, I do not tell you this story to recommend breaking machines. Breaking machines did not work then, and you cannot smash a model that exists in a million copies across a hundred data centers. The machines themselves, then and now, carried enormous promise. The power loom eventually clothed the world cheaply.
 
 I tell you this story for three reasons.
 
-The first is that the word Luddite has been used for two hundred years to shut down a perfectly reasonable question: who benefits? Anyone who asks whether a new technology will be good for working people is told that they are standing in the way of progress. That is exactly how the question was shut down in eighteen twelve. It was a lie then and it is a lie now. Asking who benefits is not opposition to progress. It is the beginning of making progress worth having.
+The first is that the word Luddite has been used for two hundred years to shut down a perfectly reasonable question: who benefits? Anyone who asks it is told they are standing in the way of progress. It was a lie in eighteen twelve and it is a lie now. Asking who benefits is not opposition to progress. It is the beginning of making progress worth having.
 
-The second reason is that the Luddites' real demand, fair terms, did eventually win, just not for them. Over the following century, British workers won the right to organize. They won limits on child labor and on working hours. They won the vote. They won public schools. Their grandchildren and great-grandchildren lived in a country where industrial wealth was, imperfectly, shared. The Luddites lost their battle. Their cause won the war. It simply took several lifetimes, and it was won not with hammers but with institutions.
+The second reason is that the Luddites' real demand, fair terms, did eventually win, just not for them. Over the following century, British workers won the right to organize, limits on child labor and working hours, the vote and public schools. The Luddites lost their battle. Their cause won the war. It simply took several lifetimes, and it was won not with hammers but with institutions.
 
 The Luddites were not patient, and they were hanged. Their grandchildren were organized, and they won. Neither patience nor rage built the weekend. Organization did.
 
@@ -592,7 +674,7 @@ The third reason is the most uncomfortable. When the government faced a conflict
 
 [BUILD]
 
-We are being asked, today, to choose again. And the pressure to take the owners' side is just as strong. We are told that any rule, any tax, any limit, any demand for a share, will slow down innovation and hand the future to our rivals. We are told that the only responsible course is to get out of the way.
+We are being asked, today, to choose again. We are told that any rule, any tax, any demand for a share, will slow down innovation and hand the future to our rivals. You have already heard tonight who really pays for a country where only the rich can afford to try.
 
 I say the lesson of the Luddites is the opposite. A society that answers its displaced workers with contempt, or with force, does not avoid the conflict. It only postpones it, and makes it bitter. A society that answers them with fair terms gets the machines and the peace.
 
@@ -610,7 +692,7 @@ But it did not end at York. Their question outlived them, and their grandchildre
 
 And we have something the men at York never had. Not a hammer. A claim. We can do better than a rope. We must.
 
-## X. Where the Abundance Came From
+## XI. Where the Abundance Came From
 
 Napoleon's soldiers had no claim on the plains of Lombardy. Those fields belonged to Italians who had worked them for centuries. The only claim the French army had was force. And when the campaign was done, Italy paid for it. Under one armistice, the Papal States were made to hand over large sums, and works of art besides. The abundance Napoleon promised was someone else's abundance.
 
@@ -620,13 +702,13 @@ Here the story turns. Because here is the most important difference between his 
 
 The abundance of the compute age is not someone else's. It is, in a very real sense, already ours. We, the public, built a great deal of it. And I want to show you how.
 
-Start with the foundations. The computer itself was nurtured by public money, much of it military, in the decades after the Second World War. The internet began as a research network funded by the Defense Department. Generations of the scientists who built modern computing, and modern artificial intelligence, were trained at public universities and supported by public research grants. The basic science of neural networks was developed over decades, much of it in universities, much of it paid for by taxpayers in this country and others, at a time when private investors thought it was a dead end.
+Start with the foundations. The computer itself was nurtured by public money, much of it military, in the decades after the Second World War. The internet began as a research network funded by the Defense Department. Generations of the scientists who built modern computing were trained at public universities on public grants. The basic science of neural networks was developed over decades, much of it in universities, much of it paid for by taxpayers in this country and others, at a time when private investors thought it was a dead end.
 
-None of that diminishes the genius or the risk-taking of the private companies that turned that science into products. But it should end, once and for all, the myth that the plains were cleared and planted by a few lone visionaries. The ground was broken with public shovels.
+None of that diminishes the genius or the risk-taking of the companies that turned that science into products. But it should end the myth that the plains were cleared by a few lone visionaries. The ground was broken with public shovels. And this is the inheritance I promised to show you: the public research and the broad middle class that built America's lead in innovation in the first place.
 
 Now think about the fuel.
 
-The large language models at the heart of this revolution learned to write by reading. Reading what? Reading us. The books we wrote. The articles we published. The forum posts where we answered each other's questions for free. The encyclopedias volunteers built. The code that millions of programmers shared openly so that others could learn. The reviews, the recipes, the arguments, the jokes. The accumulated written expression of a large part of humanity.
+The large language models at the heart of this revolution learned to write by reading. Reading what? Reading us. The books we wrote. The articles we published. The forum posts where we answered each other's questions for free. The encyclopedias volunteers built. The code that millions of programmers shared openly so that others could learn. The accumulated written expression of a large part of humanity.
 
 The courts are still sorting out what the law says about all that, and I will not pretend to tell you how they will rule. But set the law aside for a moment and ask the moral question. When a machine is built from the collective work of millions of people, and then sold back to them, and then used to replace some of them, who has a claim on the value it creates?
 
@@ -636,7 +718,7 @@ Think of the customer service representative whose recorded calls became trainin
 
 They are not outsiders looking in at someone else's plains. Their labor is in the soil.
 
-And think about the electricity. The data centers being built across this country need enormous amounts of power, and in many places that means new power plants, new transmission lines, new demands on grids that ordinary ratepayers pay for. It means water, in places where water is scarce. It means public land, public permits, public tax incentives, sometimes very large ones, offered by states and towns competing to host these facilities.
+And think about the electricity. The data centers being built across this country need enormous amounts of power: new plants, new transmission lines, new demands on grids that ordinary ratepayers pay for. They need water, in places where water is scarce. They need public land, public permits and public tax incentives, offered by towns competing to host them.
 
 So the public builds the foundations. The public supplies the training material. The public carries much of the cost of the power and the infrastructure. And the public is then told that the resulting abundance belongs entirely to those who own the final machine.
 
@@ -660,9 +742,9 @@ I use that word, enclose, deliberately, because it has a history.
 
 For centuries in England, much of the countryside was held as common land. Villagers who did not own an acre could graze a cow on the common, gather firewood, glean the fields after the harvest. It was not wealth, exactly. But it was a floor. It meant that even the poorest family had some claim on the land around it.
 
-Over several centuries, and especially in the eighteenth and early nineteenth centuries, much of that common land was enclosed: fenced, consolidated and turned into private property, often by acts of Parliament passed by the very landowners who gained from them. Agricultural output rose. The land was farmed more efficiently. And a great many rural families lost the floor beneath them and drifted to the new industrial towns, where some of their grandsons would become the Luddites.
+Over several centuries, and especially in the eighteenth and early nineteenth centuries, much of that common land was enclosed: fenced and turned into private property, often by acts of Parliament passed by the very landowners who gained from them. Output rose. And a great many rural families lost the floor beneath them and drifted to the new industrial towns.
 
-Historians still argue about how much enclosure helped or harmed, and I will not settle that argument here. But the word captures something precise. Enclosure is what happens when a resource that many people relied on, and many people contributed to, is fenced off and claimed by a few, in the name of efficiency. It may even be more efficient. It is also a transfer of wealth from the many to the few.
+Historians still argue about how much enclosure helped or harmed, and I will not settle that here. But the word is precise. Enclosure is what happens when a resource that many people relied on and contributed to is fenced off by a few, in the name of efficiency. It may even be more efficient. It is also a transfer of wealth from the many to the few.
 
 The open web was a kind of commons. The shared code, the volunteer encyclopedias, the public research, the forums where strangers helped strangers. Much of it is being fenced now: harvested, absorbed into private models, and sold back to us by subscription. I am not saying that is illegal. I am saying it is an enclosure, and we should call it by its name.
 
@@ -670,7 +752,7 @@ The open web was a kind of commons. The shared code, the volunteer encyclopedias
 
 That is the true inversion of Napoleon. He told his soldiers: the riches are over there, belonging to others; go and take them. I tell you: the riches are right here, and you have already paid for a share of them. You do not need to conquer anyone. You need only to insist on the terms.
 
-## XI. The Terms of the March
+## XII. The Terms of the March
 
 That brings us to the fourth and last movement: the terms. So let me tell you what I think they should be.
 
@@ -682,11 +764,11 @@ The first term is ownership.
 
 If the central fact of the compute age is that capital is gaining and labor is losing, then the most direct answer is to make more working people owners of capital. Not as charity. As a stake.
 
-This idea has deeper roots than you might think. In nineteen seventy-four, Congress wrote employee stock ownership plans into federal pension law, so that workers could come to own shares of the companies they work for. Millions of Americans today are part-owners of their employers through such plans. Alaska has, for decades, paid every resident a yearly dividend from a fund built on the state's oil wealth, on the principle that a common resource should benefit all the people.
+In nineteen seventy-four, Congress wrote employee stock ownership plans into federal pension law, so that workers could come to own shares of the companies they work for. Millions of Americans today are part-owners of their employers through such plans. Alaska has, for decades, paid every resident a yearly dividend from a fund built on the state's oil wealth, on the principle that a common resource should benefit all the people.
 
 Now consider something that should give everyone pause. In twenty twenty-one, Sam Altman, the head of OpenAI, published an essay called Moore's Law for Everything. In it he predicted that as AI advanced, even more power would shift from labor to capital. And he proposed what he called an American Equity Fund: a tax of two and a half percent a year on the value of the largest companies, paid in shares, and on privately held land, with the proceeds distributed to every adult citizen. He estimated that within a decade it could pay each adult something like thirteen and a half thousand dollars a year.
 
-I do not endorse every detail of that proposal. There are serious questions about how to value companies and land, and how such a tax would affect investment. But notice who proposed it. One of the chief builders of the plains looked at what he was building and concluded that, without some mechanism of broad ownership, the gains would concentrate dangerously. When the people building the machine tell you that the machine will need a dividend, you should take them at their word.
+I do not endorse every detail of that proposal. There are serious questions about valuation, and about investment. But notice who proposed it. When the people building the machine tell you that the machine will need a dividend, you should take them at their word.
 
 Call it a national compute dividend. A public stake in the plains, held in trust for every citizen, funded by a modest share of the value created by the largest firms. Not to replace work. To make sure that every American owns at least a sliver of the future that is being built on their foundations.
 
@@ -694,35 +776,31 @@ The second term is fairness in the tax code between labor and machines.
 
 Right now, our tax system leans against human workers. When a company hires a person, it pays payroll taxes, Social Security and Medicare, on top of the wage. Employer and employee together pay more than fifteen percent on most wages. When a company buys software or equipment instead, it pays no payroll tax at all, and it can often write off the cost quickly. We have built a tax code that, at the margin, rewards replacing a person with a machine.
 
-I am not proposing a so-called robot tax that tries to punish automation. Automation that genuinely makes us more productive is good. I am proposing that we stop subsidizing the replacement of workers. Lighten the tax burden on hiring people, especially young and entry-level people, and ask capital income, and the extraordinary gains of the largest firms, to carry more of the load. If labor's share of income is falling, it makes no sense to keep funding the nation's social insurance almost entirely from labor.
+I am not proposing a robot tax to punish automation. I am proposing that we stop subsidizing the replacement of workers. Lighten the tax on hiring people, especially young people, and ask capital income, and the extraordinary gains of the largest firms, to carry more of the load. If labor's share of income is falling, it makes no sense to keep funding the nation's social insurance almost entirely from labor.
 
 The third term is the ladder.
 
 If the bottom rungs are disappearing, we must build new ones on purpose. I would make it a national priority to fund paid apprenticeships in every field AI touches: law, accounting, software, design, medicine, the trades. Pay employers to take on young workers and train them, and pay the young workers while they learn. Treat the first job as public infrastructure, as important as a bridge, because a generation that never gets its first job never becomes the experienced generation that keeps its job.
 
-And I would build a real system of support for adults whose work is displaced. Not the token retraining programs of the past, which too often trained people for jobs that did not exist. I mean wage insurance, which tops up the income of a worker who has to take a lower-paying job after a layoff, so that one bad turn does not become a permanent fall. I mean portable benefits, health and retirement that follow the worker rather than the employer, so that the army of one and the contract worker are not left without a floor.
+And I would build a real system of support for adults whose work is displaced. I mean wage insurance, which tops up the income of a worker who has to take a lower-paying job after a layoff, so that one bad turn does not become a permanent fall. I mean portable benefits, health and retirement that follow the worker rather than the employer, so that the army of one and the contract worker are not left without a floor, and nobody has to wait for their sixty-fifth birthday to start the business in the desk drawer.
 
 [SLOW]
 
 The fourth term is public compute.
 
-The cheapness of AI tools is a genuine democratizing force. But the frontier, the ability to train and run the most powerful systems, is concentrated in a handful of firms because only they can afford the chips and the power. The government has already taken a small step in the other direction: a pilot program, launched by the National Science Foundation in twenty twenty-four, to give researchers and educators access to computing resources they could not otherwise afford.
+The frontier, the ability to train and run the most powerful systems, is concentrated in a handful of firms because only they can afford the chips and the power. The government has already taken a small step in the other direction: a pilot program, launched by the National Science Foundation in twenty twenty-four, to give researchers and educators access to computing resources they could not otherwise afford.
 
-I would make that a great national project. Public compute for public universities, community colleges, small businesses, local governments and nonprofit researchers. If compute is the land of our century, then just as the Morrill Act gave public land to found public colleges, we should set aside public compute to found a public stake in the frontier. A country where only a handful of companies can afford to think at scale is not a free market. It is a feudal one.
+I would make that a great national project. Public compute for universities, community colleges, small businesses and nonprofit researchers. If compute is the land of our century, then just as the Morrill Act gave public land to found public colleges, we should set aside public compute to found a public stake in the frontier. A country where only a handful of companies can afford to think at scale is not a free market. It is a feudal one.
 
 The fifth term is a voice.
 
-Every one of the gains working people won in the industrial age came through organization. Through unions, through collective bargaining, through the simple fact that workers who stand together can negotiate terms that workers standing alone cannot. As AI enters the workplace, the terms of its use, how it monitors, how it evaluates, whether it augments or replaces, what share of its productivity gains go to the people who work alongside it, should be things that working people have a say in, not things that are simply done to them.
-
-Some unions have already begun to bargain over exactly these questions, over when AI may be used and how the workers whose work trains it are protected and paid. That should not be the exception. It should be the norm.
+Every gain working people won in the industrial age came through organization. As AI enters the workplace, the terms of its use, how it monitors, whether it augments or replaces, what share of its gains go to the people who work beside it, should be things working people have a say in, not things done to them. Some unions have already begun to bargain over exactly these questions. That should be the norm.
 
 The sixth term is open markets.
 
 I told you earlier that the economics of this technology reward the biggest and the first. That is a reason to be vigilant about competition, not to give up on it. When the same handful of firms own the chips, the cloud, the models and the applications, they can favor their own products at every layer and starve anyone who tries to compete. That is how a lead becomes a lock.
 
-This country has faced that danger before, with railroads, with oil, with telephones, and each time it acted, sometimes by breaking up monopolies, sometimes by requiring that a dominant network be open to competitors on fair terms. I would apply that tradition to compute. Insist that access to essential cloud and chip capacity be offered on fair and equal terms. Make it possible for customers to move their data and their work from one provider to another without being trapped. Scrutinize the deals by which the giants absorb the most promising start-ups before they can grow into rivals.
-
-Open markets are not the opposite of shared prosperity. They are one of its oldest tools. The army of one can only flourish if the ground it stands on is not owned by its competitors.
+This country has faced that danger before, with railroads, with oil, with telephones, and each time it acted. I would apply that tradition to compute. Insist that essential cloud and chip capacity be offered on fair and equal terms. Let customers move their data and their work without being trapped. Scrutinize the deals by which the giants absorb promising start-ups before they can grow into rivals. The army of one can only flourish if the ground it stands on is not owned by its competitors.
 
 [BUILD]
 
@@ -730,9 +808,7 @@ Ownership, so that working people hold a stake in the plains. Fair taxation, so 
 
 Now let me answer the obvious objection. It will be said that all of this will slow innovation, drive investment overseas, and hand the future to our rivals.
 
-I take that seriously. Any of these policies, done badly, could do harm. The details matter enormously, and they should be argued out in the open, by people who know more than I do about each one.
-
-But I would remind you that the same objection was made to every reform that ever shared the gains of technology. It was made against the Factory Acts, against the eight-hour day, against the minimum wage, against Social Security, against the GI Bill. Each time we were told that sharing would kill the golden goose. Each time the goose not only survived; it grew fatter, because a broadly prosperous society is a better market, a more stable democracy, and a more productive workforce than a narrowly prosperous one.
+I take that seriously. Any of these policies, done badly, could do harm, and the details should be argued out in the open. But I have already shown you what really stifles innovation: a country where only the rich can afford to try. And I would remind you that the same objection was made to every reform that ever shared the gains of technology. It was made against the Factory Acts, against the eight-hour day, against the minimum wage, against Social Security, against the GI Bill. Each time we were told that sharing would kill the golden goose. Each time the goose not only survived; it grew fatter, because a broadly prosperous society is a better market, a more stable democracy, and a more productive workforce than a narrowly prosperous one.
 
 When Henry Ford roughly doubled the pay of many of his workers to five dollars a day in nineteen fourteen, plenty of people thought he was being reckless. His workers could then afford the cars they built. Broad prosperity is not the enemy of growth. It is its foundation.
 
@@ -740,15 +816,15 @@ When Henry Ford roughly doubled the pay of many of his workers to five dollars a
 
 Napoleon promised his soldiers riches and delivered, for many of them, years of war and a soldier's grave. I am not promising riches. I am promising nothing except that these are terms worth fighting for, and that a country that adopts them will be stronger than one that does not.
 
-## XII. A Word to the Compute Class
+## XIII. A Word to the Compute Class
 
 Now I want to turn and speak to a different audience.
 
-If you are listening to this and you are one of the people I have been describing as the compute class, if you own a meaningful stake in the companies building the plains, or if you are one of the engineers, founders and operators whose work has been multiplied tenfold by these tools, this part is for you.
+If you own a meaningful stake in the companies building the plains, or if you are one of the engineers, founders and operators whose work has been multiplied tenfold by these tools, this part is for you.
 
-I am not your enemy. I do not think you are villains. Most of you got where you are by working extraordinarily hard, by learning faster than other people, by seeing the future a little before the rest of us. Some of you are building things that may cure diseases, teach children who have never had a good teacher, and unlock scientific discoveries that will benefit everyone alive. I admire that. I mean it.
+I am not your enemy. I do not think you are villains. Most of you got where you are by working extraordinarily hard and seeing the future a little before the rest of us. Some of you are building things that may cure diseases and teach children who have never had a good teacher. I admire that. I mean it.
 
-And many of you are worried. I know, because some of you have said so publicly. The head of one of the leading labs told the country that half of entry-level white-collar jobs could vanish and urged us to stop sugarcoating it. The head of another proposed taxing his own industry's wealth to pay every citizen a dividend. You are not oblivious. Some of you see the danger more clearly than anyone.
+And many of you are worried. I know, because some of you have said so publicly. The head of one of the leading labs told the country that half of entry-level white-collar jobs could vanish and urged us to stop sugarcoating it. The head of another proposed taxing his own industry's wealth to pay every citizen a dividend. Some of you see the danger more clearly than anyone.
 
 So let me speak to you the way Napoleon spoke to his army after its first victories.
 
@@ -758,7 +834,7 @@ In his second proclamation, in late April of seventeen ninety-six, after the arm
 
 He told them that they must respect the people whose lands they were passing through. He told them that anyone who looted would be punished, and that some already had been executed for it. And he turned and addressed the people of Italy directly, promising that their property, their religion and their customs would be respected.
 
-We can argue about how well that promise was kept. Italy paid dearly for the French campaign, and the art in its churches and palaces traveled north to Paris. But the instinct behind the condition was sound, even in a conqueror. Napoleon knew that an army that pillages the people around it turns every village into an enemy. Victory that is experienced by everyone else as plunder does not last.
+We can argue about how well that promise was kept. Italy paid dearly for the French campaign. But the instinct behind the condition was sound, even in a conqueror. An army that pillages the people around it turns every village into an enemy. Victory that everyone else experiences as plunder does not last.
 
 So here is my condition, addressed to you.
 
@@ -770,7 +846,7 @@ Do not loot.
 
 [LET IT LAND]
 
-By that I do not mean obey every law. Of course you will obey the law. I mean something harder. I mean do not take the whole harvest simply because no one can stop you from taking it.
+By that I do not mean obey every law. I mean something harder. I mean do not take the whole harvest simply because no one can stop you from taking it.
 
 Do not lobby against every measure that would share the gains, and then express surprise when the public turns against you. Do not tell the young people who cannot find their first job that they should have learned to prompt better. Do not cut the entry-level class and then complain, ten years from now, that there are no experienced people to hire. Do not use the language of abundance to describe a future that only you will be able to afford.
 
@@ -778,27 +854,27 @@ And understand that it is in your interest, deeply and practically, to do otherw
 
 You need customers. A society where the majority's income is stagnant is a society that, eventually, cannot buy what you are selling. Henry Ford understood that a century ago.
 
-You need stability. The great fortunes of the Gilded Age were followed by the Progressive Era and the income tax. The excesses of the nineteen twenties were followed by the Depression and the New Deal. When the gains of a new economy are hoarded, the political reaction does not ask politely. It comes with a hammer. Better that you help shape fair terms now, than have harsher terms imposed later by people who have stopped believing you.
+You need stability. The great fortunes of the Gilded Age were followed by the Progressive Era and the income tax. When the gains of a new economy are hoarded, the political reaction does not ask politely. Better that you help shape fair terms now, than have harsher terms imposed later by people who have stopped believing you.
 
 You need legitimacy. Right now, much of the public is suspicious of artificial intelligence. Polls in recent years have repeatedly found more Americans worried about it than excited by it. That suspicion is not stupidity. It is a reasonable response by people who have watched the gains of every recent technological wave flow upward. If you want the public to welcome what you are building, give the public a stake in it.
 
-You have a choice that very few people in history have had. You are at the beginning of something, not the end. The terms are still being set. The norms are still forming. The laws have not been written. The institutions of the compute age do not yet exist.
+You have a choice that very few people in history have had. You are at the beginning of something, not the end. The institutions of the compute age do not yet exist.
 
-The barons of the industrial age mostly fought every reform until they were forced. A few of them, late in life, gave fortunes away. Libraries, universities, foundations. Good things. But they gave it away as charity, after decades of resisting it as justice.
+The barons of the industrial age mostly fought every reform until they were forced. A few, late in life, gave fortunes away to libraries and universities. Good things. But they gave it away as charity, after decades of resisting it as justice.
 
-You could do better. You could be the first great owning class in history that helped design, at the beginning, the institutions that shared what it built. Not out of guilt. Out of wisdom. Because you, of all people, understand compounding. And you know that a gain shared early compounds into a stable, prosperous, grateful society, while a gain hoarded compounds into resentment.
+You could do better. You could be the first great owning class in history that helped design, at the beginning, the institutions that shared what it built. Not out of guilt. Out of wisdom. You, of all people, understand compounding. A gain shared early compounds into a stable society. A gain hoarded compounds into resentment.
 
-Use your voice. When the question of a public stake in the plains comes before Congress, support it. When the question of apprenticeships comes up, fund them, and hire the apprentices. When workers in your industries want a say in how AI is used on them, sit down at the table. When someone proposes rebalancing the tax code so that hiring a person is not penalized relative to buying a machine, do not send your lobbyists to kill it.
+Use your voice. When a public stake in the plains comes before Congress, support it. Fund the apprenticeships, and hire the apprentices. When workers want a say in how AI is used on them, sit down at the table. And remember where your own industry's next founders are hiding: in the ranks, without the runway you had.
 
 [LET IT LAND]
 
 You are the most powerful army of our age. I am asking you to be the first one in history that does not loot the country it marches through.
 
-## XIII. Here Is the Abundance
+## XIV. Here Is the Abundance
 
 Let me return, at the end, to the port of Nice, and to that ragged army.
 
-When Napoleon spoke to them, he knew they had heard many promises before. They had been promised pay that never came, supplies that never arrived, glory that never materialized. They had every reason to be cynical. And the genius of his speech was that it did not pretend. It began with the truth: you have nothing. And only then did it point to the plains.
+When Napoleon spoke to them, he knew they had heard many promises before: pay that never came, supplies that never arrived. The genius of his speech was that it did not pretend. It began with the truth: you have nothing. Only then did it point to the plains.
 
 I have tried to do the same tonight. So let me gather it up, and speak now to the people on the other side of the line. To the people who have been told their patience is admirable.
 
@@ -813,6 +889,8 @@ You have been told to get an education, and you got one, and now recent graduate
 You have been told to learn new skills, and you learned them, and then you watched a machine learn them faster.
 
 You have been told that anyone can become a founder, and you have seen the stories of the army of one, and you know, in your bones, that a lottery is not a ladder.
+
+You have been told that the fortunes at the top are the price of invention, and now you know that the children of the top one percent are ten times as likely to invent as the children of the bottom half, and that talent was not what divided them.
 
 You have been told that worrying about any of this makes you a Luddite. And now you know what the Luddites actually were, and what was done to them for asking the question you are asking now.
 
@@ -852,13 +930,13 @@ Imagine what it would look like if we got this right.
 
 Imagine a country where every citizen held a stake in the plains, and every year a dividend from the most productive machines in history arrived in every household, not as charity, but as a return on the public's investment.
 
-Imagine a country where the first job was guaranteed to be a real first job, where every young person who wanted to learn a craft or a profession could find a paid apprenticeship alongside an experienced worker and an intelligent machine, and learn from both.
+Imagine a country where every young person who wanted to learn a craft or a profession could find a paid apprenticeship beside an experienced worker and an intelligent machine, and learn from both.
 
 Think of Jordan, the young woman I asked you to picture more than an hour ago. She is not real. But there are a great many young people whose story is hers. In that country, the agency hires her anyway, because the apprenticeship is paid for. She edits beside the senior writers and the machine. And ten years from now, when they retire, she is the one who keeps the job, because she was allowed to learn it.
 
-Imagine a country where AI did take over the drudgery, the forms, the tedious first drafts, the repetitive tasks, and the time it freed was returned to working people in shorter weeks and higher pay, the way the gains of the industrial age were eventually returned in the weekend and the eight-hour day.
+Imagine a country where the next Lost Einstein, in a town with no inventors and a family with no savings, gets the mentor, the collateral and the health insurance to build the thing only she could have built.
 
-Imagine a country where the care workers, the nurses, the teachers, the electricians, the people who do the work that requires a human hand and a human presence, were finally paid what that work is worth, because a society made rich by machines could at last afford to honor what machines cannot do.
+Imagine a country where the nurses, the teachers and the care workers were finally paid what their work is worth, because a society made rich by machines could at last afford to honor what machines cannot do.
 
 [BUILD]
 

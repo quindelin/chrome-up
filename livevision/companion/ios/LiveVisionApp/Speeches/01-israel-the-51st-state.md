@@ -56,7 +56,7 @@ So as I go, check my facts. Every number I give you tonight comes from a public 
 
 So here is the plan for our evening. It comes in four parts, and I will tell you each time we cross from one to the next.
 
-First, the present. The bill: what we have paid, and on what terms. The wars: the one we joined last year and the one we have been fighting since February. And the new law Congress is drafting to tie our defense industries together.
+First, the present. The bill: what we have paid, and on what terms. The wars: the one we joined last year and the one we have been fighting since February. And the new law Congress is drafting to tie our defense industries together, along with the American software company that already works for both governments.
 
 Second, the past. A ship called the Liberty. A factory in a small Pennsylvania town. A reactor in the desert that our government still pretends it cannot see.
 
@@ -368,11 +368,7 @@ I love that detail. They did not change what the section does. They took out the
 
 Meanwhile, Representative Thomas Massie of Kentucky, a Republican, offered an amendment to delete the section entirely. The Rules Committee never allowed it to come to a vote. Representative Ro Khanna, a Democrat from California, tried to strike it in committee and failed. Opposition, you will notice, came from both ends of the political spectrum, which is usually a sign that something real is going on.
 
-The Senate's version contains a parallel provision, Section Twelve Seventeen. As of the latest reports I could find, the Senate bill has been stalled, in part because several Democratic senators said they would not move forward until this measure was debated. So it is not law yet. A compromise bill, analysts expect, will likely include some version of it.
-
-It is also not alone. In February of this year, a senator introduced a separate bill, the United States-Israel FUTURES Act, short for Framework for Upgraded Technologies, Unified Research, and Enhanced Security. You will notice that somebody in Washington spent real time on that acronym. It was referred to committee, where it sits. But the pipeline is full. When one vehicle stalls, another is waiting.
-
-And the Senate's own defense bill hit a wall in July, when a motion to advance it failed fifty to forty-six, amid objections over Iran policy. So the fate of this engagement ring now rests, as so many things in Washington do, with a handful of negotiators in a conference room, deciding in private what the country will be bound to in public.
+The Senate's version contains a parallel provision, Section Twelve Seventeen. But the Senate's defense bill hit a wall in July, when a motion to advance it failed fifty to forty-six, amid objections over Iran policy. So it is not law yet. And the fate of this engagement ring now rests, as so many things in Washington do, with a handful of negotiators in a conference room, deciding in private what the country will be bound to in public.
 
 Now, why does a modest engagement ring matter?
 
@@ -384,9 +380,51 @@ The critics, including analysts at the Stimson Center and at the Center for Civi
 
 That is the heart of it. Aid can be cut. It is a line in a budget. Congress can change it next year. But a factory in Alabama that makes half of a weapon, and a factory near Tel Aviv that makes the other half, cannot be separated without layoffs, lawsuits and a delegation of angry congressmen. Co-production turns a policy into a constituency.
 
+[PAUSE]
+
+And if you want to see what that looks like before the law is even passed, you do not need to visit a factory. You only need to look at a software company.
+
+Its name is Palantir. It is an American defense contractor, based in Denver. It sells software that pulls a military's data together, from satellites, drones, radar and spreadsheets, and turns it into a picture a commander can act on.
+
+In January of twenty twenty-four, three months into the Gaza war, Palantir held a board meeting in Tel Aviv for the first time, in solidarity with Israel, as Bloomberg reported it. That same week it agreed to a strategic partnership with Israel's Ministry of Defense. One of its executives said the two sides would use Palantir's technology "in support of war-related missions."
+
+What technology, for which missions? Bloomberg reported that no further details were disclosed. I have found none since. The company has said its work with the defense ministry began after October seventh, and that it supports its Israeli partners across "a multitude of mission sets." That is as specific as it gets.
+
+Now meet the other customer.
+
+On the last day of July, twenty twenty-five, the United States Army awarded Palantir what it called an Enterprise Agreement. It folded seventy-five separate contracts into one, for up to ten years, with a ceiling of ten billion dollars.
+
+That spring, the Pentagon had raised the ceiling on Palantir's battlefield system, called Maven, to nearly one point three billion dollars. Reuters describes Maven as software that analyzes battlefield data and identifies targets. In March of this year, the Deputy Secretary of Defense ordered that it become an official program of record, the status that locks in long-term funding.
+
+Last year, Palantir took in about one point eight five billion dollars from the United States government alone.
+
+And then came the war. In May, the Pentagon's chief digital and artificial intelligence officer said that Operation Epic Fury "leveraged Palantir's Maven Smart System" to strike thirteen thousand targets in thirty-eight days.
+
+[LET IT LAND]
+
+So here is where we are. One American company sells its war software to Israel's Ministry of Defense. The same company runs the targeting software of the Pentagon. And this year the two governments fought the same war, side by side, against the same enemy.
+
+The armies are separate. The vendor is shared.
+
+Fairness requires the allegations too, and the answer to them. In July of twenty twenty-five, the United Nations Special Rapporteur for the occupied Palestinian territories, Francesca Albanese, named Palantir in a report on corporations and the war in Gaza. She wrote that there were "reasonable grounds to believe" it had supplied the Israeli military with predictive policing technology and an artificial intelligence platform for battlefield decisions.
+
+Palantir called the allegations "wholly false." It said it has never supported predictive policing in Israel. And it said it did not provide the technology for, and is not involved with, the AI targeting systems that Israel's military has been reported to use. Reporting attributes those systems to the Israeli military itself. A UN report is an allegation, not a verdict, and I make no accusation tonight that this company broke any law.
+
+But notice where even that much came from. The clearest public statement I could find on when this work began was not given in a hearing of our Congress. It was in a letter the company wrote to a UN office in Geneva.
+
+[SLOW]
+
+Section Two Nineteen names artificial intelligence as a field where the two countries should build together. That integration is already happening, in software, under two governments' contracts. Our half is an American contract that Congress at least has the power to examine. Their half is a foreign ministry's business, which a sovereign country is entitled to keep to itself.
+
+We have built a shared supply chain for war with an audit trail that stops at the water's edge.
+
+Make Israel the fifty-first state, and that partnership becomes a federal contract like any other. Our auditors could read it. Our Congress could ask the company, under oath, what it built and for whom.
+
+Statehood would bring the software and the accountability. The status quo brings us the software without it.
+
 And here is the irony that makes my proposal almost irresistible.
 
-In the same season, Israel's own prime minister said he wants his country to end its reliance on American military aid within ten years, because, as he put it, Israel has come of age.
+In the same season that Congress was drafting Section Two Nineteen, Israel's own prime minister said he wants his country to end its reliance on American military aid within ten years, because, as he put it, Israel has come of age.
 
 So at the very moment when the recipient is talking about independence, the donor is drafting permanence. At the very moment the son announces he is ready to move out, the father is quietly adding his name to the deed.
 
@@ -490,7 +528,7 @@ Eight hundred and thirty-four thousand dollars. For uranium of the kind that goe
 
 The FBI investigated Shapiro, on and off, from nineteen sixty-five to nineteen eighty. No charges were ever filed.
 
-And yet. In September of nineteen sixty-eight, four Israeli visitors toured the NUMEC plant. One of them was Rafi Eitan, listed on the paperwork as a chemist for Israel's defense ministry. He was, in fact, one of Israel's most senior intelligence officers. He would later be the spymaster who controlled Jonathan Pollard, whom we will meet shortly. The defense analyst Anthony Cordesman later said there was no conceivable reason for Eitan to have gone except for the nuclear material.
+And yet. In September of nineteen sixty-eight, four Israeli visitors toured the NUMEC plant. One of them was Rafi Eitan, listed on the paperwork as a chemist for Israel's defense ministry. He was, in fact, one of Israel's most senior intelligence officers. The defense analyst Anthony Cordesman later said there was no conceivable reason for Eitan to have gone except for the nuclear material.
 
 In February of nineteen seventy-six, the CIA told staff at the Nuclear Regulatory Commission that it believed the uranium had gone to Israel. President Carter's national security staff later described the CIA's case as persuasive, though not conclusive.
 
@@ -564,15 +602,7 @@ Of course, nobody in Jerusalem wants that, and I do not blame them. A nation's d
 
 [PAUSE]
 
-One more story, because it shows how even good friends treat each other when one of them is far bigger than the other.
-
-In November of nineteen eighty-five, the FBI arrested a civilian intelligence analyst for the United States Navy named Jonathan Pollard, just after he left the Israeli Embassy in Washington, where he had tried to seek asylum. He had been passing classified American material to Israeli handlers. He pleaded guilty in nineteen eighty-six to conspiracy to deliver national defense information to a foreign government, and in March of nineteen eighty-seven he was sentenced to life in prison.
-
-Israel acknowledged part of its role and apologized. In nineteen ninety-five, while Pollard was still in an American prison, Israel granted him citizenship. In nineteen ninety-eight, Prime Minister Netanyahu acknowledged that Pollard had been an Israeli agent. Pollard was released in twenty fifteen, and when his parole ended, he moved to Israel at the end of twenty twenty.
-
-Now, allies spy on each other. Everyone knows it. Americans have spied on friends too, and been caught. I raise Pollard not to suggest that Israel is uniquely treacherous; it is not. I raise it because it reminds us of something the sentimental version of this relationship forgets.
-
-Israel is a separate country with separate interests. It acts on them, sometimes against ours, as any nation would. That is normal. What is not normal is for the United States to keep treating the relationship as though our interests and theirs were identical, writing them blank checks and guarantees as if they were one of our own states, while they, quite reasonably, behave like a foreign country.
+And that is the lesson of the reactor, the thing the sentimental version of this relationship forgets. Israel is a separate country with separate interests. It acts on them, sometimes against our wishes, as any nation would. That is normal. What is not normal is for the United States to keep treating the relationship as though our interests and theirs were identical, writing them blank checks and guarantees as if they were one of our own states, while they, quite reasonably, behave like a foreign country.
 
 If they are a foreign country, let us treat them as one, with the conditions and scrutiny that implies. And if we insist on treating them as family, then let us bring them inside the house, where the house rules apply.
 
@@ -580,7 +610,7 @@ If they are a foreign country, let us treat them as one, with the conditions and
 
 [PAUSE]
 
-So much for the past: a ship, a factory, a reactor, and a spy. We have reached the third part of the evening, the machinery. How does an arrangement like this stay in place, decade after decade, when so few people ever voted for it?
+So much for the past: a ship, a factory and a reactor. We have reached the third part of the evening, the machinery. How does an arrangement like this stay in place, decade after decade, when so few people ever voted for it?
 
 This is the part of the evening where some speakers lower their voices and start talking about shadowy forces. I am going to do the opposite. I am going to raise the lights.
 
@@ -623,10 +653,6 @@ Picture her at a small table in a school therapy room, a child across from her w
 It is worth noticing that the politics of this are changing inside Congress itself. Last year, several Democratic members of the House, including Deborah Ross and Valerie Foushee of North Carolina, Morgan McGarvey of Kentucky and Seth Moulton of Massachusetts, said they would no longer accept AIPAC's donations. These are mainstream Democrats, not insurgents. They simply decided that the money had become a liability with the voters they serve.
 
 That is how campaign finance is supposed to work in a democracy. Money is offered. Voters notice. Politicians decide whether the money is worth what the voters think of it. The answer to a powerful lobby is not to whisper about it. It is to talk about it in the open until voters can weigh it like anything else.
-
-And then there is the matter of who addresses our Congress. According to the House's own historians, the foreign leader who has addressed the United States Congress more times than any other is Benjamin Netanyahu, four times: in nineteen ninety-six, twenty eleven, twenty fifteen and July of twenty twenty-four. Winston Churchill, who led Britain through the Second World War, made three addresses.
-
-I do not begrudge any prime minister a speech. But I notice that our Congress has heard from the leader of one foreign country more often than from any other foreigner in our history, and that it often greets him with more enthusiasm than it greets its own President.
 
 [BUILD]
 
@@ -716,15 +742,11 @@ In March of nineteen fifty-seven, Israel withdrew.
 
 But the whole record matters. Eisenhower later told a supporter, in nineteen sixty-five, that he greatly regretted forcing Israel out of the Sinai. History does not hand out clean morals. But the point stands: an American president once decided that American policy would be set in Washington, applied real pressure to a friend, and the friendship survived. Within a generation it was stronger than ever.
 
-Jump forward again to October of nineteen seventy-three. Egypt and Syria launched a surprise attack on Israel on Yom Kippur. Israel's situation was dire. And the United States responded with one of the largest airlifts in its history. From October fourteenth to November fourteenth, American aircraft flew five hundred and sixty-seven missions and delivered about twenty-two thousand tons of materiel. Ships carried tens of thousands of tons more.
-
-That was American generosity at its most dramatic, and I do not regret it. But I want you to notice what it cost. Arab oil producers declared an embargo against the United States. Oil prices rose sharply, fuel became scarce, and Americans sat in lines at gas stations until the embargo was lifted in March of nineteen seventy-four.
-
-Some of you are old enough to remember those lines. Some of you sat in similar lines this past summer. The lesson of nineteen seventy-three is not that America should never help. It is that when America helps, Americans pay, and they deserve to know it and to have a say.
+Jump forward to October of nineteen seventy-three. Egypt and Syria attacked Israel on Yom Kippur, and the United States answered with one of the largest airlifts in its history. I do not regret it. But Arab oil producers answered with an embargo, and Americans sat in gas lines until the following March. Some of you sat in similar lines this past summer. When America helps, Americans pay, and they deserve to have a say.
 
 [PAUSE]
 
-Now nineteen seventy-five. After the war, Henry Kissinger was trying to negotiate a further Israeli pullback in the Sinai. Israel's government rejected the American proposal. And on March twenty-first, nineteen seventy-five, President Gerald Ford wrote to Prime Minister Yitzhak Rabin that his administration would "reassess" its relations with Israel. Arms shipments were halted.
+Now nineteen seventy-five. After that war, Henry Kissinger was trying to negotiate a further Israeli pullback in the Sinai. Israel's government rejected the American proposal. And on March twenty-first, nineteen seventy-five, President Gerald Ford wrote to Prime Minister Yitzhak Rabin that his administration would "reassess" its relations with Israel. Arms shipments were halted.
 
 Gerald Ford. The most mild-mannered man ever to occupy the Oval Office. He paused the weapons.
 
@@ -860,7 +882,7 @@ Conditional means that American military aid to Israel comes on the same terms a
 
 Conditional means that before the current agreement expires in twenty twenty-eight, Congress holds real hearings on what the next one should look like, and whether there should be one at all. Not a renewal by habit, in an afternoon.
 
-Conditional means that if Section Two Nineteen becomes law, it comes with a sunset, a public report every year, and a plain definition of what co-production commits us to. A policy should not be allowed to harden quietly into a constituency.
+Conditional means that if Section Two Nineteen becomes law, it comes with a sunset, a public report every year, a plain definition of what co-production commits us to, and a public account of which American contractors are building what for whom. A policy should not be allowed to harden quietly into a constituency.
 
 And conditional means equal rules for every lobby in America. Full, fast disclosure of who funds every super PAC. No hidden donors behind committees with invented names. And no American losing her job for refusing to sign a political pledge about any foreign country.
 
