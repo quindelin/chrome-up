@@ -165,8 +165,8 @@ def t_no_learner_line_asked_for_cold():
 
 
 def t_zh_beginner_word_lists_cover_learner_lines():
-    """HSK 1-2: every character you say is in this lesson's word list or was
-    met in an earlier lesson - the model step is a safety net, not a plan."""
+    """Every band: every character you say is in this lesson's word list or
+    was met in an earlier lesson - the model step is a safety net, not a plan."""
     import re
     han = re.compile(r"[一-鿿]")
     course, cfg = Course("zh"), load_config("config.yaml")
@@ -175,8 +175,6 @@ def t_zh_beginner_word_lists_cover_learner_lines():
     bad = []
     for lid in course.lesson_ids:
         lesson = course.lesson(lid)
-        if lesson.band > 2:
-            continue
         known = sess._known_before(lesson) | {ch for v in lesson.vocab for ch in han.findall(v.text)}
         for t in lesson.dialogue:
             if t.speaker == "you":

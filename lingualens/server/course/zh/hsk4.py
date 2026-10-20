@@ -20,6 +20,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("打破", "dǎ pò", "to break"),
                     ("放在", "fàng zài", "to put at/on"),
                     ("忘", "wàng", "to forget"),
+                    ("本", "běn", "measure word: books"),
+                    ("门", "mén", "door"),
                 ],
                 "dialogue": [
                     ("them", "请把书给我。", "qǐng bǎ shū gěi wǒ.", "Please give me the book."),
@@ -81,6 +83,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("听得见", "tīng de jiàn", "able to hear"),
                     ("拿得动", "ná de dòng", "able to lift"),
                     ("这么多", "zhème duō", "so much"),
+                    ("大部分", "dàbùfen", "most, the majority"),
                 ],
                 "dialogue": [
                     ("them", "这么多，你吃得完吗？", "zhème duō, nǐ chī de wán ma?", "This much - can you finish it?"),
@@ -111,6 +114,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("想起来", "xiǎng qǐ lái", "to recall"),
                     ("跑出去", "pǎo chū qù", "to run out"),
                     ("黑下来", "hēi xià lái", "to get dark"),
+                    ("桌子", "zhuōzi", "table, desk"),
                 ],
                 "dialogue": [
                     ("them", "请进，外面冷。", "qǐng jìn, wàimiàn lěng.", "Come in, it's cold outside."),
@@ -148,6 +152,9 @@ UNITS: List[Dict[str, Any]] = [
                     ("贵", "guì", "expensive"),
                     ("忙", "máng", "busy"),
                     ("严重", "yánzhòng", "serious"),
+                    ("东西", "dōngxi", "thing, stuff"),
+                    ("工作", "gōngzuò", "to work; job"),
+                    ("连…都", "lián…dōu", "even …"),
                 ],
                 "dialogue": [
                     ("them", "你觉得中文难吗？", "nǐ juéde Zhōngwén nán ma?", "Do you find Chinese difficult?"),
@@ -308,6 +315,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("了解", "liǎojiě", "to understand (a subject)"),
                     ("感兴趣", "gǎn xìngqù", "to be interested in"),
                     ("介绍", "jièshào", "to introduce"),
+                    ("敢", "gǎn", "to dare"),
+                    ("非常", "fēicháng", "very, extremely"),
                 ],
                 "dialogue": [
                     ("them", "关于这个问题，你怎么看？", "guānyú zhè ge wèntí, nǐ zěnme kàn?", "What's your view on this issue?"),
@@ -338,6 +347,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("质量", "zhìliàng", "quality"),
                     ("影响", "yǐngxiǎng", "to affect"),
                     ("反而", "fǎn'ér", "on the contrary"),
+                    ("省钱", "shěng qián", "to save money"),
+                    ("健康", "jiànkāng", "health; healthy"),
                 ],
                 "dialogue": [
                     ("them", "你为什么骑车上班？", "nǐ wèishénme qí chē shàngbān?", "Why do you cycle to work?"),
@@ -368,6 +379,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("养好", "yǎng hǎo", "to nurse back to health"),
                     ("安排", "ānpái", "to arrange"),
                     ("发", "fā", "to send"),
+                    ("药", "yào", "medicine"),
+                    ("您", "nín", "you (polite)"),
                 ],
                 "dialogue": [
                     ("you", "王经理，我想请一天假。", "Wáng jīnglǐ, wǒ xiǎng qǐng yì tiān jià.", "Manager Wang, I'd like a day off."),

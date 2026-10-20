@@ -20,6 +20,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("事半功倍", "shì bàn gōng bèi", "half the effort, twice the result"),
                     ("小题大做", "xiǎo tí dà zuò", "make a mountain of a molehill"),
                     ("齐心协力", "qí xīn xié lì", "to work as one"),
+                    ("苛刻", "kēkè", "harsh, demanding"),
+                    ("确实", "quèshí", "indeed"),
                 ],
                 "dialogue": [
                     ("them", "你觉得张经理这个人怎么样？", "nǐ juéde Zhāng jīnglǐ zhè ge rén zěnmeyàng?", "What do you make of Manager Zhang?"),
@@ -50,6 +52,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("半途而废", "bàn tú ér fèi", "to give up halfway"),
                     ("言简意赅", "yán jiǎn yì gāi", "concise and complete"),
                     ("各抒己见", "gè shū jǐ jiàn", "each states their view"),
+                    ("执行", "zhíxíng", "to carry out, implement"),
+                    ("版", "bǎn", "version, edition"),
                 ],
                 "dialogue": [
                     ("them", "这次的方案你看过了吗？", "zhè cì de fāng'àn nǐ kàn guò le ma?", "Have you looked at this proposal?"),
@@ -80,6 +84,10 @@ UNITS: List[Dict[str, Any]] = [
                     ("相关人员", "xiāngguān rényuán", "relevant personnel"),
                     ("深表遗憾", "shēn biǎo yíhàn", "to deeply regret"),
                     ("特此通知", "tè cǐ tōngzhī", "hereby notify"),
+                    ("情况", "qíngkuàng", "situation"),
+                    ("准备", "zhǔnbèi", "to prepare"),
+                    ("麻烦", "máfan", "to trouble, bother"),
+                    ("调整", "tiáozhěng", "to adjust"),
                 ],
                 # Spoken, not written. 鉴于 / 旨在 / 予以 / 特此通知 are 书面语:
                 # a notice says them, a person does not. This lesson used to
@@ -122,6 +130,9 @@ UNITS: List[Dict[str, Any]] = [
                     ("然而", "rán'ér", "however"),
                     ("换言之", "huàn yán zhī", "in other words"),
                     ("综上所述", "zōng shàng suǒ shù", "to sum up"),
+                    ("选择", "xuǎnzé", "choice; to choose"),
+                    ("唯一", "wéiyī", "only, sole"),
+                    ("产物", "chǎnwù", "product, result"),
                 ],
                 "dialogue": [
                     ("them", "年轻人换工作越来越频繁。", "niánqīngrén huàn gōngzuò yuè lái yuè pínfán.", "Young people change jobs more and more often."),
@@ -159,6 +170,13 @@ UNITS: List[Dict[str, Any]] = [
                     ("跌宕起伏", "diē dàng qǐ fú", "full of ups and downs"),
                     ("回味无穷", "huí wèi wú qióng", "leaving an endless aftertaste"),
                     ("不失为", "bù shī wéi", "can be considered"),
+                    ("作者", "zuòzhě", "author"),
+                    ("细腻", "xìnì", "delicate, subtle"),
+                    ("流露", "liúlù", "to reveal (feelings)"),
+                    ("忧伤", "yōushāng", "sorrow, melancholy"),
+                    ("读", "dú", "to read"),
+                    ("令人", "lìng rén", "to make one (feel …)"),
+                    ("佳作", "jiāzuò", "fine work"),
                 ],
                 "dialogue": [
                     ("them", "这本小说怎么样？", "zhè běn xiǎoshuō zěnmeyàng?", "How is this novel?"),
@@ -189,6 +207,11 @@ UNITS: List[Dict[str, Any]] = [
                     ("不以人的意志为转移", "bù yǐ rén de yìzhì wéi zhuǎnyí", "independent of human will"),
                     ("由此可见", "yóu cǐ kě jiàn", "thus it can be seen"),
                     ("顺势而为", "shùn shì ér wéi", "to act with the current"),
+                    ("几乎", "jīhū", "almost"),
+                    ("常态", "chángtài", "the normal state"),
+                    ("古人", "gǔrén", "the ancients"),
+                    ("智慧", "zhìhuì", "wisdom"),
+                    ("逆流而上", "nì liú ér shàng", "to go against the current"),
                 ],
                 "dialogue": [
                     ("them", "你为什么喜欢历史？", "nǐ wèishénme xǐhuan lìshǐ?", "Why do you like history?"),
@@ -219,6 +242,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("不可限量", "bù kě xiànliàng", "boundless"),
                     ("引发", "yǐnfā", "to give rise to"),
                     ("机遇与挑战并存", "jīyù yǔ tiǎozhàn bìngcún", "opportunity and challenge coexist"),
+                    ("前景", "qiánjǐng", "prospects"),
                 ],
                 "dialogue": [
                     ("them", "人工智能发展得太快了。", "réngōng zhìnéng fāzhǎn de tài kuài le.", "AI is developing so fast."),
@@ -249,6 +273,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("在一定程度上", "zài yídìng chéngdù shang", "to a certain extent"),
                     ("促进", "cùjìn", "to promote"),
                     ("差异", "chāyì", "difference"),
+                    ("上策", "shàngcè", "the best course"),
+                    ("封闭", "fēngbì", "closed off"),
                 ],
                 "dialogue": [
                     ("them", "你怎么看全球化？", "nǐ zěnme kàn quánqiúhuà?", "What's your view on globalisation?"),
@@ -286,6 +312,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("舆论导向", "yúlùn dǎoxiàng", "direction of public opinion"),
                     ("切忌", "qièjì", "must absolutely avoid"),
                     ("人云亦云", "rén yún yì yún", "to parrot what others say"),
+                    ("底线", "dǐxiàn", "bottom line"),
                 ],
                 "dialogue": [
                     ("them", "现在的信息太多了。", "xiànzài de xìnxī tài duō le.", "There's too much information now."),
@@ -316,6 +343,10 @@ UNITS: List[Dict[str, Any]] = [
                     ("法理", "fǎlǐ", "legal principle"),
                     ("以暴制暴", "yǐ bào zhì bào", "meeting violence with violence"),
                     ("不言而喻", "bù yán ér yù", "self-evident"),
+                    ("原则", "yuánzé", "principle"),
+                    ("涉及", "shèjí", "to involve"),
+                    ("道德", "dàodé", "morality"),
+                    ("无论如何", "wúlùn rúhé", "no matter what"),
                 ],
                 "dialogue": [
                     ("them", "你觉得法律面前人人平等吗？", "nǐ juéde fǎlǜ miànqián rén rén píngděng ma?", "Do you think all are equal before the law?"),
@@ -346,6 +377,9 @@ UNITS: List[Dict[str, Any]] = [
                     ("荡然无存", "dàng rán wú cún", "to vanish completely"),
                     ("喧嚣", "xuānxiāo", "hustle and bustle"),
                     ("重构", "chónggòu", "to reconstruct"),
+                    ("故乡", "gùxiāng", "hometown"),
+                    ("愈发", "yùfā", "increasingly"),
+                    ("模糊", "móhu", "blurred, vague"),
                 ],
                 "dialogue": [
                     ("them", "大城市的节奏怎么样？", "dà chéngshì de jiézòu zěnmeyàng?", "What's the pace of big cities like?"),
@@ -378,6 +412,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("相辅相成", "xiāng fǔ xiāng chéng", "to complement each other"),
                     ("任重道远", "rèn zhòng dào yuǎn", "a heavy task and a long road"),
                     ("半途而废", "bàn tú ér fèi", "to give up halfway"),
+                    ("声调", "shēngdiào", "tone (of a syllable)"),
                 ],
                 "dialogue": [
                     ("them", "学中文到底难在哪儿？", "xué Zhōngwén dàodǐ nán zài nǎr?", "What exactly is hard about learning Chinese?"),

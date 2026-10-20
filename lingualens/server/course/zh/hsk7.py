@@ -49,6 +49,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("广泛关注", "guǎngfàn guānzhù", "widespread attention"),
                     ("官方", "guānfāng", "official"),
                     ("回应", "huíyìng", "to respond (officially)"),
+                    ("毕业生", "bìyèshēng", "graduate"),
                 ],
                 "dialogue": [
                     ("them", "你看今天的新闻了吗？", "nǐ kàn jīntiān de xīnwén le ma?", "Have you seen today's news?"),
@@ -79,6 +80,12 @@ UNITS: List[Dict[str, Any]] = [
                     ("刷屏", "shuā píng", "to flood the feed"),
                     ("给力", "gěi lì", "impressive; does the job"),
                     ("土豪", "tǔháo", "flashy rich person"),
+                    ("收获", "shōuhuò", "gains, results"),
+                    ("却", "què", "but, yet"),
+                    ("干脆", "gāncuì", "simply, just"),
+                    ("聊天", "liáotiān", "to chat"),
+                    ("报告", "bàogào", "report"),
+                    ("千万", "qiānwàn", "by all means (千万别: whatever you do, don't)"),
                 ],
                 "dialogue": [
                     ("them", "最近老看到一个词，内卷。", "zuìjìn lǎo kàn dào yí ge cí, nèijuǎn.", "I keep seeing the word 内卷 lately."),
@@ -112,6 +119,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("标准", "biāozhǔn", "standard"),
                     ("听得出来", "tīng de chū lái", "can tell by listening"),
                     ("字正腔圆", "zì zhèng qiāng yuán", "perfectly enunciated"),
+                    ("南方", "nánfāng", "the south"),
+                    ("播音员", "bōyīnyuán", "broadcaster, announcer"),
                 ],
                 "dialogue": [
                     ("them", "你听得出来我是哪里人吗？", "nǐ tīng de chū lái wǒ shì nǎlǐ rén ma?", "Can you tell where I'm from?"),
@@ -142,6 +151,13 @@ UNITS: List[Dict[str, Any]] = [
                     ("画蛇添足", "huà shé tiān zú", "to ruin it by overdoing it"),
                     ("亡羊补牢", "wáng yáng bǔ láo", "better late than never"),
                     ("寓意", "yùyì", "the moral of it"),
+                    ("捂", "wǔ", "to cover (with the hand)"),
+                    ("耳朵", "ěrduo", "ear"),
+                    ("铃铛", "língdang", "bell"),
+                    ("骗", "piàn", "to deceive"),
+                    ("掉", "diào", "to drop, fall"),
+                    ("船", "chuán", "boat"),
+                    ("按", "àn", "according to"),
                 ],
                 "dialogue": [
                     ("them", "掩耳盗铃到底是什么意思？", "yǎn ěr dào líng dàodǐ shì shénme yìsi?", "What does 掩耳盗铃 actually mean?"),
@@ -172,6 +188,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("意境", "yìjìng", "mood; the picture a poem paints"),
                     ("唐诗", "Táng shī", "Tang poetry"),
                     ("流传千古", "liúchuán qiāngǔ", "to be handed down for millennia"),
+                    ("短", "duǎn", "short"),
+                    ("幅", "fú", "measure word: paintings"),
                 ],
                 "dialogue": [
                     ("them", "中国人真的会背古诗吗？", "Zhōngguó rén zhēn de huì bèi gǔshī ma?", "Do Chinese people really recite classical poetry?"),
@@ -202,6 +220,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("语气词", "yǔqì cí", "sentence-final particle"),
                     ("节奏", "jiézòu", "rhythm; pace"),
                     ("听起来", "tīng qǐ lái", "sounds (like)"),
+                    ("酱紫", "jiàng zǐ", "\"like this\" (slang for 这样子)"),
+                    ("抓", "zhuā", "to grab, focus on"),
                 ],
                 "dialogue": [
                     ("them", "为什么中国人说话我听不懂，明明每个字都学过？", "wèishénme Zhōngguó rén shuō huà wǒ tīng bu dǒng, míngmíng měi ge zì dōu xué guo?", "Why can't I follow Chinese people when I know every character?"),
@@ -239,6 +259,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("增幅", "zēngfú", "amount of increase"),
                     ("回落", "huíluò", "to fall back"),
                     ("稳健", "wěnjiàn", "steady; sound"),
+                    ("服务", "fúwù", "services"),
+                    ("制造", "zhìzào", "manufacturing"),
                 ],
                 "dialogue": [
                     ("them", "今年第一季度的数据怎么样？", "jīnnián dì-yī jìdù de shùjù zěnmeyàng?", "How are this year's first-quarter figures?"),
@@ -269,6 +291,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("滥用", "lànyòng", "to misuse"),
                     ("边界", "biānjiè", "boundary; limit"),
                     ("透明", "tòumíng", "transparent"),
+                    ("视野", "shìyě", "field of view, horizons"),
+                    ("窄", "zhǎi", "narrow"),
                 ],
                 "dialogue": [
                     ("them", "你觉得算法推荐有问题吗？", "nǐ juéde suànfǎ tuījiàn yǒu wèntí ma?", "Do you think algorithmic recommendation is a problem?"),
@@ -299,6 +323,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("合规", "hé guī", "compliant"),
                     ("判决", "pànjué", "judgment; verdict"),
                     ("上诉", "shàngsù", "to appeal"),
+                    ("查", "chá", "to check, investigate"),
                 ],
                 "dialogue": [
                     ("them", "遇到这种情况，普通人怎么维权？", "yù dào zhè zhǒng qíngkuàng, pǔtōng rén zěnme wéi quán?", "In a case like this, how does an ordinary person defend their rights?"),
@@ -329,6 +354,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("达标", "dá biāo", "to meet the standard"),
                     ("转型", "zhuǎnxíng", "to transition"),
                     ("可持续", "kě chíxù", "sustainable"),
+                    ("逐步", "zhúbù", "step by step"),
                 ],
                 "dialogue": [
                     ("them", "你们今年的减排目标完成了吗？", "nǐmen jīnnián de jiǎn pái mùbiāo wánchéng le ma?", "Did you hit this year's emissions target?"),
@@ -359,6 +385,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("综述", "zōngshù", "literature review"),
                     ("实证", "shízhèng", "empirical"),
                     ("假设", "jiǎshè", "hypothesis"),
+                    ("初步", "chūbù", "preliminary"),
+                    ("文献", "wénxiàn", "literature, sources"),
                 ],
                 "dialogue": [
                     ("them", "你的论文写到哪一步了？", "nǐ de lùnwén xiě dào nǎ yí bù le?", "How far along is your paper?"),

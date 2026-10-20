@@ -51,6 +51,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("洗衣服", "xǐ yīfu", "to wash clothes"),
                     ("干净", "gānjìng", "clean"),
                     ("常常", "chángcháng", "often"),
+                    ("自己", "zìjǐ", "oneself"),
                 ],
                 "dialogue": [
                     ("them", "你的房间大吗？", "nǐ de fángjiān dà ma?", "Is your room big?"),
@@ -81,6 +82,10 @@ UNITS: List[Dict[str, Any]] = [
                     ("热", "rè", "hot"),
                     ("季节", "jìjié", "season"),
                     ("最喜欢", "zuì xǐhuan", "like most"),
+                    ("带", "dài", "to take along"),
+                    ("把", "bǎ", "measure word: umbrellas, chairs"),
+                    ("伞", "sǎn", "umbrella"),
+                    ("秋天", "qiūtiān", "autumn"),
                 ],
                 "dialogue": [
                     ("them", "今天天气怎么样？", "jīntiān tiānqì zěnmeyàng?", "How's the weather today?"),
@@ -112,6 +117,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("头疼", "tóu téng", "headache"),
                     ("休息", "xiūxi", "to rest"),
                     ("医院", "yīyuàn", "hospital"),
+                    ("可能", "kěnéng", "maybe, probably"),
                 ],
                 "dialogue": [
                     ("them", "你怎么了？", "nǐ zěnme le?", "What's wrong with you?"),
@@ -149,6 +155,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("高", "gāo", "tall"),
                     ("长得像", "zhǎng de xiàng", "to look like"),
                     ("性格", "xìnggé", "personality"),
+                    ("都", "dōu", "all, both"),
                 ],
                 "dialogue": [
                     ("them", "你家有几口人？", "nǐ jiā yǒu jǐ kǒu rén?", "How many people are in your family?"),
@@ -179,6 +186,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("那天", "nà tiān", "that day"),
                     ("咖啡馆", "kāfēi guǎn", "café"),
                     ("等你", "děng nǐ", "wait for you"),
+                    ("抱歉", "bàoqiàn", "sorry (polite)"),
                 ],
                 "dialogue": [
                     ("you", "我们什么时候见面？", "wǒmen shénme shíhou jiànmiàn?", "When shall we meet?"),
@@ -277,6 +285,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("号码", "hàomǎ", "number"),
                     ("记一下", "jì yíxià", "note it down"),
                     ("现在不在", "xiànzài bú zài", "not here right now"),
+                    ("王", "Wáng", "Wang (surname)"),
+                    ("李", "Lǐ", "Li (surname)"),
                 ],
                 "dialogue": [
                     ("you", "请问，王先生在吗？", "qǐng wèn, Wáng xiānsheng zài ma?", "Is Mr Wang there, please?"),
@@ -338,6 +348,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("大概", "dàgài", "about / roughly"),
                     ("分钟", "fēnzhōng", "minute"),
                     ("身份证", "shēnfènzhèng", "ID card"),
+                    ("需要", "xūyào", "to need"),
                 ],
                 "dialogue": [
                     ("you", "我想开一个账户。", "wǒ xiǎng kāi yí ge zhànghù.", "I'd like to open an account."),
@@ -369,6 +380,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("没吃过", "méi chī guo", "have never eaten"),
                     ("学过", "xué guo", "have studied"),
                     ("忘了", "wàng le", "forgotten"),
+                    ("一定", "yídìng", "definitely, must"),
                 ],
                 "dialogue": [
                     ("them", "你去过中国吗？", "nǐ qù guo Zhōngguó ma?", "Have you been to China?"),
