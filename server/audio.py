@@ -32,6 +32,12 @@ class AudioAnalyzer:
         self.gain = float(cfg.get("gain", 1.8))
         self.gate = float(cfg.get("gate", 0.015))
         self.bars = int(cfg.get("bars", 12))
+        # Hold the analysis back this long before it moves the mouth: on the
+        # VPS the HUD hears the glasses feed almost live, while OBS's media
+        # source buffers the same feed before viewers hear it, so without a
+        # delay the avatar's lips run ahead of the voice.
+        self.delay = max(0.0, float(cfg.get("delay_ms", 0) or 0) / 1000.0)
+        self._pending = collections.deque()   # (due time, rms, bands, centroid)
         self.device = cfg.get("device")
         # url: pull audio from a stream (the glasses feed in MediaMTX) through
         # ffmpeg instead of a local mic - how the HUD hears you on the VPS
@@ -159,6 +165,13 @@ class AudioAnalyzer:
         mag = spec + 1e-9
         centroid = float(np.sum(self._freqs * mag) / np.sum(mag)) if np.sum(mag) > 0 else 600.0
 
+        if self.delay > 0:
+            with self._lock:
+                self._pending.append((time.time() + self.delay, rms, band_vals, centroid))
+            return
+        self._apply(rms, band_vals, centroid)
+
+    def _apply(self, rms: float, band_vals, centroid: float) -> None:
         with self._lock:
             # fast attack / slow release so the ring and mouth feel musical
             self._level = max(rms, self._level * 0.86)
@@ -174,6 +187,13 @@ class AudioAnalyzer:
     def tick(self, dt: float) -> AudioSnapshot:
         if not self.enabled:
             self._sim_tick(dt)
+        now = time.time()
+        while True:
+            with self._lock:
+                if not self._pending or self._pending[0][0] > now:
+                    break
+                _, rms, band_vals, centroid = self._pending.popleft()
+            self._apply(rms, band_vals, centroid)
         with self._lock:
             level = float(self._level)
             bands = [float(b) for b in self._bands]

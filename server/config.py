@@ -16,6 +16,7 @@ DEFAULTS: Dict[str, Any] = {
         "gain": 1.8,
         "gate": 0.015,
         "bars": 12,
+        "delay_ms": 0,
     },
     "video": {
         "enabled": True,

@@ -16,6 +16,8 @@ audio:
   gain: 1.8           # loudness multiplier before gating (tune to your mic)
   gate: 0.015         # RMS noise floor; below this you are "not speaking"
   bars: 12            # number of spectrum bars sent to the overlay
+  delay_ms: 0         # hold the mouth back this long so it lines up with the voice
+                      # viewers hear (OBS buffers the stream audio; see hud.yaml)
 
 video:
   enabled: true
