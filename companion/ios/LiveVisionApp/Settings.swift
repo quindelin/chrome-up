@@ -35,6 +35,17 @@ enum Settings {
         set { Keychain.write("livevision.password", newValue) }
     }
 
+    /// VM start/stop function (gcp.sh control-deploy): host only, and its token.
+    static var controlHost: String {
+        get { defaults.string(forKey: "control_host") ?? info("LiveVisionControlHost") }
+        set { defaults.set(newValue, forKey: "control_host") }
+    }
+
+    static var controlToken: String {
+        get { Keychain.read("livevision.controlToken") ?? info("LiveVisionControlToken") }
+        set { Keychain.write("livevision.controlToken", newValue) }
+    }
+
     /// STREAM_KEY in the VM's .env: the glasses publish to live/<key>.
     static var streamKey: String {
         get { Keychain.read("livevision.streamKey") ?? info("LiveVisionStreamKey") }

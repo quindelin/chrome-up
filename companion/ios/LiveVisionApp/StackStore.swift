@@ -16,6 +16,12 @@ final class StackStore {
     private(set) var updated: Date?
     private(set) var busyTargets: Set<String> = []
     var actionError: String?
+    /// The VM itself, from the start/stop function (nil if not configured)
+    private(set) var vm: VMClient.State?
+    /// "start" / "stop" while we're waiting for one we asked for to finish
+    private(set) var vmAction: String?
+    var vmControlAvailable: Bool { VMClient.fromSettings() != nil }
+    private var polls = 0
 
     var interval: Duration = .seconds(5)
     private var loop: Task<Void, Never>?
@@ -26,12 +32,24 @@ final class StackStore {
         case program                 // OBS program up, nobody watching yet
         case glassesOnly             // ingest up, OBS not publishing
         case idle                    // VM up, glasses not sending
-        case offline(String)         // VM stopped / unreachable / bad login
+        case vmStopped               // VM is off: nothing billing but the disk
+        case vmChanging(String)      // starting or stopping
+        case offline(String)         // unreachable / bad login
         case loading
     }
 
     var headline: Headline {
-        if case .error(let why) = reach, stack == nil || isStale { return .offline(why) }
+        if case .error(let why) = reach, stack == nil || isStale {
+            if let vm {
+                if vm.isStopped && vmAction != "start" { return .vmStopped }
+                if vm.isStarting || (vmAction == "start" && !vm.isStopping) {
+                    return .vmChanging("Starting the VPS… about a minute")
+                }
+                if vm.isStopping || vmAction == "stop" { return .vmChanging("Stopping the VPS…") }
+            }
+            return .offline(why)
+        }
+        if vmAction == "stop" { return .vmChanging("Stopping the VPS…") }
         guard let s = stack else { return .loading }
         if !s.liveOn.isEmpty { return .liveOn(s.liveOn) }
         if s.program?.isLive == true { return .program }
@@ -62,17 +80,41 @@ final class StackStore {
 
     func refresh() async {
         let wasLive = !(stack?.liveOn.isEmpty ?? true)
+        polls += 1
         do {
             let s = try await StackClient.fromSettings().stack()
             stack = s
             updated = Date()
             reach = .ok
+            if vmAction == "start" { vmAction = nil }      // it's up and serving
+            if polls % 12 == 1 { await refreshVM() }       // the Stop button's state, now and then
             let isLive = !s.liveOn.isEmpty
             if isLive != wasLive {    // went live / dropped: you feel it in your pocket
                 UINotificationFeedbackGenerator().notificationOccurred(isLive ? .success : .warning)
             }
         } catch {
             reach = .error(error.localizedDescription)
+            await refreshVM()                              // stopped, or just unreachable?
+        }
+    }
+
+    func refreshVM() async {
+        guard let c = VMClient.fromSettings() else { return }
+        if let state = try? await c.status() {
+            vm = state
+            if vmAction == "stop", state.isStopped { vmAction = nil; stack = nil }
+        }
+    }
+
+    func startVM() async { await vmCall("start") { try await $0.start() } }
+    func stopVM() async { await vmCall("stop") { try await $0.stop() } }
+
+    private func vmCall(_ action: String, _ call: (VMClient) async throws -> VMClient.State) async {
+        guard let c = VMClient.fromSettings() else { return }
+        vmAction = action
+        do { vm = try await call(c) } catch {
+            vmAction = nil
+            actionError = error.localizedDescription
         }
     }
 

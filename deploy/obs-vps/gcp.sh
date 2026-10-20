@@ -13,6 +13,7 @@
 #   ./gcp.sh companion write the LiveVision iOS app's Secrets.xcconfig from the VM
 #                      (host, approval login, glasses stream key + SRT passphrase)
 #   ./gcp.sh env K [V] set K=V in the VM's .env and apply it (no V: prompts, hidden)
+#   ./gcp.sh control-deploy  deploy the start/stop/status function LiveVision uses
 #   ./gcp.sh destroy   delete VM, IP and firewall rule
 #
 # The external IP is ephemeral by default, so it changes on every start and
@@ -142,7 +143,31 @@ TXT"
     ssh_ "cd $REMOTE/deploy/obs-vps && . ./.env && IP=\$(curl -fsS -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip) && \
           printf '// written by deploy/obs-vps/gcp.sh companion - keep private\nLIVEVISION_HOST = %s.sslip.io\nLIVEVISION_USER = %s\nLIVEVISION_PASSWORD = %s\nLIVEVISION_STREAM_KEY = %s\nLIVEVISION_SRT_PASSPHRASE = %s\n' \"\${IP//./-}\" \"\$AUTOCLIP_USER\" \"\$AUTOCLIP_PASSWORD\" \"\$STREAM_KEY\" \"\$SRT_PASSPHRASE\"" 2>/dev/null \
       | grep -E '^(//|LIVEVISION_)' > "$OUT.tmp" && mv "$OUT.tmp" "$OUT" && chmod 600 "$OUT"
-    grep LIVEVISION_HOST "$OUT"
+    # VM start/stop (./gcp.sh control-deploy): host only, "//" is an xcconfig comment
+    if [ -f .control-token ]; then
+      URL="$("${G[@]}" run services describe "$NAME-control" --region "$REGION" --format='value(status.url)' 2>/dev/null || true)"
+      [ -n "$URL" ] && printf 'LIVEVISION_CONTROL_HOST = %s\nLIVEVISION_CONTROL_TOKEN = %s\n' "${URL#https://}" "$(cat .control-token)" >> "$OUT"
+    fi
+    grep -E "LIVEVISION_(HOST|CONTROL_HOST)" "$OUT"
+    ;;
+  control-deploy)
+    # Cloud Run function that can see / start / stop the VM while it is off.
+    # Its service account may only manage this one VM; calls need the token.
+    SA="$NAME-control@$PROJECT.iam.gserviceaccount.com"
+    [ -f .control-token ] || (umask 077; openssl rand -hex 24 > .control-token)
+    "${G[@]}" iam service-accounts describe "$SA" >/dev/null 2>&1 \
+      || "${G[@]}" iam service-accounts create "$NAME-control" --display-name "LiveVision VM start/stop"
+    "${G[@]}" compute instances add-iam-policy-binding "$NAME" --zone "$ZONE" \
+      --member "serviceAccount:$SA" --role roles/compute.instanceAdmin.v1 >/dev/null
+    # starting a VM that runs as a service account needs actAs on that account
+    VMSA="$("${G[@]}" compute instances describe "$NAME" --zone "$ZONE" --format='value(serviceAccounts[0].email)')"
+    [ -n "$VMSA" ] && "${G[@]}" iam service-accounts add-iam-policy-binding "$VMSA" \
+      --member "serviceAccount:$SA" --role roles/iam.serviceAccountUser >/dev/null
+    "${G[@]}" run deploy "$NAME-control" --source control --function control \
+      --base-image python312 --region "$REGION" --allow-unauthenticated \
+      --service-account "$SA" --max-instances 1 --memory 256Mi \
+      --set-env-vars "PROJECT=$PROJECT,ZONE=$ZONE,NAME=$NAME,CONTROL_TOKEN=$(cat .control-token)"
+    echo "now ./gcp.sh companion (VM running) to put it in the app's Secrets.xcconfig"
     ;;
   env)
     # e.g. ./gcp.sh env TWITCH_STREAM_KEY   (asks for the value; never in argv
@@ -167,6 +192,7 @@ open(\".env\", \"w\").write(\"\\n\".join(out) + \"\\n\")
     "${G[@]}" compute instances delete "$NAME" --zone "$ZONE" || true
     "${G[@]}" compute addresses delete "$NAME-ip" --region "$REGION" || true
     "${G[@]}" compute firewall-rules delete "$NAME-ingest" || true
+    "${G[@]}" run services delete "$NAME-control" --region "$REGION" || true
     ;;
-  *) sed -n '2,16p' "$0" ;;
+  *) sed -n '2,17p' "$0" ;;
 esac

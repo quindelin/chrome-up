@@ -60,6 +60,14 @@ private struct HeadlineCard: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.title2.bold())
                 Text(detail).font(.subheadline).opacity(0.9)
+                if store.headline == .vmStopped {
+                    Button { Task { await store.startVM() } } label: {
+                        Label("Start the VPS", systemImage: "power").font(.headline)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.white.opacity(0.25))
+                    .padding(.top, 8)
+                }
             }
             Spacer(minLength: 0)
         }
@@ -90,6 +98,11 @@ private struct HeadlineCard: View {
                     .yellow, "eyeglasses")
         case .idle:
             return ("Ready", "VPS is up, glasses are not sending", .gray, "pause.circle")
+        case .vmStopped:
+            return ("VPS is off", "Stopped, so it isn't billing. Start it about a minute before you go live.",
+                    Color(white: 0.3), "power.circle")
+        case .vmChanging(let what):
+            return ("One moment", what, .indigo, "arrow.triangle.2.circlepath")
         case .offline(let why):
             return ("Offline", why, Color(white: 0.25), "bolt.horizontal.circle")
         case .loading:
@@ -232,10 +245,12 @@ private struct ClipsSection: View {
 }
 
 private struct HostSection: View {
+    @Environment(StackStore.self) private var store
+    @State private var confirmStop = false
     let host: Stack.Host?
 
     var body: some View {
-        Section("VPS") {
+        Section {
             if let h = host {
                 if let load = h.load?.first, let cpus = h.cpus, cpus > 0 {
                     Gauge(value: min(load / Double(cpus), 1)) {
@@ -269,6 +284,21 @@ private struct HostSection: View {
             } else {
                 Text("No host stats").foregroundStyle(.secondary)
             }
+            if store.vmControlAvailable {
+                Button(role: .destructive) { confirmStop = true } label: {
+                    Label("Stop the VPS", systemImage: "power")
+                }
+                .disabled(store.vmAction != nil)
+                .confirmationDialog("Stop the VPS?", isPresented: $confirmStop, titleVisibility: .visible) {
+                    Button("Stop the VPS", role: .destructive) { Task { await store.stopVM() } }
+                } message: {
+                    Text("Ends the stream, restreams and clipping. You can start it again from here.")
+                }
+            }
+        } header: {
+            Text("VPS")
+        } footer: {
+            if let vm = store.vm, let mt = vm.machineType { Text("\(mt) · \(vm.ip ?? "")") }
         }
     }
 }
