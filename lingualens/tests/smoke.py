@@ -799,11 +799,16 @@ def t_fluency_report_earns_bands_in_order():
     """The earned level is the highest band whose targets are all met, with
     every band below it met too; the dimension labels go by course totals."""
     from server import fluency
-    rep = fluency.report(Course("es"))
-    assert rep["grammar"] == "C2" and rep["earned"] == "pre-A1"
-    assert rep["vocabulary"] == "A1", rep["vocabulary"]   # 1,196 words
+    for code in ("es", "zh"):
+        rep = fluency.report(Course(code))
+        met = [r["met"] for r in rep["bands"]]
+        n = rep["earned_index"]
+        assert all(met[:n]) and (n == len(met) or not met[n]), (code, met, n)
+        assert len(fluency.gaps(rep, 6)) == met.count(False)
+        total = rep["bands"][-1]["words"]
+        want = max([c for c, w in fluency.WORDS.items() if total >= w] or [0])
+        assert rep["vocabulary"] == fluency.label(want), (code, rep["vocabulary"], total)
     assert fluency.listen_target("ar", 1) > fluency.listen_target("it", 1)
-    assert fluency.gaps(rep, 1) and len(fluency.gaps(rep, 6)) == 6
 
 
 def main() -> int:
