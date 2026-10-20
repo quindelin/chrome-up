@@ -20,6 +20,9 @@ envsubst < /opt/obs-seed/service.json > "$CFG/basic/profiles/IRL/service.json"
 # A headless box has nobody to click "launch in Safe Mode?": supervisord
 # restarts are the crash handling, so drop OBS's unclean-shutdown marker.
 rm -rf "$CFG/.sentinel"
+# supervisord starts xvfb first but does not wait for it: give the display a
+# moment to appear rather than failing fast and burning the restart budget
+for _ in $(seq 1 50); do [ -S /tmp/.X11-unix/X99 ] && break; sleep 0.2; done
 ARGS=(--profile IRL --collection IRL --scene IRL --disable-shutdown-check --disable-updater)
 [ "${OBS_AUTOSTREAM:-0}" = "1" ] && ARGS+=(--startstreaming)
 exec obs "${ARGS[@]}"

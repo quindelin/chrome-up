@@ -53,7 +53,7 @@ ENV
 fi
 # LinguaLens panel on stream: gcp.sh drops the Cloud Run link in ~/lingualens_url
 grep -q '^LINGUALENS_URL=' .env || echo 'LINGUALENS_URL=' >> .env
-if [ -s "$HOME/lingualens_url" ]; then
+if [ -s "${HOME:-/nonexistent}/lingualens_url" ]; then
   # escape sed's specials: the link is full of '&', which means "the match"
   LL="$(sed 's/[&|\\]/\\&/g' "$HOME/lingualens_url")"
   sed -i "s|^LINGUALENS_URL=.*|LINGUALENS_URL='${LL}'|" .env
