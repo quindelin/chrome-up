@@ -14,6 +14,7 @@ from __future__ import annotations
 import shutil
 import subprocess
 import time
+import urllib.parse
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -86,10 +87,13 @@ class FFmpegSource(WatchDirSource):
             "-segment_format", "mpegts",
             "-reset_timestamps", "1",
             "-strftime", "1",
-            str(self.dir / "seg_%Y%m%d_%H%M%S.ts"),
+            str(self.dir / self._segment_pattern()),
         ]
         self._proc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
         self._start_attempts += 1
+
+    def _segment_pattern(self) -> str:
+        return "seg_%Y%m%d_%H%M%S.ts"
 
     def poll(self) -> List[Segment]:
         if self._proc is None or self._proc.poll() is not None:
@@ -125,23 +129,92 @@ class RTMPSource(FFmpegSource):
     ingest (MediaMTX / nginx-rtmp) and this driver subscribes and writes
     timestamped `.ts` chunks into a watch directory the rest of the pipeline
     already knows how to tail.
+
+    With `fallback_key` the source prefers `stream_key` (the VPS: OBS's
+    composited live/program, HUD included) and drops to the fallback (the raw
+    glasses feed) while the preferred path isn't publishing, e.g. OBS down.
+    `mediamtx_api` answers "is it publishing?"; while on the fallback the
+    feeds are re-checked every `recheck_seconds`. Segments are named
+    and tagged per feed (`program` / `raw`) so a window never mixes the two.
     """
 
     def __init__(self, url: str, seg_dir: Path, stream_key: str = "",
-                 segment_seconds: float = 30.0):
-        full = expand_env(url.rstrip("/"))
+                 segment_seconds: float = 30.0, fallback_key: str = "",
+                 mediamtx_api: str = "", recheck_seconds: float = 30.0):
+        base = expand_env(url.rstrip("/"))
         key = expand_env(stream_key) if stream_key else ""
-        if key:
-            full = f"{full}/{key.lstrip('/')}"
-        super().__init__(full, seg_dir, segment_seconds)
+        self._base = base
+        self._keys = {"program": key.lstrip("/")}
+        fb = expand_env(fallback_key) if fallback_key else ""
+        if fb and fb.lstrip("/") != self._keys["program"]:
+            self._keys["raw"] = fb.lstrip("/")
+        self.api = expand_env(mediamtx_api).rstrip("/") if mediamtx_api else ""
+        self.recheck_seconds = float(recheck_seconds)
+        self.feed = "program"
+        self._checked = 0.0
+        super().__init__(self._url_for("program"), seg_dir, segment_seconds)
         self.name = "rtmp"
         self.stream_key = key
+
+    def _url_for(self, feed: str) -> str:
+        key = self._keys.get(feed, "")
+        return f"{self._base}/{key}" if key else self._base
+
+    def path_ready(self, feed: str) -> Optional[bool]:
+        """MediaMTX: is anyone publishing this feed? None = can't tell."""
+        if not self.api or feed not in self._keys:
+            return None
+        import json
+        import urllib.request
+        path = urllib.parse.quote(f"{urllib.parse.urlsplit(self._base).path.strip('/')}/"
+                                  f"{self._keys[feed]}".strip("/"))
+        try:
+            with urllib.request.urlopen(f"{self.api}/v3/paths/get/{path}", timeout=3) as r:
+                return bool(json.loads(r.read() or b"{}").get("ready"))
+        except Exception:
+            return False   # 404 = no publisher
+
+    def _pick_feed(self) -> str:
+        if "raw" not in self._keys:
+            return "program"
+        if self.path_ready("program") is False:
+            return "raw"
+        # program up but the glasses aren't: OBS is showing a frozen frame
+        if self.path_ready("raw") is False and self.api:
+            return "raw"
+        if self._proc is not None and self._proc.poll() is not None \
+                and self.feed == "program" and not self.api:
+            return "raw"   # no API: the program pull just died, try the raw feed
+        return "program"
+
+    def _spawn(self) -> None:
+        self.feed = self._pick_feed()
+        self._checked = time.time()
+        self.url = self._url_for(self.feed)
+        super()._spawn()
+
+    def _segment_pattern(self) -> str:
+        return f"{self.feed}_%Y%m%d_%H%M%S.ts"
+
+    def poll(self) -> List[Segment]:
+        if ("raw" in self._keys and self._proc is not None and self._proc.poll() is None
+                and time.time() - self._checked >= self.recheck_seconds):
+            self._checked = time.time()
+            if self._pick_feed() != self.feed:
+                self.close()          # super().poll() respawns on the other feed
+        segs = super().poll()
+        for seg in segs:
+            seg.source = "program" if seg.path.name.startswith("program_") else (
+                "raw" if seg.path.name.startswith("raw_") else seg.source)
+        return segs
 
     def status(self) -> dict:
         st = super().status()
         st["stream_key_set"] = bool(self.stream_key)
         st.pop("url", None)  # don't leak the full RTMP URL with key
         st["ingest"] = "rtmp"
+        if "raw" in self._keys:
+            st["feed"] = self.feed   # program (HUD) | raw (fallback)
         return st
 
 
@@ -274,6 +347,9 @@ def build_source(cfg: dict) -> Source:
             seg_dir=seg_dir,
             stream_key=rtmp_cfg.get("stream_key", "") or cfg.get("stream_key", ""),
             segment_seconds=float(rtmp_cfg.get("chunk_seconds", 30)),
+            fallback_key=rtmp_cfg.get("fallback_key", "") or "",
+            mediamtx_api=rtmp_cfg.get("mediamtx_api", "") or "",
+            recheck_seconds=float(rtmp_cfg.get("recheck_seconds", 30)),
         )
     if mode == "file":
         return FileSource(Path(cfg.get("file", "")))

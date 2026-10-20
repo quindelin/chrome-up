@@ -225,6 +225,26 @@ DEFAULTS: Dict[str, Any] = {
             "max_chars": 28,
         },
         "watermark": "",
+        # layout: hud_stack -> a 9:16 short cut from OBS's composited program:
+        # compass strip on top, the glasses camera in the middle, heart rate +
+        # Magicka + the 3D avatar in a band below. Boxes are [x, y, w, h] in
+        # `base` pixels (a 1280x720 program is scaled up to base first).
+        # Input that isn't landscape (the raw portrait glasses feed) renders
+        # with `fallback` instead. Measured from overlay/styles.css + a
+        # live/program frame; move them when the HUD moves.
+        "hud_stack": {
+            "fallback": "crop",
+            "base": [1920, 1080],
+            "compass": [480, 36, 960, 130],   # compass + the objective line under it
+            "camera": [656, 0, 608, 1080],    # portrait feed between the black bars
+            "avatar": [1412, 120, 360, 860],  # full-body VRM in the right bar
+            "heartbeat": [140, 900, 372, 100],
+            "magicka": [140, 1000, 372, 30],
+            "bottom_height": 560,             # the vitals + avatar band
+            "camera_focus_y": 0.5,            # 0 top .. 1 bottom of the camera crop
+            "vitals_width": 600,              # heart rate + Magicka scaled to this
+            "caption_gap": 40,                # captions sit this far above the band
+        },
     },
 
     # ---------------------------------------------------------------- publish

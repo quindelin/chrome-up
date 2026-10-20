@@ -17,7 +17,7 @@ from . import caption_images
 from .agents import ClipDecision
 from .captions import write_captions
 from .transcript import Transcript, caption_lines, ffmpeg_has_ass
-from .util import clamp, duration_of, ensure_dir, require_ffmpeg, run
+from .util import clamp, ensure_dir, probe, require_ffmpeg, run
 
 
 @dataclass
@@ -57,9 +57,93 @@ def _escape_filter_path(path: Path) -> str:
     return s
 
 
+def _even(v: float) -> int:
+    return max(2, int(round(v / 2.0)) * 2)
+
+
+def _box(hud: dict, key: str) -> Tuple[int, int, int, int]:
+    x, y, w, h = (int(v) for v in hud[key])
+    return x, y, _even(w), _even(h)
+
+
+def is_program_frame(in_w: int, in_h: int, hud: dict) -> bool:
+    """Landscape input with the HUD base's shape: OBS's program, not the raw
+    portrait glasses feed (which has no HUD to cut out)."""
+    bw, bh = (int(v) for v in hud.get("base", [1920, 1080]))
+    if in_w <= 0 or in_h <= 0:
+        return False
+    return abs(in_w / in_h - bw / bh) < 0.05
+
+
+def resolve_layout(layout: str, in_w: int, in_h: int, hud: dict) -> str:
+    """hud_stack only applies to the program; anything else gets the fallback."""
+    if layout != "hud_stack" or is_program_frame(in_w, in_h, hud):
+        return layout
+    return str(hud.get("fallback", "crop"))
+
+
+def hud_stack_graph(hud: dict, width: int, height: int) -> Tuple[str, int]:
+    """One filtergraph (single in, single out) that cuts the HUD out of a
+    program frame and stacks it into `width`x`height`:
+
+        compass strip      (scaled to full width)
+        camera             (crop-to-fill whatever height is left)
+        heart rate + Magicka | avatar   (the bottom band)
+
+    Returns (graph, band_height); captions go above the band. The graph is
+    comma-chainable, so it drops into -vf, the privacy scan and
+    privacy_filter_complex like the plain crop chain does.
+    """
+    bw, bh = (int(v) for v in hud.get("base", [1920, 1080]))
+    kx, ky, kw, kh = _box(hud, "compass")
+    cx, cy, cw, ch = _box(hud, "camera")
+    ax, ay, aw, ah = _box(hud, "avatar")
+    hx, hy, hw, hh = _box(hud, "heartbeat")
+    mx, my, mw, mh = _box(hud, "magicka")
+
+    top_h = _even(width * kh / kw)
+    band_h = _even(min(int(hud.get("bottom_height", 560)), height // 3))
+    mid_h = height - top_h - band_h
+    if mid_h < height // 3:
+        raise ValueError(f"hud_stack: camera gets only {mid_h}px of {height}")
+
+    # camera: crop-to-fill the middle, focus_y picks which slice survives
+    src_h = min(ch, _even(cw * mid_h / width))
+    src_w = min(cw, _even(src_h * width / mid_h))
+    fy = clamp(float(hud.get("camera_focus_y", 0.5)), 0.0, 1.0)
+    cam_x = cx + (cw - src_w) // 2
+    cam_y = cy + int((ch - src_h) * fy)
+
+    # bottom band: vitals column on the left, avatar to full band height right
+    pad = 20
+    av_h = band_h - 2 * pad
+    av_w = _even(av_h * aw / ah)
+    vit_w = _even(min(float(hud.get("vitals_width", 600)), width - av_w - 4 * pad))
+    hb_h = _even(vit_w * hh / hw)
+    mg_h = _even(vit_w * mh / mw)
+    vit_x = max(0, (width - av_w - 2 * pad - vit_w) // 2)
+    vit_y = max(0, (band_h - hb_h - mg_h) // 2)
+    av_x = width - av_w - 2 * pad
+
+    graph = (
+        f"scale={bw}:{bh},setsar=1,split=5[hk][hc][ha][hh][hm];"
+        f"[hk]crop={kw}:{kh}:{kx}:{ky},scale={width}:{top_h}[htop];"
+        f"[hc]crop={src_w}:{src_h}:{cam_x}:{cam_y},scale={width}:{mid_h}[hmid];"
+        f"[hh]crop={hw}:{hh}:{hx}:{hy},scale={vit_w}:{hb_h}[hhb];"
+        f"[hm]crop={mw}:{mh}:{mx}:{my},scale={vit_w}:{mg_h}[hmg];"
+        f"[hhb][hmg]vstack=inputs=2,"
+        f"pad={width}:{band_h}:{vit_x}:{vit_y}:black[hvit];"
+        f"[ha]crop={aw}:{ah}:{ax}:{ay},scale={av_w}:{av_h}[hav];"
+        f"[hvit][hav]overlay={av_x}:{pad}[hbot];"
+        f"[htop][hmid][hbot]vstack=inputs=3,setsar=1"
+    )
+    return graph, band_h
+
+
 def build_video_filter(aspect: str, layout: str, width: int, height: int,
                        crop_x: float, burn_ass: Optional[Path],
-                       watermark: str = "", fps: int = 30) -> Tuple[List[str], List[str]]:
+                       watermark: str = "", fps: int = 30,
+                       hud: Optional[dict] = None) -> Tuple[List[str], List[str]]:
     """(pre, post) filter stages for a render.
 
     `pre` is everything that moves pixels around (reframe + fps) — it is also
@@ -70,7 +154,9 @@ def build_video_filter(aspect: str, layout: str, width: int, height: int,
     """
     parts: List[str] = []
     if aspect == "9:16":
-        if layout == "blur":
+        if layout == "hud_stack":
+            parts.append(hud_stack_graph(hud or {}, width, height)[0])
+        elif layout == "blur":
             parts.append(
                 f"split=2[bg][fg];[bg]scale={width}:{height},"
                 f"gblur=sigma=28,crop={width}:{height}[bgb];"
@@ -142,7 +228,8 @@ def render_clip(window_path: Path, decision: ClipDecision, render_cfg: dict,
     require_ffmpeg()
     out_dir = ensure_dir(out_dir)
     name = name or f"clip_{int(decision.start)}_{int(decision.end)}"
-    total = duration_of(window_path)
+    info = probe(window_path)
+    total = float(info.get("duration") or 0.0)
     start = clamp(decision.start, 0.0, max(0.0, total - 1.0))
     end = clamp(decision.end, start + 1.0, total if total > 0 else start + 60.0)
     duration = max(1.0, end - start)
@@ -153,10 +240,29 @@ def render_clip(window_path: Path, decision: ClipDecision, render_cfg: dict,
     lines: List[dict] = []
     style: dict = {}
 
+    width = int(render_cfg.get("width", 1080))
+    height = int(render_cfg.get("height", 1920))
+    fps = int(float(render_cfg.get("fps", 30)) or 30)
+    aspect = str(render_cfg.get("aspect", "9:16"))
+    hud = dict(render_cfg.get("hud_stack") or {})
+    layout = str(render_cfg.get("layout", "crop"))
+    if layout == "hud_stack":
+        layout = resolve_layout(layout, int(info.get("width") or 0),
+                                int(info.get("height") or 0), hud)
+        if layout != "hud_stack":
+            notes.append(f"hud_stack: input {info.get('width')}x{info.get('height')} "
+                         f"is not the program feed, rendered with layout {layout}")
+    band_h = 0
+    if aspect == "9:16" and layout == "hud_stack":
+        band_h = hud_stack_graph(hud, width, height)[1]
+
     if render_cfg.get("captions", True) and transcript is not None and transcript.ok:
         style = dict(render_cfg.get("caption_style", {}))
-        style.setdefault("playres_x", int(render_cfg.get("width", 1080)))
-        style.setdefault("playres_y", int(render_cfg.get("height", 1920)))
+        style.setdefault("playres_x", width)
+        style.setdefault("playres_y", height)
+        if band_h:
+            # bottom of the camera, clear of the vitals + avatar band
+            style["margin_v"] = band_h + int(hud.get("caption_gap", 40))
         lines = caption_lines(
             transcript.slice(start, end),
             max_words=int(style.get("max_words", 3)),
@@ -169,10 +275,6 @@ def render_clip(window_path: Path, decision: ClipDecision, render_cfg: dict,
             notes.append("no caption lines produced")
     elif render_cfg.get("captions", True):
         notes.append("captions requested but no transcript available")
-
-    width = int(render_cfg.get("width", 1080))
-    height = int(render_cfg.get("height", 1920))
-    fps = int(float(render_cfg.get("fps", 30)) or 30)
 
     # ---- how do we get the captions onto the picture? -----------------------
     # 1) libass `subtitles` filter (best quality) when this ffmpeg has it
@@ -199,14 +301,15 @@ def render_clip(window_path: Path, decision: ClipDecision, render_cfg: dict,
                          "(pip install Pillow); srt sidecar kept")
 
     pre_parts, post_parts = build_video_filter(
-        aspect=str(render_cfg.get("aspect", "9:16")),
-        layout=str(render_cfg.get("layout", "crop")),
+        aspect=aspect,
+        layout=layout,
         width=width,
         height=height,
         fps=fps,
         crop_x=float(render_cfg.get("crop_x", 0.5)),
         burn_ass=ass_path if use_ass else None,
         watermark=str(render_cfg.get("watermark", "")),
+        hud=hud,
     )
     af_parts = ["loudnorm=I=-16:TP=-1.5:LRA=11"] if render_cfg.get("loudnorm", True) else []
 

@@ -180,8 +180,25 @@ agent:
 
 render:
   aspect: "9:16"            # 9:16 (Reels/Shorts) | 1:1 | 16:9 | source
-  layout: crop              # crop | blur
+  layout: crop              # crop | blur | hud_stack (the VPS default)
   crop_x: 0.5
+  # hud_stack: 9:16 cut from OBS's composited program (live/program): compass
+  # strip on top, glasses camera in the middle, heart rate + Magicka + avatar
+  # in a band below. Boxes are [x, y, w, h] in `base` px, measured from
+  # overlay/styles.css and a live/program frame: move them with the HUD.
+  # Portrait input (the raw glasses feed) renders with `fallback`.
+  hud_stack:
+    fallback: crop
+    base: [1920, 1080]
+    compass: [480, 36, 960, 130]    # compass + the objective line under it
+    camera: [656, 0, 608, 1080]     # portrait feed between the black bars
+    avatar: [1412, 120, 360, 860]   # full-body VRM, right bar (body ~1488-1697)
+    heartbeat: [140, 900, 372, 100]
+    magicka: [140, 1000, 372, 30]
+    bottom_height: 560              # vitals + avatar band
+    camera_focus_y: 0.5             # which slice of the camera survives the crop
+    vitals_width: 600
+    caption_gap: 40                 # captions sit this far above the band
   width: 1080
   height: 1920
   fps: 30

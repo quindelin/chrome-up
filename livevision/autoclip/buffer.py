@@ -126,10 +126,18 @@ class RollingWindow:
         Offsets are absolute wall-clock; None means "edge of the buffer".
         """
         require_ffmpeg()
+        # a source restart (or an RTMP feed switch) clears its chunk dir
+        self.segments = [s for s in self.segments if s.path.exists()]
         t0, t1 = self.span()
         start = t0 if start is None else max(t0, start)
         end = t1 if end is None else min(t1, end)
         segs = self.segments_in(start, end)
+        # one feed per window: after a program <-> raw switch only the newest
+        # run counts, so concat never mixes a 1920x1080 HUD and a portrait feed
+        run_from = len(segs)
+        while run_from > 0 and segs[run_from - 1].source == segs[-1].source:
+            run_from -= 1
+        segs = segs[run_from:]
         if not segs:
             raise RuntimeError(
                 f"no footage in window [{start:.1f}, {end:.1f}]; buffer holds "

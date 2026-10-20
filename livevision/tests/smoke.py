@@ -1557,6 +1557,154 @@ def t_clip_posting():
         p.shutdown()
 
 
+# --------------------------------------------------------------------------- hud_stack
+def t_hud_stack_graph():
+    """The HUD layout builds one 1080x1920 graph from the configured boxes, and
+    only applies to program-shaped (landscape) input."""
+    from autoclip.clips import build_video_filter, hud_stack_graph, resolve_layout
+    hud = load_config(ROOT / "autoclip.yaml")["render"]["hud_stack"]
+    graph, band = hud_stack_graph(hud, 1080, 1920)
+    assert graph.startswith("scale=1920:1080,"), graph
+    assert "split=5" in graph and graph.endswith("vstack=inputs=3,setsar=1"), graph
+    for box in ("compass", "camera", "avatar", "heartbeat", "magicka"):
+        x, y, w, h = hud[box]
+        assert f"crop={w}:{h}:{x}:{y}" in graph or box == "camera", (box, graph)
+    # top strip + camera + band add up to the full height
+    sizes = [int(m.split(":")[1].split("[")[0]) for m in
+             (graph.split("[htop]")[0].rsplit("scale=", 1)[1],
+              graph.split("[hmid]")[0].rsplit("scale=", 1)[1])]
+    assert sum(sizes) + band == 1920, (sizes, band)
+    assert band == hud["bottom_height"], band
+
+    assert resolve_layout("hud_stack", 1920, 1080, hud) == "hud_stack"
+    assert resolve_layout("hud_stack", 1280, 720, hud) == "hud_stack"   # CPU-path program
+    assert resolve_layout("hud_stack", 720, 1280, hud) == "crop"        # raw glasses feed
+    assert resolve_layout("crop", 1920, 1080, hud) == "crop"
+
+    pre, post = build_video_filter("9:16", "hud_stack", 1080, 1920, 0.5, None,
+                                   fps=30, hud=hud)
+    assert pre == [graph, "fps=30"] and post == [], (pre, post)
+
+    vps = load_config(ROOT / "autoclip.yaml")
+    import yaml
+    over = yaml.safe_load((ROOT / "deploy/obs-vps/autoclip.vps.yaml").read_text())
+    assert over["render"]["layout"] == "hud_stack", over["render"]
+    assert over["source"]["rtmp"]["stream_key"] == "program", over["source"]
+    assert over["source"]["rtmp"]["fallback_key"] == "${STREAM_KEY}"
+    assert vps["render"]["layout"] == "crop", "laptop default stays crop"
+
+
+def t_rtmp_program_fallback():
+    """The VPS source prefers live/program, drops to the raw feed while OBS
+    isn't publishing, tags chunks per feed and never leaks either key."""
+    from autoclip.buffer import Segment
+    from autoclip.ingest import RTMPSource, build_source
+    with tempfile.TemporaryDirectory() as td:
+        src = build_source({"mode": "rtmp", "workdir": td, "rtmp": {
+            "url": "rtmp://127.0.0.1:1935/live", "stream_key": "program",
+            "fallback_key": "rawsecret42", "mediamtx_api": "http://127.0.0.1:1",
+            "dir": td}})
+        assert isinstance(src, RTMPSource) and src.api
+        ready = {"program": True, "raw": True}
+        src.path_ready = lambda feed: ready[feed]
+        assert src._pick_feed() == "program"
+        ready["program"] = False
+        assert src._pick_feed() == "raw"           # OBS down
+        ready.update(program=True, raw=False)
+        assert src._pick_feed() == "raw"           # program frozen: glasses gone
+        src.feed = "raw"
+        assert src._url_for("raw").endswith("/rawsecret42")
+        assert src._segment_pattern().startswith("raw_")
+        st = src.status()
+        assert st["feed"] == "raw" and "rawsecret42" not in str(st), st
+
+        # no API: a pull that died flips to the other feed
+        src2 = RTMPSource("rtmp://h/live", Path(td), stream_key="program",
+                          fallback_key="k")
+        assert src2.path_ready("program") is None
+        src2._proc = type("Dead", (), {"poll": lambda self: 1})()
+        src2.feed = "program"
+        assert src2._pick_feed() == "raw"
+
+        # unreachable API counts as "not publishing"
+        src3 = RTMPSource("rtmp://h/live", Path(td), stream_key="program",
+                          fallback_key="k", mediamtx_api="http://127.0.0.1:1")
+        assert src3.path_ready("program") is False
+
+        # chunks are tagged by the feed in their filename
+        for name in ("program_20261020_120000.ts", "raw_20261020_120030.ts"):
+            seg = Segment(path=Path(td) / name, start_wall=0, duration=1, source="watch_dir")
+            src4 = RTMPSource("rtmp://h/live", Path(td), stream_key="program",
+                              fallback_key="k")
+            src4._proc = type("Live", (), {"poll": lambda self: None})()
+            src4._checked = time.time()
+            import autoclip.ingest as ing
+            orig = ing.WatchDirSource.poll
+            ing.WatchDirSource.poll = lambda self, _s=seg: [_s]
+            try:
+                got = src4.poll()
+            finally:
+                ing.WatchDirSource.poll = orig
+            assert got[0].source == name.split("_")[0], got[0]
+
+
+def _ffmpeg_ok() -> bool:
+    import shutil
+    return shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
+
+
+def t_hud_stack_render():
+    """A synthetic 1920x1080 program renders to a 1080x1920 hud_stack clip with
+    burned captions; a portrait (raw feed) input falls back to crop; a window
+    after a feed switch only holds the newest feed."""
+    if not _ffmpeg_ok():
+        print("       (skipped: no ffmpeg)")
+        return
+    from autoclip.buffer import RollingWindow, Segment
+    from autoclip.clips import render_clip
+    from autoclip.util import probe, run
+    cfg = load_config(ROOT / "autoclip.yaml")
+    rcfg = dict(cfg["render"], layout="hud_stack")
+    tr = Transcript(words=[Word(i * 0.4, i * 0.4 + 0.35, w) for i, w in
+                           enumerate("we found the dragon".split())], engine="fake")
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        prog, raw = td / "program.mp4", td / "raw.mp4"
+        for path, size in ((prog, "1920x1080"), (raw, "720x1280")):
+            run(["ffmpeg", "-y", "-v", "error",
+                 "-f", "lavfi", "-i", f"testsrc2=size={size}:rate=30",
+                 "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000",
+                 "-t", "3", "-c:v", "libx264", "-preset", "ultrafast",
+                 "-pix_fmt", "yuv420p", "-c:a", "aac", "-shortest", str(path)],
+                timeout=120)
+        clip = render_clip(prog, ClipDecision(start=0.0, end=2.0, score=1.0, title="t"),
+                           rcfg, td / "out", transcript=tr, name="hud")
+        info = probe(clip.path)
+        assert (info["width"], info["height"]) == (1080, 1920), info
+        assert clip.captions_burned or any("libass" in n or "Pillow" in n
+                                           for n in clip.notes), clip.notes
+        if clip.ass:   # captions sit above the vitals + avatar band
+            band = cfg["render"]["hud_stack"]["bottom_height"]
+            style = next(l for l in clip.ass.read_text().splitlines()
+                         if l.startswith("Style:"))
+            assert style.split(",")[-2] == str(band + 40), style
+        assert not any("not the program" in n for n in clip.notes), clip.notes
+
+        fb = render_clip(raw, ClipDecision(start=0.0, end=2.0, score=1.0, title="t"),
+                         rcfg, td / "out", name="raw")
+        info = probe(fb.path)
+        assert (info["width"], info["height"]) == (1080, 1920), info
+        assert any("rendered with layout crop" in n for n in fb.notes), fb.notes
+
+        # program -> raw switch mid-buffer: the window is the raw run only
+        win = RollingWindow(300, td / "buf")
+        win.add(Segment(path=prog, start_wall=1000, duration=3, source="program"))
+        win.add(Segment(path=raw, start_wall=1003, duration=3, source="raw"))
+        win.add(Segment(path=td / "gone.ts", start_wall=1006, duration=3, source="raw"))
+        w = win.materialize(out_dir=td / "win")
+        assert w.path == raw and [s.source for s in w.segments] == ["raw"], w.to_dict()
+
+
 def main() -> int:
     print("autoclip smoke test\n")
     for name, fn in [
@@ -1584,6 +1732,9 @@ def main() -> int:
         ("captions one file per clip", t_captions_one_file_per_clip),
         ("voice fires once + rumble", t_voice_once_and_rumble),
         ("clip posting", t_clip_posting),
+        ("hud_stack filter graph", t_hud_stack_graph),
+        ("rtmp program/raw fallback", t_rtmp_program_fallback),
+        ("hud_stack render 1080x1920", t_hud_stack_render),
     ]:
         check(name, fn)
     print(f"\n{len(PASS)} passed, {len(FAIL)} failed")

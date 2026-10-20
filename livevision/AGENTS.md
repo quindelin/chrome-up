@@ -314,7 +314,7 @@ register_agent("mine", lambda cfg: MyAgent())
 | `replay_buffer` | OBS keeps the last N seconds in RAM; we call `SaveReplayBuffer` over obs-websocket v5 → one clean file. **Best path.** |
 | `watch_dir` | Tails OBS's recording dir (enable Settings ▸ Advanced ▸ automatically split recording). |
 | `stream_url` | ffmpeg pulls OBS's SRT/RTMP output and segments it locally. |
-| `rtmp` | Cloud: ffmpeg subscribes to a live RTMP feed (phone → MediaMTX) and writes 30 s `.ts` chunks. See §5b. |
+| `rtmp` | Cloud: ffmpeg subscribes to a live RTMP feed (phone → MediaMTX) and writes 30 s `.ts` chunks; optional `fallback_key` + `mediamtx_api` switch feeds when the preferred one isn't publishing. See §5b. |
 | `file` | One local video. Use this for offline dev. |
 | `auto` | replay_buffer → watch_dir → file. |
 
@@ -384,7 +384,17 @@ frames, with `transcribe_model: tiny`. Its config is the repo
 `autoclip.yaml` with [`deploy/obs-vps/autoclip.vps.yaml`](deploy/obs-vps/autoclip.vps.yaml)
 merged on top by `setup.sh`.
 
-- **Clips** come from the raw glasses feed `live/<STREAM_KEY>`.
+- **Clips** come from OBS's composited program `live/program` and render
+  with `render.layout: hud_stack`: a 1080x1920 short with the compass strip
+  on top, the glasses camera cropped to fill the middle, and heart rate +
+  Magicka + the full-body avatar in a band below (captions sit just above
+  it). The element boxes are `render.hud_stack.*` in `autoclip.yaml`, as
+  `[x, y, w, h]` in 1920x1080 program pixels; move them when the HUD moves.
+  One feed serves analysis and render (the program's audio is the glasses
+  audio), so there is nothing to keep in sync. While OBS isn't publishing,
+  `source.rtmp.fallback_key` (the raw `live/<STREAM_KEY>`) takes over, and
+  hud_stack falls back to `crop` for that portrait input; a window never
+  mixes the two feeds.
 - **Restreams** (`go live on twitch`) pull OBS's composited program —
   HUD + avatar — which OBS publishes back into MediaMTX as `live/program`
   (publish allowed from localhost only).

@@ -2,13 +2,25 @@
 # setup.sh into autoclip.yaml (next to this file), mounted as config.vps.yaml.
 # ${VAR} is expanded by autoclip at load time from the container env (.env).
 
+# Clips are cut from OBS's composited program (HUD + avatar), so a short looks
+# like the stream. One feed does both jobs: the program's audio is the glasses
+# audio (OBS's Glasses media source), so Whisper and scoring see the same voice,
+# and analysis + render share one timeline with nothing to sync. While OBS isn't
+# publishing live/program the source drops to the raw glasses feed, and the
+# render's hud_stack falls back to a centre crop for that portrait input.
 source:
   mode: rtmp
   rtmp:
     url: "rtmp://127.0.0.1:1935/live"
-    stream_key: "${STREAM_KEY}"        # the raw glasses feed (no HUD)
+    stream_key: program                # OBS's composited program
+    fallback_key: "${STREAM_KEY}"      # the raw glasses feed (no HUD)
+    mediamtx_api: "http://127.0.0.1:9997"
+    recheck_seconds: 30
     dir: var/autoclip/incoming
     chunk_seconds: 30
+
+render:
+  layout: hud_stack                    # compass / camera / vitals + avatar
 
 obs:
   password: "${OBS_WS_PASSWORD}"
@@ -44,7 +56,9 @@ analysis:
 retention:
   keep_windows: 2
   clip_hours: 48
-  max_clips_gb: 1.5                    # 15 GB disk, ~7 GB of it images
+  max_clips_gb: 1.5                    # 40 GB disk; a 30 s 1080x1920 clip is ~20-30 MB
+  # program chunks (6 Mbps NVENC) keep ~6 min on disk (~270 MB) plus 2 windows
+  # (~450 MB): the same footprint class as the raw feed, never both at once
 
 publish:
   mode: dry_run                        # setup.sh: AUTOCLIP_PUBLISH (dry_run | live)
