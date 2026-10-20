@@ -131,10 +131,11 @@
         "url": "${LINGUALENS_URL}",
         "width": 600,
         "height": 600,
-        "fps": 30,
+        "fps": 10,
         "reroute_audio": true,
-        "shutdown": false,
-        "restart_when_active": false
+        "shutdown": true,
+        "restart_when_active": false,
+        "fps_custom": true
       }
     }
   ]
