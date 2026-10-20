@@ -64,6 +64,8 @@ upload() {
     rm -f "$tgz"; return 1
   fi
   scp_ "$tgz" "$NAME:~/chrome_up.tgz"
+  # boot.sh lives in the VM's metadata (copied at create time): keep it current
+  "${G[@]}" compute instances add-metadata "$NAME" --zone "$ZONE" --metadata-from-file startup-script=boot.sh >/dev/null
   if [ -n "${RESTORE_ENV:-}" ]; then
     scp_ "$RESTORE_ENV" "$NAME:~/restore.env"
     # only into a VM that has no .env yet: never overwrite a live one

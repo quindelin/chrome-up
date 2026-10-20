@@ -7,6 +7,9 @@
 for s in /home/*/chrome_up/deploy/obs-vps/setup.sh; do
   [ -f "$s" ] || continue
   owner="$(stat -c %U "$s")"
-  HOME="/home/$owner" USER=root bash "$s" > /var/log/obs-irl-setup.log 2>&1
+  # as the deploying user, not root: files setup.sh writes (mediamtx.yml,
+  # hud.yaml, autoclip.yaml) must stay writable by the next ./gcp.sh deploy.
+  # setup.sh sudo's for what needs root (GCE users have passwordless sudo).
+  sudo -u "$owner" -H bash "$s" > /var/log/obs-irl-setup.log 2>&1
 done
 exit 0
