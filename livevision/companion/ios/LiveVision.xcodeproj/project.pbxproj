@@ -17,6 +17,7 @@
 		2B00000000000000000000B7 /* MWDATInputs in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000047 /* MWDATInputs */; };
 		2B00000000000000000000B8 /* MWDATMotion in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000048 /* MWDATMotion */; };
 		2B00000000000000000000BA /* LiveVisionWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 2B0000000000000000000051 /* LiveVisionWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		2B00000000000000000000BB /* LiveVisionShare.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 2B0000000000000000000061 /* LiveVisionShare.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -26,6 +27,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = 2B0000000000000000000052;
 			remoteInfo = LiveVisionWatch;
+		};
+		2B0000000000000000000068 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 2B0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 2B0000000000000000000062;
+			remoteInfo = LiveVisionShare;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -41,6 +49,17 @@
 			name = "Embed Watch Content";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		2B0000000000000000000069 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				2B00000000000000000000BB /* LiveVisionShare.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -51,6 +70,9 @@
 		2B0000000000000000000051 /* LiveVisionWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveVisionWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2B000000000000000000005D /* Watch-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Watch-Info.plist"; sourceTree = "<group>"; };
 		2B000000000000000000005E /* LiveVisionWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LiveVisionWatch.entitlements; sourceTree = "<group>"; };
+		2B0000000000000000000061 /* LiveVisionShare.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = LiveVisionShare.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		2B000000000000000000006A /* Share-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Share-Info.plist"; sourceTree = "<group>"; };
+		2B000000000000000000006B /* LiveVisionShare.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = LiveVisionShare.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -64,9 +86,21 @@
 			path = LiveVisionWatch;
 			sourceTree = "<group>";
 		};
+		2B0000000000000000000060 /* LiveVisionShare */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = LiveVisionShare;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		2B0000000000000000000064 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2B0000000000000000000021 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -98,6 +132,7 @@
 			children = (
 				2B0000000000000000000005 /* LiveVisionApp */,
 				2B0000000000000000000050 /* LiveVisionWatch */,
+				2B0000000000000000000060 /* LiveVisionShare */,
 				2B0000000000000000000007 /* Config */,
 				2B0000000000000000000003 /* Products */,
 			);
@@ -108,6 +143,7 @@
 			children = (
 				2B0000000000000000000004 /* LiveVision.app */,
 				2B0000000000000000000051 /* LiveVisionWatch.app */,
+				2B0000000000000000000061 /* LiveVisionShare.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -120,6 +156,8 @@
 				2B0000000000000000000008 /* Info.plist */,
 				2B000000000000000000005D /* Watch-Info.plist */,
 				2B000000000000000000005E /* LiveVisionWatch.entitlements */,
+				2B000000000000000000006A /* Share-Info.plist */,
+				2B000000000000000000006B /* LiveVisionShare.entitlements */,
 			);
 			path = Config;
 			sourceTree = "<group>";
@@ -127,6 +165,28 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		2B0000000000000000000062 /* LiveVisionShare */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 2B0000000000000000000066 /* Build configuration list for PBXNativeTarget "LiveVisionShare" */;
+			buildPhases = (
+				2B0000000000000000000063 /* Sources */,
+				2B0000000000000000000064 /* Frameworks */,
+				2B0000000000000000000065 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				2B0000000000000000000060 /* LiveVisionShare */,
+			);
+			name = LiveVisionShare;
+			packageProductDependencies = (
+			);
+			productName = LiveVisionShare;
+			productReference = 2B0000000000000000000061 /* LiveVisionShare.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
 		2B0000000000000000000010 /* LiveVision */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 2B0000000000000000000011 /* Build configuration list for PBXNativeTarget "LiveVision" */;
@@ -135,11 +195,13 @@
 				2B0000000000000000000021 /* Frameworks */,
 				2B0000000000000000000022 /* Resources */,
 				2B0000000000000000000059 /* Embed Watch Content */,
+				2B0000000000000000000069 /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				2B000000000000000000005B /* PBXTargetDependency */,
+				2B000000000000000000006D /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				2B0000000000000000000005 /* LiveVisionApp */,
@@ -198,6 +260,9 @@
 					2B0000000000000000000052 = {
 						CreatedOnToolsVersion = 27.1;
 					};
+					2B0000000000000000000062 = {
+						CreatedOnToolsVersion = 27.1;
+					};
 				};
 			};
 			buildConfigurationList = 2B0000000000000000000014 /* Build configuration list for PBXProject "LiveVision" */;
@@ -220,11 +285,19 @@
 			targets = (
 				2B0000000000000000000010 /* LiveVision */,
 				2B0000000000000000000052 /* LiveVisionWatch */,
+				2B0000000000000000000062 /* LiveVisionShare */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		2B0000000000000000000065 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2B0000000000000000000055 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -242,6 +315,13 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		2B0000000000000000000063 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		2B0000000000000000000053 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -264,9 +344,75 @@
 			target = 2B0000000000000000000052 /* LiveVisionWatch */;
 			targetProxy = 2B000000000000000000005C /* PBXContainerItemProxy */;
 		};
+		2B000000000000000000006D /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 2B0000000000000000000062 /* LiveVisionShare */;
+			targetProxy = 2B0000000000000000000068 /* PBXContainerItemProxy */;
+		};
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		2B0000000000000000000067 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 2B0000000000000000000006 /* Base.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Config/LiveVisionShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XPP3L755ZM;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/Share-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = LiveVision;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(inherited).share";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		2B000000000000000000006C /* Release */ = {
+			isa = XCBuildConfiguration;
+			baseConfigurationReference = 2B0000000000000000000006 /* Base.xcconfig */;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_ENTITLEMENTS = Config/LiveVisionShare.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = XPP3L755ZM;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Config/Share-Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = LiveVision;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.2;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 0.1;
+				PRODUCT_BUNDLE_IDENTIFIER = "$(inherited).share";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
 		2B0000000000000000000057 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -444,6 +590,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		2B0000000000000000000066 /* Build configuration list for PBXNativeTarget "LiveVisionShare" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2B0000000000000000000067 /* Debug */,
+				2B000000000000000000006C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		2B0000000000000000000056 /* Build configuration list for PBXNativeTarget "LiveVisionWatch" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

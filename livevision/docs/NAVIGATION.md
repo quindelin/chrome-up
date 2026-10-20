@@ -1,7 +1,9 @@
 # Navigation: Apple Maps turn-by-turn → compass (and lens)
 
 ```
-Control tab: "Maps link or place name"
+Control tab › Choose destination (Apple Maps suggestions, saved, recent, a link)
+Apple Maps › Share › LiveVision          (share extension → App Group)
+livevision://navigate?to=<link or place> (Shortcuts, links)
    │  RouteNavigator (companion, MapKit)
    │    resolve: share-link coordinates, else MKLocalSearch near you
    │    route:   MKDirections (walking default, or driving)
@@ -15,6 +17,35 @@ overlay  compass quest marker = next maneuver · "Turn left onto Market St 120 m
                                                  "FERRY BUILDING 1.4 KM · 18 MIN"
 ```
 
+## Picking a destination
+
+iOS doesn't let other apps read the route Apple Maps is navigating, so
+LiveVision routes on its own (same Apple Maps data, via MapKit). Three ways to
+hand it a place:
+
+- **Search** (Control › Navigation › Choose destination,
+  `DestinationSearchView.swift`): as-you-type suggestions from
+  `MKLocalSearchCompleter` biased to 30 km around you, a Paste button for a
+  copied maps link, and **Saved** / **Recent** places (the last 10, swipe
+  right to star one, left to remove). Walking / Driving sits at the top.
+- **Share from Apple Maps** (`LiveVisionShare/`, an app extension): open a
+  place, Share, LiveVision, Navigate on the HUD. The extension can't open the
+  app, so it writes `{text, transport, ts}` to the App Group
+  (`LIVEVISION_APP_GROUP`, `group.com.chromeup.livevision`) and posts the
+  Darwin notification `com.chromeup.livevision.nav-inbox`. A running
+  LiveVision (it keeps running in the background while the glasses stream)
+  starts the route at once; otherwise `NavInbox` picks it up when the app
+  becomes active (shares older than 30 min are dropped). Works from Google
+  Maps, Safari and Messages too (any link or text).
+- **URL**: `livevision://navigate?to=<percent-encoded link or place>`, e.g.
+  from a Shortcut.
+
+Everything ends in `RouteNavigator.navigate(to:)`: Apple Maps first, the HUD
+server's own geocoding (Nominatim, straight-line marker) if MapKit can't place it.
+
+If you change the bundle id in `Secrets.xcconfig`, change
+`LIVEVISION_APP_GROUP` with it; both targets' entitlements read it.
+
 ## The phone (`companion/ios/LiveVisionApp/RouteNavigator.swift`)
 
 - **Resolving.** An Apple Maps share link's coordinates (`coordinate=`, `ll=`,
@@ -22,9 +53,7 @@ overlay  compass quest marker = next maneuver · "Turn left onto Market St 120 m
   (`maps.apple/p/…`) is fetched and the redirect's URL parsed. Anything without
   coordinates is searched by its `name=` / `q=` / `address=` (or the typed
   text) with `MKLocalSearch`, in a 30 km region around you. The place also goes
-  to `POST /api/destination` as the server's fallback objective. If Apple Maps
-  can't place it, the Control tab hands the text to the server as before
-  (Nominatim, straight-line marker).
+  to `POST /api/destination` as the server's fallback objective.
 - **Routing.** `MKDirections`, transport from the Control tab's picker
   (Walking / Driving; MapKit has no transit steps). The step polylines become
   one line; each step's instruction is the maneuver at the start of its

@@ -115,17 +115,14 @@ struct ControlView: View {
     }
 }
 
-/// Apple Maps turn-by-turn (RouteNavigator): the place is resolved and routed
-/// on the phone; the HUD's quest marker follows the next maneuver. When Apple
-/// Maps can't place it, the HUD server tries (coordinates in the link, or
-/// OpenStreetMap by name) and steers straight at it.
+/// Apple Maps turn-by-turn (RouteNavigator): the place is picked in
+/// DestinationSearchView (or shared from Apple Maps) and routed on the phone;
+/// the HUD's quest marker follows the next maneuver.
 private struct NavigationSection: View {
     @Environment(RouteNavigator.self) private var nav
     @Environment(Teleprompter.self) private var prompter
     var status: HUDClient.Status?
     var reload: () async -> Void
-    @State private var destination = ""
-    @State private var busy = false
     @State private var error: String?
 
     var body: some View {
@@ -149,21 +146,17 @@ private struct NavigationSection: View {
             } else if let s = nav.status ?? status?.nav?.status, !s.isEmpty {
                 Text(s).foregroundStyle(.secondary)
             }
-            TextField("Maps link or place name", text: $destination)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.go)
-                .onSubmit(go)
+            NavigationLink {
+                DestinationSearchView()
+            } label: {
+                Label(nav.active ? "Change destination" : "Choose destination", systemImage: "magnifyingglass")
+            }
             Picker("Directions", selection: $nav.transport) {
                 ForEach(RouteNavigator.Transport.allCases) { Text($0.label).tag($0) }
             }
             .pickerStyle(.segmented)
-            HStack {
-                Button("Set destination", action: go)
-                    .disabled(busy || destination.trimmingCharacters(in: .whitespaces).isEmpty)
-                if busy { ProgressView().padding(.leading, 6) }
-                Spacer()
-                Button("Clear", role: .destructive) {
+            if nav.active || status?.nav?.active == true {
+                Button("Clear destination", role: .destructive) {
                     nav.clear()
                     Task {
                         do { try await HUDClient.fromSettings().clearDestination() }
@@ -172,7 +165,6 @@ private struct NavigationSection: View {
                     }
                 }
             }
-            .buttonStyle(.borderless)
             Toggle("Directions on glasses", isOn: $nav.lensOn)
             if nav.lensOn {
                 Toggle("Compass on the lens", isOn: $nav.lensCompass)
@@ -186,30 +178,7 @@ private struct NavigationSection: View {
         } footer: {
             Text(prompter.wantsLens && nav.lensOn
                  ? "The next turn shows as a line above the teleprompter's page; hide the script for the compass."
-                 : "The HUD's quest marker points at the next turn. On the glasses: a compass with the marker and the instruction (compass off = an arrow, lighter on Bluetooth). It turns with the phone's heading.")
-        }
-    }
-
-    private func go() {
-        let text = destination
-        guard !text.trimmingCharacters(in: .whitespaces).isEmpty else { return }
-        Task {
-            busy = true
-            error = nil
-            defer { busy = false }
-            do {
-                try await nav.setDestination(text)
-                destination = ""
-            } catch {
-                // Apple Maps couldn't place it: the HUD server tries
-                do {
-                    try await HUDClient.fromSettings().setDestination(text)
-                    destination = ""
-                } catch {
-                    self.error = error.localizedDescription
-                }
-            }
-            await reload()
+                 : "Search here, or share a place from Apple Maps (Share › LiveVision). The HUD's quest marker points at the next turn. On the glasses: a compass with the marker and the instruction (compass off = an arrow, lighter on Bluetooth). It turns with the phone's heading.")
         }
     }
 

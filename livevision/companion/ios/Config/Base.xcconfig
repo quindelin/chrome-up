@@ -2,6 +2,9 @@
 // login, glasses stream key, Apple team) go in Secrets.xcconfig, which is gitignored:
 // `deploy/obs-vps/gcp.sh companion` writes it from the VM's .env.
 PRODUCT_BUNDLE_IDENTIFIER = com.chromeup.livevision
+// shared by the app and its Share extension (Apple Maps → LiveVision);
+// change it with the bundle id, in Secrets.xcconfig
+LIVEVISION_APP_GROUP = group.com.chromeup.livevision
 LIVEVISION_HOST =
 LIVEVISION_USER = clips
 LIVEVISION_PASSWORD =

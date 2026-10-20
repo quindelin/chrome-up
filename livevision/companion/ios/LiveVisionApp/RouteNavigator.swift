@@ -5,9 +5,11 @@ import Observation
 
 /// Apple Maps turn-by-turn for the HUD compass (and, optionally, the lens).
 ///
-/// The Control tab's "Maps link or place name" is resolved here with MapKit
-/// (an Apple Maps share link's coordinates, else MKLocalSearch near you), then
-/// MKDirections gives the route. SensorBridge's GPS fixes are projected onto
+/// A destination comes from the Control tab's search (DestinationSearchView:
+/// Apple Maps suggestions, saved and recent places, a pasted link), from
+/// Apple Maps' Share → LiveVision (NavInbox), or livevision://navigate?to=…;
+/// links are resolved with MapKit (an Apple Maps share link's coordinates,
+/// else MKLocalSearch near you), then MKDirections gives the route. SensorBridge's GPS fixes are projected onto
 /// the route to find the next maneuver, the distance to it along the route,
 /// and what is left of the trip; more than `offRouteMeters` off the line for
 /// two good fixes in a row asks MapKit for a new route from here.
@@ -72,6 +74,19 @@ final class RouteNavigator {
 
     var active: Bool { destination != nil }
 
+    /// Saved (starred) and recent destinations, newest first.
+    struct Place: Codable, Identifiable, Equatable {
+        var name: String
+        var lat: Double
+        var lon: Double
+        var saved = false
+        var id: String { String(format: "%.5f,%.5f", lat, lon) }
+        var coordinate: CLLocationCoordinate2D { CLLocationCoordinate2D(latitude: lat, longitude: lon) }
+    }
+    private(set) var places: [Place] = []
+    /// The last GPS fix, for biasing search toward where you are.
+    var here: CLLocationCoordinate2D? { fix?.coordinate }
+
     static let offRouteMeters = 40.0
     static let arriveMeters = 15.0
 
@@ -103,6 +118,10 @@ final class RouteNavigator {
         transport = Transport(rawValue: Self.defaults.string(forKey: "nav.transport") ?? "") ?? .walking
         lensOn = Self.defaults.bool(forKey: "nav.lens")
         lensCompass = Self.defaults.object(forKey: "nav.lensCompass") as? Bool ?? true
+        if let data = Self.defaults.data(forKey: "nav.places"),
+           let saved = try? JSONDecoder().decode([Place].self, from: data) {
+            places = saved
+        }
     }
 
     func start(sensors: SensorBridge, glasses: GlassesStreamer) {
@@ -111,9 +130,40 @@ final class RouteNavigator {
         sensors.onFix = { [weak self] fix in self?.locationChanged(fix) }
         sensors.onHeading = { [weak self] deg in self?.headingChanged(deg) }
         LensRouter.shared.navigator = self
+        NavInbox.listen { [weak self] in self?.checkInbox() }
+        checkInbox()
+    }
+
+    /// A place shared from Apple Maps (Share → LiveVision), waiting in the
+    /// App Group. Called on launch, on becoming active, and when the share
+    /// extension pings us (we're alive in the background while the glasses stream).
+    func checkInbox() {
+        guard let shared = NavInbox.take() else { return }
+        if let t = shared.transport.flatMap(Transport.init(rawValue:)) { transport = t }
+        Task {
+            do { try await navigate(to: shared.text) }
+            catch { status = "Shared place: \(error.localizedDescription)" }
+        }
     }
 
     // MARK: - destination
+
+    /// Text from the search field, a share or a URL: Apple Maps first; when it
+    /// can't place it, the HUD server tries (coordinates in a link, or
+    /// OpenStreetMap by name) and steers straight at it.
+    func navigate(to text: String) async throws {
+        do {
+            try await setDestination(text)
+        } catch {
+            try await HUDClient.fromSettings().setDestination(text)
+        }
+    }
+
+    /// A place already resolved (a search suggestion, a saved or recent place).
+    func navigate(to coordinate: CLLocationCoordinate2D, name: String) async {
+        begin(coordinate, name: name)
+        await tellServer()
+    }
 
     /// An Apple Maps (or any maps) share link, or a place name.
     func setDestination(_ text: String) async throws {
@@ -127,10 +177,46 @@ final class RouteNavigator {
             status = nil
             throw error
         }
-        // the server keeps it as its fallback objective (and for discoveries)
-        try? await HUDClient.fromSettings().setDestination(lat: destination?.latitude ?? 0,
-                                                           lon: destination?.longitude ?? 0,
-                                                           name: destinationName ?? t)
+        await tellServer()
+    }
+
+    /// The server keeps it as its fallback objective (and for discoveries).
+    private func tellServer() async {
+        guard let destination else { return }
+        try? await HUDClient.fromSettings().setDestination(lat: destination.latitude, lon: destination.longitude,
+                                                           name: destinationName ?? "Destination")
+    }
+
+    // MARK: - places
+
+    func toggleSaved(_ place: Place) {
+        guard let i = places.firstIndex(where: { $0.id == place.id }) else { return }
+        places[i].saved.toggle()
+        savePlaces()
+    }
+
+    func forget(_ place: Place) {
+        places.removeAll { $0.id == place.id }
+        savePlaces()
+    }
+
+    private func remember(_ coordinate: CLLocationCoordinate2D, name: String) {
+        var place = Place(name: name, lat: coordinate.latitude, lon: coordinate.longitude)
+        if let old = places.first(where: { $0.id == place.id }) { place.saved = old.saved }
+        places.removeAll { $0.id == place.id }
+        places.insert(place, at: 0)
+        // keep every saved place and the 10 latest others
+        var recent = 0
+        places = places.filter { place in
+            if place.saved { return true }
+            recent += 1
+            return recent <= 10
+        }
+        savePlaces()
+    }
+
+    private func savePlaces() {
+        if let data = try? JSONEncoder().encode(places) { Self.defaults.set(data, forKey: "nav.places") }
     }
 
     func clear() {
@@ -151,6 +237,7 @@ final class RouteNavigator {
         destination = coordinate
         destinationName = name
         arrived = false
+        remember(coordinate, name: name)
         reset()
         status = "Finding a route…"
         routing = false               // a request for the old place is answered and ignored

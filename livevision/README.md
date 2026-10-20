@@ -82,7 +82,8 @@ transport is live and how stale it is.
 
 ## 2. Maps directions → compass objective
 
-**Best path: Apple Maps on the phone.** The LiveVision companion resolves the
+**Best path: Apple Maps on the phone.** Pick the place in the LiveVision
+companion's search, or share it from Apple Maps (Share › LiveVision); it resolves the
 place with MapKit, routes it with MKDirections, tracks you along it and sends
 `{"route": …}` over `/ws/phone`; while that is fresh it wins, the quest marker
 points at the *next maneuver*, and the line under the compass reads

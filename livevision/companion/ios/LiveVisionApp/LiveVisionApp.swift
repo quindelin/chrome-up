@@ -41,8 +41,17 @@ struct LiveVisionApp: App {
                 prompter.sessionChanged(glasses)
                 bodyTracker.sessionChanged(glasses)        // DAT Motion rides the same session
             }
-            // the Meta AI app's registration callback
-            .onOpenURL { glasses.handle(url: $0) }
+            // livevision://navigate?to=<maps link or place> (Shortcuts, links);
+            // anything else is the Meta AI app's registration callback
+            .onOpenURL { url in
+                if url.host() == "navigate",
+                   let to = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                       .queryItems?.first(where: { $0.name == "to" })?.value {
+                    Task { try? await navigator.navigate(to: to) }
+                } else {
+                    glasses.handle(url: url)
+                }
+            }
         }
         .onChange(of: phase, initial: true) { _, p in
             // no background polling: iOS would suspend it anyway. The glasses
@@ -50,7 +59,7 @@ struct LiveVisionApp: App {
             // Phone sensors and body tracking keep running in your pocket while
             // the glasses stream (that's when the avatar needs them); otherwise
             // they stop with the app as before.
-            if p == .active { store.start(); sensors.start() }
+            if p == .active { store.start(); sensors.start(); navigator.checkInbox() }
             else { store.stop(); if !glasses.isStreaming { sensors.stop() } }
         }
     }
