@@ -34,12 +34,14 @@ REMOTE="chrome_up"
 
 # keepalives: a dropped connection fails fast instead of hanging
 ssh_() { "${G[@]}" compute ssh "$NAME" --zone "$ZONE" -- -o ServerAliveInterval=15 -o ServerAliveCountMax=3 -o ConnectTimeout=20 "$@"; }
+scp_() { "${G[@]}" compute scp --zone "$ZONE" --scp-flag=-oServerAliveInterval=15 \
+           --scp-flag=-oServerAliveCountMax=3 --scp-flag=-oConnectTimeout=20 "$@"; }
 
 upload() {
   local tgz; tgz="$(mktemp -t chrome_up.XXXX).tgz"
   # tracked files only: no venvs, no local secrets, no extracted game audio
   git -C ../.. archive --format=tar.gz -o "$tgz" HEAD
-  "${G[@]}" compute scp --zone "$ZONE" "$tgz" "$NAME:~/chrome_up.tgz"
+  scp_ "$tgz" "$NAME:~/chrome_up.tgz"
   # the LinguaLens panel's URL (Cloud Run, read-only stream view), if deployed
   local ll
   ll="$(../lingualens/deploy.sh url 2>/dev/null | sed -n 's/^ *OBS browser source *\(https[^ ]*\).*/\1/p' || true)"
@@ -48,7 +50,7 @@ upload() {
   fi
   # sfx you extracted yourself are gitignored; ship them separately if present
   if compgen -G "../../overlay/assets/sfx/*.[wom]*" >/dev/null; then
-    "${G[@]}" compute scp --zone "$ZONE" ../../overlay/assets/sfx/*.{wav,ogg,mp3} "$NAME:~/" 2>/dev/null || true
+    scp_ ../../overlay/assets/sfx/*.{wav,ogg,mp3} "$NAME:~/" 2>/dev/null || true
   fi
   rm -f "$tgz"
   # setup runs detached on the VM, so a dropped SSH session cannot kill it
