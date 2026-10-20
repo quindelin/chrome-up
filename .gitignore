@@ -39,3 +39,6 @@ xcuserdata/
 lingualens/ios/Config/Secrets.xcconfig
 companion/ios/Config/Secrets.xcconfig
 deploy/obs-vps/.control-token
+
+# Claude Code: worktrees and machine-local launch configs
+.claude/
