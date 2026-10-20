@@ -256,6 +256,15 @@ DEFAULTS: Dict[str, Any] = {
         },
     },
 
+    # ---------------------------------------------------------------- stack
+    # GET /api/autoclip/stack (the iOS companion app): which MediaMTX paths
+    # are the glasses ingest and OBS's program. "" = not on a MediaMTX box.
+    "stack": {
+        "mediamtx_api": "",         # e.g. http://127.0.0.1:9997
+        "ingest_path": "",          # e.g. live/${STREAM_KEY}
+        "program_path": "",         # e.g. live/program
+    },
+
     # ---------------------------------------------------------------- server
     "server": {
         "enabled": False,

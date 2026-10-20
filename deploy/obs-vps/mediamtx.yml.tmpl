@@ -2,9 +2,11 @@
 # refused:
 #   live/<STREAM_KEY>  the raw glasses feed: publish from anywhere that knows the key
 #   live/program       OBS's composited output (HUD + avatar): publish from this host only
-# Reading is allowed from this host only (OBS, HUD, autoclip).
+# Reading and the API are allowed from this host only (OBS, HUD, autoclip).
 logLevel: info
-api: no
+# localhost only: autoclip reads it for /api/autoclip/stack
+api: yes
+apiAddress: 127.0.0.1:9997
 metrics: no
 playback: no
 rtsp: no
@@ -31,6 +33,7 @@ authInternalUsers:
       - action: publish
         path: live/program
       - action: read
+      - action: api
 
 paths:
   live/__STREAM_KEY__:

@@ -9,12 +9,15 @@
 #   ./gcp.sh stop      stop the VM - only the 15 GB disk bills (~$0.60/mo)
 #   ./gcp.sh start     start it again and print the (new) ingest URLs
 #   ./gcp.sh ssh       shell on the VM
+#   ./gcp.sh static-ip keep this boot's IP for good (the companion app's host)
+#   ./gcp.sh companion write the OnAir iOS app's Secrets.xcconfig from the VM
 #   ./gcp.sh destroy   delete VM, IP and firewall rule
 #
 # The external IP is ephemeral by default, so it changes on every start and
 # a stopped VM costs nothing for it. The HTTPS hostname (<ip>.sslip.io) is
 # refreshed on each boot. STATIC_IP=1 ./gcp.sh up reserves a fixed IP instead
-# (~$7.30/mo while stopped) so the phone settings never change.
+# (~$7.30/mo while stopped) so the phone settings never change; on an existing
+# VM, ./gcp.sh static-ip promotes the running IP to a reserved one.
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -114,11 +117,29 @@ TXT"
     for _ in $(seq 1 30); do ssh_ true 2>/dev/null && break; sleep 5; done
     "$0" info
     ;;
+  static-ip)
+    # promote the ephemeral IP in use to a reserved one: same address, kept
+    # across stop/start (the companion app and phone settings never change)
+    IP="$("${G[@]}" compute instances describe "$NAME" --zone "$ZONE" \
+          --format='get(networkInterfaces[0].accessConfigs[0].natIP)')"
+    [ -n "$IP" ] || { echo "no external IP: ./gcp.sh start first" >&2; exit 1; }
+    "${G[@]}" compute addresses describe "$NAME-ip" --region "$REGION" >/dev/null 2>&1 \
+      || "${G[@]}" compute addresses create "$NAME-ip" --region "$REGION" --addresses "$IP"
+    echo "reserved $IP -> https://${IP//./-}.sslip.io (fixed from now on)"
+    ;;
+  companion)
+    # OnAir (companion/ios) build settings: host + approval-page login
+    OUT=../../companion/ios/Config/Secrets.xcconfig
+    ssh_ "cd $REMOTE/deploy/obs-vps && . ./.env && IP=\$(curl -fsS -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip) && \
+          printf '// written by deploy/obs-vps/gcp.sh companion - keep private\nONAIR_HOST = %s.sslip.io\nONAIR_USER = %s\nONAIR_PASSWORD = %s\n' \"\${IP//./-}\" \"\$AUTOCLIP_USER\" \"\$AUTOCLIP_PASSWORD\"" 2>/dev/null \
+      | grep -E '^(//|ONAIR_)' > "$OUT.tmp" && mv "$OUT.tmp" "$OUT" && chmod 600 "$OUT"
+    grep ONAIR_HOST "$OUT"
+    ;;
   ssh)     shift; ssh_ "$@" ;;
   destroy)
     "${G[@]}" compute instances delete "$NAME" --zone "$ZONE" || true
     "${G[@]}" compute addresses delete "$NAME-ip" --region "$REGION" || true
     "${G[@]}" compute firewall-rules delete "$NAME-ingest" || true
     ;;
-  *) sed -n '2,13p' "$0" ;;
+  *) sed -n '2,15p' "$0" ;;
 esac

@@ -205,6 +205,14 @@ def t_rest():
         assert r.status_code == 200, r.text
         assert any(e["target"] == "compass" for e in r.json()["events"]), r.json()
 
+        # companion app's one-poll health: answers even with nothing running
+        r = client.get("/api/autoclip/stack")
+        assert r.status_code == 200, r.text
+        st = r.json()
+        assert st["ingest"]["live"] is False and st["program"]["live"] is False, st
+        assert "pending" in st["autoclip"] and "disk_free" in st["host"], st
+        assert all("key" not in t for t in st["restream"]["targets"]), st
+
         # live multi-stream endpoints exist and degrade cleanly when disabled
         r = client.get("/api/autoclip/live")
         assert r.status_code == 200, r.text

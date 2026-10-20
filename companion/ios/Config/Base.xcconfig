@@ -1,0 +1,10 @@
+// Shared build settings. Machine-specific values (VPS host, approval-page
+// login, Apple team) go in Secrets.xcconfig, which is gitignored:
+// `deploy/obs-vps/gcp.sh companion` writes it from the VM's .env.
+PRODUCT_BUNDLE_IDENTIFIER = com.chromeup.onair
+ONAIR_HOST =
+ONAIR_USER = clips
+ONAIR_PASSWORD =
+DEVELOPMENT_TEAM =
+
+#include? "Secrets.xcconfig"

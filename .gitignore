@@ -37,3 +37,4 @@ DerivedData/
 xcuserdata/
 *.xcuserstate
 lingualens/ios/Config/Secrets.xcconfig
+companion/ios/Config/Secrets.xcconfig
