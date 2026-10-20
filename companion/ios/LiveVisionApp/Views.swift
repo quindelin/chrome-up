@@ -26,7 +26,7 @@ struct DashboardView: View {
                     }
                 }
             }
-            .navigationTitle("OnAir")
+            .navigationTitle("LiveVision")
             .refreshable { await store.refresh() }
             .toolbar {
                 Button { showSettings = true } label: { Image(systemName: "gearshape") }

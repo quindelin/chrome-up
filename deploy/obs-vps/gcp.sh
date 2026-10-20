@@ -10,7 +10,7 @@
 #   ./gcp.sh start     start it again and print the (new) ingest URLs
 #   ./gcp.sh ssh       shell on the VM
 #   ./gcp.sh static-ip keep this boot's IP for good (the companion app's host)
-#   ./gcp.sh companion write the OnAir iOS app's Secrets.xcconfig from the VM
+#   ./gcp.sh companion write the LiveVision iOS app's Secrets.xcconfig from the VM
 #   ./gcp.sh destroy   delete VM, IP and firewall rule
 #
 # The external IP is ephemeral by default, so it changes on every start and
@@ -130,12 +130,12 @@ TXT"
     echo "reserved $IP -> https://${IP//./-}.sslip.io (fixed from now on)"
     ;;
   companion)
-    # OnAir (companion/ios) build settings: host + approval-page login
+    # LiveVision (companion/ios) build settings: host + approval-page login
     OUT=../../companion/ios/Config/Secrets.xcconfig
     ssh_ "cd $REMOTE/deploy/obs-vps && . ./.env && IP=\$(curl -fsS -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip) && \
-          printf '// written by deploy/obs-vps/gcp.sh companion - keep private\nONAIR_HOST = %s.sslip.io\nONAIR_USER = %s\nONAIR_PASSWORD = %s\n' \"\${IP//./-}\" \"\$AUTOCLIP_USER\" \"\$AUTOCLIP_PASSWORD\"" 2>/dev/null \
-      | grep -E '^(//|ONAIR_)' > "$OUT.tmp" && mv "$OUT.tmp" "$OUT" && chmod 600 "$OUT"
-    grep ONAIR_HOST "$OUT"
+          printf '// written by deploy/obs-vps/gcp.sh companion - keep private\nLIVEVISION_HOST = %s.sslip.io\nLIVEVISION_USER = %s\nLIVEVISION_PASSWORD = %s\n' \"\${IP//./-}\" \"\$AUTOCLIP_USER\" \"\$AUTOCLIP_PASSWORD\"" 2>/dev/null \
+      | grep -E '^(//|LIVEVISION_)' > "$OUT.tmp" && mv "$OUT.tmp" "$OUT" && chmod 600 "$OUT"
+    grep LIVEVISION_HOST "$OUT"
     ;;
   ssh)     shift; ssh_ "$@" ;;
   destroy)

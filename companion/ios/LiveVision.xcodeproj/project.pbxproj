@@ -7,16 +7,16 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		2B0000000000000000000004 /* OnAir.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = OnAir.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		2B0000000000000000000004 /* LiveVision.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = LiveVision.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		2B0000000000000000000006 /* Base.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Base.xcconfig; sourceTree = "<group>"; };
 		2B0000000000000000000008 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2B0000000000000000000009 /* Secrets.example.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.example.xcconfig; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		2B0000000000000000000005 /* OnAirApp */ = {
+		2B0000000000000000000005 /* LiveVisionApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = OnAirApp;
+			path = LiveVisionApp;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -35,7 +35,7 @@
 		2B0000000000000000000002 = {
 			isa = PBXGroup;
 			children = (
-				2B0000000000000000000005 /* OnAirApp */,
+				2B0000000000000000000005 /* LiveVisionApp */,
 				2B0000000000000000000007 /* Config */,
 				2B0000000000000000000003 /* Products */,
 			);
@@ -44,7 +44,7 @@
 		2B0000000000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				2B0000000000000000000004 /* OnAir.app */,
+				2B0000000000000000000004 /* LiveVision.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -62,9 +62,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		2B0000000000000000000010 /* OnAir */ = {
+		2B0000000000000000000010 /* LiveVision */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 2B0000000000000000000011 /* Build configuration list for PBXNativeTarget "OnAir" */;
+			buildConfigurationList = 2B0000000000000000000011 /* Build configuration list for PBXNativeTarget "LiveVision" */;
 			buildPhases = (
 				2B0000000000000000000020 /* Sources */,
 				2B0000000000000000000021 /* Frameworks */,
@@ -75,11 +75,11 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				2B0000000000000000000005 /* OnAirApp */,
+				2B0000000000000000000005 /* LiveVisionApp */,
 			);
-			name = OnAir;
-			productName = OnAir;
-			productReference = 2B0000000000000000000004 /* OnAir.app */;
+			name = LiveVision;
+			productName = LiveVision;
+			productReference = 2B0000000000000000000004 /* LiveVision.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -97,7 +97,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 2B0000000000000000000014 /* Build configuration list for PBXProject "OnAir" */;
+			buildConfigurationList = 2B0000000000000000000014 /* Build configuration list for PBXProject "LiveVision" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -111,7 +111,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				2B0000000000000000000010 /* OnAir */,
+				2B0000000000000000000010 /* LiveVision */,
 			);
 		};
 /* End PBXProject section */
@@ -148,7 +148,7 @@
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Config/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = OnAir;
+				INFOPLIST_KEY_CFBundleDisplayName = LiveVision;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -178,7 +178,7 @@
 				DEVELOPMENT_TEAM = XPP3L755ZM;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = Config/Info.plist;
-				INFOPLIST_KEY_CFBundleDisplayName = OnAir;
+				INFOPLIST_KEY_CFBundleDisplayName = LiveVision;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -233,7 +233,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		2B0000000000000000000011 /* Build configuration list for PBXNativeTarget "OnAir" */ = {
+		2B0000000000000000000011 /* Build configuration list for PBXNativeTarget "LiveVision" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				2B0000000000000000000012 /* Debug */,
@@ -242,7 +242,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		2B0000000000000000000014 /* Build configuration list for PBXProject "OnAir" */ = {
+		2B0000000000000000000014 /* Build configuration list for PBXProject "LiveVision" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				2B0000000000000000000015 /* Debug */,

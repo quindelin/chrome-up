@@ -17,21 +17,21 @@ enum Settings {
 
     /// Host only, e.g. 136-80-148-90.sslip.io (a pasted https:// URL is tolerated).
     static var host: String {
-        get { defaults.string(forKey: "host") ?? info("OnAirHost") }
+        get { defaults.string(forKey: "host") ?? info("LiveVisionHost") }
         set { defaults.set(newValue, forKey: "host") }
     }
 
     static var user: String {
         get {
-            let v = defaults.string(forKey: "user") ?? info("OnAirUser")
+            let v = defaults.string(forKey: "user") ?? info("LiveVisionUser")
             return v.isEmpty ? "clips" : v
         }
         set { defaults.set(newValue, forKey: "user") }
     }
 
     static var password: String {
-        get { Keychain.read("onair.password") ?? info("OnAirPassword") }
-        set { Keychain.write("onair.password", newValue) }
+        get { Keychain.read("livevision.password") ?? info("LiveVisionPassword") }
+        set { Keychain.write("livevision.password", newValue) }
     }
 
     /// https://<host>/autoclip, or nil until a host is set.
@@ -47,7 +47,7 @@ enum Settings {
 enum Keychain {
     private static func query(_ account: String) -> [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,
-         kSecAttrService as String: "com.chromeup.onair",
+         kSecAttrService as String: "com.chromeup.livevision",
          kSecAttrAccount as String: account]
     }
 

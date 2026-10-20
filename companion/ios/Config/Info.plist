@@ -2,11 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>OnAirHost</key>
-	<string>$(ONAIR_HOST)</string>
-	<key>OnAirPassword</key>
-	<string>$(ONAIR_PASSWORD)</string>
-	<key>OnAirUser</key>
-	<string>$(ONAIR_USER)</string>
+	<key>LiveVisionHost</key>
+	<string>$(LIVEVISION_HOST)</string>
+	<key>LiveVisionPassword</key>
+	<string>$(LIVEVISION_PASSWORD)</string>
+	<key>LiveVisionUser</key>
+	<string>$(LIVEVISION_USER)</string>
 </dict>
 </plist>

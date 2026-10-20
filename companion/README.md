@@ -1,6 +1,6 @@
-# OnAir — iOS companion for the IRL stack
+# LiveVision — iOS companion for the IRL stack
 
-Are we live, and is the VPS healthy? OnAir polls the streaming VM
+Are we live, and is the VPS healthy? LiveVision polls the streaming VM
 (`deploy/obs-vps`) every 5 s while it is open and shows:
 
 - **Headline**: LIVE on <platforms> / program up on the VPS / glasses only / ready / offline
@@ -19,7 +19,7 @@ cd deploy/obs-vps
 ./gcp.sh start
 ./gcp.sh static-ip     # once: the IP (and so the app's host) stops changing
 ./gcp.sh companion     # writes companion/ios/Config/Secrets.xcconfig
-open ../../companion/ios/OnAir.xcodeproj
+open ../../companion/ios/LiveVision.xcodeproj
 ```
 
 Or type the host, user and password on the app's Settings screen.

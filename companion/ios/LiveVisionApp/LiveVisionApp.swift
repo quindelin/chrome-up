@@ -1,9 +1,9 @@
 import SwiftUI
 
-/// OnAir: is the IRL stream live, and is the VPS healthy? Polls the VPS's
+/// LiveVision: is the IRL stream live, and is the VPS healthy? Polls the VPS's
 /// autoclip API (GET /autoclip/api/autoclip/stack) while the app is open.
 @main
-struct OnAirApp: App {
+struct LiveVisionApp: App {
     @State private var store = StackStore()
     @Environment(\.scenePhase) private var phase
 
