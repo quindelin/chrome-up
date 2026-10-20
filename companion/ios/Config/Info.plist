@@ -45,10 +45,6 @@
 		<key>TeamID</key>
 		<string>$(DEVELOPMENT_TEAM)</string>
 	</dict>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Your heading and position drive the HUD's compass and navigation objective on stream.</string>
-	<key>NSMotionUsageDescription</key>
-	<string>Phone motion lets the HUD tell running, lifting and boxing apart for its skills.</string>
 	<key>NSBonjourServices</key>
 	<array>
 		<string>_bonjour._tcp</string>
