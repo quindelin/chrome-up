@@ -100,6 +100,9 @@ final class GlassesStreamer {
     @ObservationIgnored private var connectAfterRegistration = false
 
     var isStreaming: Bool { wantsStream }
+    /// The open session, for capabilities beside the camera (the
+    /// teleprompter's Display): the glasses take one session at a time.
+    var deviceSession: DeviceSession? { session }
 
     /// Once at launch.
     func configure() {

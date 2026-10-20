@@ -13,6 +13,8 @@
 		2B00000000000000000000B3 /* HaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000043 /* HaishinKit */; };
 		2B00000000000000000000B4 /* SRTHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000044 /* SRTHaishinKit */; };
 		2B00000000000000000000B5 /* RTMPHaishinKit in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000045 /* RTMPHaishinKit */; };
+		2B00000000000000000000B6 /* MWDATDisplay in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000046 /* MWDATDisplay */; };
+		2B00000000000000000000B7 /* MWDATInputs in Frameworks */ = {isa = PBXBuildFile; productRef = 2B0000000000000000000047 /* MWDATInputs */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,6 +43,8 @@
 				2B00000000000000000000B3 /* HaishinKit in Frameworks */,
 				2B00000000000000000000B4 /* SRTHaishinKit in Frameworks */,
 				2B00000000000000000000B5 /* RTMPHaishinKit in Frameworks */,
+				2B00000000000000000000B6 /* MWDATDisplay in Frameworks */,
+				2B00000000000000000000B7 /* MWDATInputs in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -97,6 +101,8 @@
 				2B0000000000000000000040 /* MWDATCore */,
 				2B0000000000000000000041 /* MWDATCamera */,
 				2B0000000000000000000042 /* MWDATMockDevice */,
+				2B0000000000000000000046 /* MWDATDisplay */,
+				2B0000000000000000000047 /* MWDATInputs */,
 				2B0000000000000000000043 /* HaishinKit */,
 				2B0000000000000000000044 /* SRTHaishinKit */,
 				2B0000000000000000000045 /* RTMPHaishinKit */,
@@ -326,6 +332,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 2B0000000000000000000030 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
 			productName = MWDATMockDevice;
+		};
+		2B0000000000000000000046 /* MWDATDisplay */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2B0000000000000000000030 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
+			productName = MWDATDisplay;
+		};
+		2B0000000000000000000047 /* MWDATInputs */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 2B0000000000000000000030 /* XCRemoteSwiftPackageReference "meta-wearables-dat-ios" */;
+			productName = MWDATInputs;
 		};
 		2B0000000000000000000043 /* HaishinKit */ = {
 			isa = XCSwiftPackageProductDependency;

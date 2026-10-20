@@ -1,7 +1,7 @@
-import Foundation
 import MWDATMockDevice
+import UIKit
 
-/// DAT's Mock Device Kit: a simulated Ray-Ban Meta, already registered,
+/// DAT's Mock Device Kit: a simulated Meta Ray-Ban Display, already registered,
 /// powered on and worn, whose camera plays MockGlassesFeed.mp4 (a 720x1280
 /// 30 fps HEVC test pattern: the mock hands the file's samples through as-is,
 /// so it must be hvc1 to match the camera config). The rest of the app cannot tell it from real
@@ -14,7 +14,7 @@ enum MockRig {
     static func enable() throws {
         MockDeviceKit.shared.enable(config: MockDeviceKitConfig(initiallyRegistered: true, initialPermissionsGranted: true))
         guard glasses == nil else { return }
-        let g = try MockDeviceKit.shared.pairGlasses(model: .rayBanMeta)
+        let g = try MockDeviceKit.shared.pairGlasses(model: .metaRayBanDisplay)
         g.powerOn()
         g.don()
         g.setBatteryLevel(73)
@@ -22,6 +22,12 @@ enum MockRig {
         glasses = g
         refeed()
     }
+
+    /// What the mock lens shows (the teleprompter's Display content).
+    static func lensPreview() -> UIView? { glasses?.services.display.createPreviewView() }
+
+    /// A Neural Band swipe to the right, to exercise the teleprompter's inputs.
+    static func swipeRight() { glasses?.services.input.navRight(source: .neuralBand) }
 
     /// (Re)load the test pattern into the mock camera.
     static func refeed() {
