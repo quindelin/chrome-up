@@ -35,11 +35,9 @@ const privacy = new PrivacyBadge(document.getElementById("privacy"));
 privacy.start();
 new VicinityFeed(document.getElementById("vicinity")).start();
 const statusEl = document.getElementById("status");
-const stateText = document.getElementById("statetext");
 const objectiveEl = document.getElementById("objective");
 const thuumName = document.getElementById("thuum-name");
 const thuumFill = document.getElementById("thuum-fill");
-const stealthEl = document.getElementById("stealth");
 
 let latest = null;
 
@@ -107,10 +105,9 @@ function frame(now) {
     if (avatar3d) { /* the 3D rig draws itself */ }
     else if (live2d) drawLive2D(live2d, audioForDraw);
     else avatar.draw(dt, audioForDraw, latest.vision, latest.skills);
-    stateText.textContent = describe(latest);
     menu.update(latest, latest.ui || { open: false, tab: 0, tabs: [] });
 
-    // Thu'um meter + stealth eye
+    // Thu'um meter
     const sh = latest.shout || {};
     if (thuumName) thuumName.textContent = sh.last || "Fus Ro Dah";
     if (thuumFill) {
@@ -119,29 +116,9 @@ function frame(now) {
       // like the vanilla shout meter: only on screen while recharging
       thuumFill.closest("#thuum")?.classList.toggle("ready", ratio >= 1);
     }
-    if (stealthEl) {
-      // the sneak eye replaces nothing else; half-closed means unseen
-      const sneaking = !!latest.skills?.sneak?.active;
-      stealthEl.classList.toggle("hidden", !sneaking);
-      stealthEl.classList.toggle("hidden-state", sneaking);
-    }
   } else {
     compass.draw();
   }
   requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-
-function describe(p) {
-  const v = p.vision || {};
-  const a = p.audio || {};
-  if (v.focus === "coding") return "coding";
-  if (v.focus === "reading") return "reading";
-  const act = v.activity;
-  if (act && act !== "idle") return act;
-  if (a.speaking && (v.people || 0) >= 3) return "crowd speech";
-  if (a.speaking && (v.people || 0) === 1) return "1-on-1";
-  if (a.speaking) return "speaking";
-  if (v.moving) return "moving";
-  return "idle";
-}
