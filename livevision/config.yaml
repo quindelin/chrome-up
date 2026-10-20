@@ -28,8 +28,21 @@ video:
   height: 360
   fps: 15
   people_detect: true     # HOG person detector (costs CPU, runs every ~0.5s)
-  motion_threshold: 0.35  # normalized motion energy counted as "running"
+  motion_threshold: 0.6   # normalized motion energy counted as "running"
   activity: true          # classify boxing / lifting / walking from motion shape
+  # head-worn camera: every glance moves the whole frame, so walking / running
+  # need clearly more motion than "something moved" (were 0.08 / 0.45)
+  walk_motion: 0.2
+  run_motion: 0.65
+  run_center: 0.35
+
+# Walking / running on the avatar (server/activity.py): camera-only gaits are
+# dropped while sitting or while the head turns faster than head_turn_dps, and
+# a gait shows only after hold_s (back to idle after release_s).
+activity:
+  hold_s: 2.0
+  release_s: 1.0
+  head_turn_dps: 45
 
 heading:
   # phone -> /phone page on the paired phone (DeviceOrientation compass)

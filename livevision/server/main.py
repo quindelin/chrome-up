@@ -27,6 +27,7 @@ from .gestures import GestureBus
 from .imu import IMUHub
 from .headpose import HeadPose
 from .body import Body
+from .activity import LocomotionGate
 from .navigation import Navigation, parse_coords
 from .progress import load as progress_load, save as progress_save
 from .sensors import HeadingHub
@@ -59,6 +60,7 @@ class Runtime:
         self.imu = IMUHub(cfg.get("imu", {}))
         self.head = HeadPose(cfg.get("head", {}))
         self.body = Body(cfg.get("body", {}))
+        self.gait = LocomotionGate(cfg.get("activity", {}))
         self.vtube = VTubeStudio(cfg.get("vtube_studio", {}))
         self.vtube.start()
         self._skill_prev = {k: False for k in SKILL_NAMES}
@@ -308,20 +310,28 @@ class Runtime:
             self.world.imu = imu_info
             cam_act = vision.activity or "idle"
             imu_act = imu_info.get("activity", "idle") if imu_info.get("fresh") else "idle"
+            from_camera = True
             if imu_act != "idle" and imu_info.get("fresh"):
                 # IMU wins for running / lifting / boxing when it has fresh data
                 if imu_act in ("running", "lifting", "boxing"):
                     activity = imu_act
                     cadence = imu_info.get("cadence", 0.0) or 0.0
+                    from_camera = False
                 else:
                     activity, cadence = cam_act, vision.cadence
             else:
                 activity, cadence = cam_act, vision.cadence
+            # the camera is on your head: head turns and sitting aren't a gait,
+            # and a gait has to hold a moment before the avatar starts one
+            body_snap = self.body.snapshot()
+            activity = self.gait.update(now, activity, from_camera=from_camera,
+                                        sitting=body_snap.get("posture") == "sitting",
+                                        head=self.head.snapshot())
             # real punches (Watch / Neural Band) mean boxing: guard up, Combat XP
             if activity in ("idle", "walking") and self.body.punching():
                 activity = "boxing"
-            running = bool(vision.running) or activity == "running"
-            moving = bool(vision.moving) or activity in ("walking", "running", "boxing", "lifting")
+            running = activity == "running"
+            moving = activity in ("walking", "running", "boxing", "lifting")
             self.world.vision = replace(vision, attributes=counts, focus=focus_info["kind"],
                                         activity=activity, cadence=cadence,
                                         running=running, moving=moving)

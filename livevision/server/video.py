@@ -40,6 +40,11 @@ class VideoAnalyzer:
         self.use_people = bool(cfg.get("people_detect", True))
         self.use_activity = bool(cfg.get("activity", True))
         self.motion_threshold = float(cfg.get("motion_threshold", 0.35))
+        # activity: motion energy that counts as walking / running. A head-worn
+        # camera moves with every glance, so these sit well above "something moved"
+        self.walk_motion = float(cfg.get("walk_motion", 0.08))
+        self.run_motion = float(cfg.get("run_motion", 0.45))
+        self.run_center = float(cfg.get("run_center", 0.25))
 
         self._lock = threading.Lock()
         self._snap = VisionSnapshot(source="sim")
@@ -262,13 +267,13 @@ class VideoAnalyzer:
         crossings = int(np.sum(np.abs(np.diff(signed)) > 0))
         cadence = crossings / (2.0 * span)
 
-        if mean > 0.45 and center_mean > 0.25:
+        if mean > self.run_motion and center_mean > self.run_center:
             activity = "running"
         elif center_mean > 0.10 and rate >= 1.2 and 1.0 <= cadence <= 6.0:
             activity = "boxing"
         elif center_mean > 0.09 and 0.15 <= cadence <= 1.3 and mean < 0.35:
             activity = "lifting"
-        elif mean > 0.08:
+        elif mean > self.walk_motion:
             activity = "walking"
         else:
             activity = "idle"

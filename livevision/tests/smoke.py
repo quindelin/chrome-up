@@ -1191,6 +1191,36 @@ def t_head_pose():
         hpmod.time.time = real
 
 
+def t_locomotion_gate():
+    """Walking / running from the head-worn camera: not while sitting, not
+    while the head turns, and only after it has held for hold_s."""
+    from server.activity import LocomotionGate
+    g = LocomotionGate({"hold_s": 2.0, "release_s": 1.0, "head_turn_dps": 45})
+    still = {"yaw": 0, "pitch": 0, "fresh": True}
+    assert g.update(0.0, "walking", from_camera=True, head=still) == "idle"
+    assert g.update(1.0, "walking", from_camera=True, head=still) == "idle"   # not yet
+    assert g.update(2.1, "walking", from_camera=True, head=still) == "walking"
+    assert g.update(2.5, "idle", from_camera=True, head=still) == "walking"   # release
+    assert g.update(3.6, "idle", from_camera=True, head=still) == "idle"
+    # sitting: the camera's "running" is your head, never a gait
+    for t in (10, 11, 12, 13, 14):
+        assert g.update(t, "running", from_camera=True, sitting=True, head=still) == "idle"
+    # a fast head turn (90 deg in 0.5 s) blanks camera gaits for a moment
+    g2 = LocomotionGate({"hold_s": 0.5})
+    g2.update(0.0, "idle", from_camera=True, head={"yaw": 0, "pitch": 0, "fresh": True})
+    for i in range(1, 6):
+        t = i * 0.1
+        assert g2.update(t, "running", from_camera=True,
+                         head={"yaw": 18 * i, "pitch": 0, "fresh": True}) == "idle", t
+    assert g2.head_speed > 45
+    # the IMU feels footfalls: sitting / head turns don't veto it
+    g3 = LocomotionGate({"hold_s": 0.5})
+    g3.update(0.0, "running", from_camera=False, sitting=True)
+    assert g3.update(0.6, "running", from_camera=False, sitting=True) == "running"
+    # boxing needs no hold
+    assert LocomotionGate().update(0.0, "boxing", from_camera=True) == "boxing"
+
+
 def t_body_tracking():
     """Posture from the phone in a front pocket (thigh angle, with hysteresis),
     hands from the glasses camera going stale on their own, heart rate range."""
@@ -1812,6 +1842,7 @@ def main() -> int:
         ("privacy dispatcher routing", t_privacy_dispatcher),
         ("dedupe across windows", t_dedupe_across_windows),
         ("head pose", t_head_pose),
+        ("locomotion gate", t_locomotion_gate),
         ("body tracking", t_body_tracking),
         ("hud heartbeat config", t_heartbeat_config),
         ("body punches", t_body_punches),
