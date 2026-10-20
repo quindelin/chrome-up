@@ -139,6 +139,11 @@ avatar:
   render_scale: 0.75        # WebGL resolution of the full-body canvas (CPU on the VPS)
   mirror: true              # turn your head left -> avatar turns screen-left, like a webcam
 
+overlay:
+  # "Download Vicinity" QR card in the left black bar, above the battery
+  # (Magicka) bar and the heart-rate line. false hides it.
+  vicinity_ad: true
+
 # Head orientation for the avatar (glasses Motion quaternion, or yaw/pitch/roll)
 # sent as "head" on /ws/phone or POST /api/head. The first sample is "facing the
 # camera"; yaw drifts back to centre over recenter_s. If an axis comes out

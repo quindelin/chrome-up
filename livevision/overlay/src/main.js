@@ -11,6 +11,8 @@ import { VicinityFeed } from "./vicinity.js";
 import { loadSfx } from "./sfx.js";
 
 const cfg = await fetchConfig();
+// before the avatar awaits below, so the switch never waits on WebGL
+document.getElementById("vicinity-ad").classList.toggle("hidden", cfg.overlay?.vicinity_ad === false);
 loadSfx();
 
 const compass = new Compass(document.getElementById("compass"), cfg.markers || []);

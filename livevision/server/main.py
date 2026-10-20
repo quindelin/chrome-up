@@ -414,6 +414,9 @@ async def api_config():
             "mirror": cfg.get("avatar", {}).get("mirror", True),
             "vtube_studio": RT.vtube.status(),
         },
+        "overlay": {
+            "vicinity_ad": cfg.get("overlay", {}).get("vicinity_ad", True),
+        },
     })
 
 

@@ -443,6 +443,31 @@ body.show-skills #left-stack {
   border-radius: 4px;
 }
 
+/* --------------------------------------------------------- vicinity ad */
+/* Left bar, above the band kept for the heart-rate line (y 906-1006, the
+   100px over Magicka). The QR keeps its own white card and 4-module quiet
+   zone: vicinity-qr.png is 33x33 at 1px a module, drawn at exactly 6x. */
+#vicinity-ad {
+  position: absolute;
+  left: 150px;               /* lines up with the Magicka bar */
+  bottom: 184px;             /* card spans y 698-896 */
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.va-qr {
+  display: block;
+  width: 198px;
+  height: 198px;
+  image-rendering: pixelated;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.7);
+}
+.va-text { display: flex; flex-direction: column; line-height: 1; }
+.va-pre { font-size: 24px; letter-spacing: 0.14em; text-transform: uppercase; }
+.va-name { font-size: 46px; letter-spacing: 0.06em; text-transform: uppercase; margin-top: 4px; }
+.va-sub { font-size: 16px; letter-spacing: 0.08em; color: var(--gold-dim); margin-top: 10px; }
+
 /* -------------------------------------------------------- vicinity chat */
 /* Top-left: the compass owns the top-centre 1200px, vitals own bottom-left. */
 #vicinity {
