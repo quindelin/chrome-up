@@ -9,7 +9,7 @@ RUN apt-get update \
  && apt-get update \
  && apt-get install -y --no-install-recommends \
         obs-studio xvfb x11vnc novnc websockify supervisor dbus-x11 pulseaudio \
-        fonts-dejavu fonts-noto-cjk gettext-base openssl \
+        fonts-dejavu fonts-noto-cjk gettext-base openssl jq \
  && rm -rf /var/lib/apt/lists/*
 RUN useradd -m -s /bin/bash obs
 COPY seed/ /opt/obs-seed/

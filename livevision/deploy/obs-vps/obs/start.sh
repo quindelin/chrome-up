@@ -11,6 +11,25 @@ if [ ! -f "$CFG/.seeded" ]; then
   envsubst < /opt/obs-seed/websocket.json > "$CFG/plugin_config/obs-websocket/config.json"
   touch "$CFG/.seeded"
 fi
+# Scenes seeded before the blurred background existed get it added (once:
+# hide or retune it in OBS and that sticks). "Glasses Blur" is a nested scene
+# holding the same Glasses source cover-scaled to the canvas, blurred by stock
+# filters (area downscale, bicubic upscale) and dimmed, so it fills the side
+# bars behind the sharp camera without decoding the stream twice.
+SCENE="$CFG/basic/scenes/IRL.json"
+if [ -f "$SCENE" ] && command -v jq >/dev/null; then
+  jq --slurpfile seed /opt/obs-seed/IRL.json '
+    if any(.sources[]; .name == "Glasses Blur") or (any(.sources[]; .name == "Glasses") | not) then . else
+      (.sources[] | select(.name == "Glasses") | .uuid) as $cam
+      | ($seed[0].sources[] | select(.name == "Glasses Blur")) as $blur
+      | ($seed[0].sources[] | select(.name == "IRL") | .settings.items[] | select(.name == "Glasses Blur")) as $item
+      | .sources |= map(if .name == "IRL"
+          then .settings.id_counter += 1 | .settings.items = [$item + {id: .settings.id_counter}] + .settings.items
+          else . end)
+      | .sources += [$blur | .settings.items[0].source_uuid = $cam]
+      | .scene_order += [{name: "Glasses Blur"}]
+    end' "$SCENE" > "$SCENE.tmp" && [ -s "$SCENE.tmp" ] && mv "$SCENE.tmp" "$SCENE" || rm -f "$SCENE.tmp"
+fi
 # The stream output always follows .env (OUT_SERVER/OUT_KEY), so changing where
 # OBS sends the program is an env edit + restart, not a re-seed. Default is
 # MediaMTX live/program, which autoclip restreams to Twitch/YouTube on voice.

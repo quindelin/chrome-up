@@ -191,7 +191,7 @@ render:
     fallback: crop
     base: [1920, 1080]
     compass: [536, 44, 848, 58]     # just the compass bar (the camera shows through it)
-    camera: [656, 0, 608, 1080]     # portrait feed between the black bars
+    camera: [656, 0, 608, 1080]     # sharp portrait feed between the blurred bars
     avatar: [1412, 120, 360, 860]   # full-body VRM, right bar (body ~1488-1697)
     heartbeat: [140, 900, 372, 100]
     magicka: [140, 1000, 372, 30]
@@ -201,6 +201,9 @@ render:
     vitals_gap: 24                  # between the compass and the heart rate
     compass_dim: 0.55               # darken the camera behind the compass (0 = off)
     caption_gap: 40                 # captions sit this far above the band
+    band_background: blur           # blur: the camera, blurred + dimmed like OBS's side bars | black
+    band_blur: 4                    # gblur sigma at 1/8 size
+    band_brightness: 0.55           # how much of the blurred camera's brightness is kept
   width: 1080
   height: 1920
   fps: 30

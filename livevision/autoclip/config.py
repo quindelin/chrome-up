@@ -236,7 +236,7 @@ DEFAULTS: Dict[str, Any] = {
             "fallback": "crop",
             "base": [1920, 1080],
             "compass": [480, 36, 960, 130],   # compass + the objective line under it
-            "camera": [656, 0, 608, 1080],    # portrait feed between the black bars
+            "camera": [656, 0, 608, 1080],    # sharp portrait feed between the blurred bars
             "avatar": [1412, 120, 360, 860],  # full-body VRM in the right bar
             "heartbeat": [140, 900, 372, 100],
             "magicka": [140, 1000, 372, 30],
@@ -244,6 +244,9 @@ DEFAULTS: Dict[str, Any] = {
             "camera_focus_y": 0.5,            # 0 top .. 1 bottom of the camera crop
             "vitals_width": 600,              # heart rate + Magicka scaled to this
             "caption_gap": 40,                # captions sit this far above the band
+            "band_background": "blur",        # blur (camera, like OBS's side bars) | black
+            "band_blur": 4,                   # gblur sigma at 1/8 size (~32 px full size)
+            "band_brightness": 0.55,          # dim the blurred band so the HUD reads
         },
     },
 

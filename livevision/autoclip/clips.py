@@ -66,6 +66,18 @@ def _box(hud: dict, key: str) -> Tuple[int, int, int, int]:
     return x, y, _even(w), _even(h)
 
 
+def _feather(name: str, w: int, h: int, fx: float, fy: float) -> str:
+    """Chain tail that gives a `w`x`h` stream soft edges (alpha ramps over
+    `fx` of the width and `fy` of the height), so a crop laid on a different
+    blur doesn't show its rectangle. The ramp is drawn at 64x64 and scaled
+    up, which keeps geq cheap."""
+    ramp = (f"clip(min(X+0.5\\,W-X-0.5)/(W*{fx:g})\\,0\\,1)"
+            f"*clip(min(Y+0.5\\,H-Y-0.5)/(H*{fy:g})\\,0\\,1)")
+    return (f",format=yuva420p,split[{name}c][{name}m];"
+            f"[{name}m]scale=64:64,format=gray,geq=lum=255*{ramp},"
+            f"scale={w}:{h}:flags=bilinear[{name}a];[{name}c][{name}a]alphamerge")
+
+
 def is_program_frame(in_w: int, in_h: int, hud: dict) -> bool:
     """Landscape input with the HUD base's shape: OBS's program, not the raw
     portrait glasses feed (which has no HUD to cut out)."""
@@ -88,11 +100,13 @@ def hud_stack_graph(hud: dict, width: int, height: int) -> Tuple[str, int]:
 
         camera             (crop-to-fill everything above the band)
         compass            |
-        heart rate         | avatar      (the bottom band, on black)
+        heart rate         | avatar      (the bottom band)
         Magicka            |
 
     The whole HUD lives in the band: a compass strip on top would leave black
-    corners (it is narrower than a 9:16 frame) and cost camera height.
+    corners (it is narrower than a 9:16 frame) and cost camera height. The
+    band's backdrop is `band_background`: "blur" (the camera, cover-scaled,
+    blurred and dimmed, matching OBS's blurred side bars) or "black".
     Returns (graph, band_height); captions go above the band. The graph is
     comma-chainable, so it drops into -vf, the privacy scan and
     privacy_filter_complex like the plain crop chain does.
@@ -129,23 +143,46 @@ def hud_stack_graph(hud: dict, width: int, height: int) -> Tuple[str, int]:
     vit_x = max(0, (width - av_w - 2 * pad - vit_w) // 2)
     vit_y = max(0, (band_h - col_h) // 2)
     # the compass is drawn over the camera: darken the camera inside its crop
-    # so it reads as HUD on black, not a stray slice of video
+    # so it reads as HUD, not a stray slice of sharp video
     dim = clamp(float(hud.get("compass_dim", 0.7)), 0.0, 1.0)
     dx0, dx1 = max(kx, cx), min(kx + kw, cx + cw)
     k_dim = (f",drawbox=x={dx0 - kx}:y=0:w={dx1 - dx0}:h={kh}:color=black@{dim:g}:t=fill"
              if dim > 0 and dx1 > dx0 else "")
     av_x = width - av_w - 2 * pad
 
+    # band backdrop: the camera crop cover-scaled small, blurred, scaled back
+    # up and dimmed (cheap next to a full-size gblur), or plain black. Both
+    # come off the input (no color source) so the graph stays single-in/out.
+    if str(hud.get("band_background", "blur")) == "blur":
+        sw, sh = _even(width / 8), _even(band_h / 8)
+        keep = clamp(float(hud.get("band_brightness", 0.55)), 0.0, 1.0)
+        sigma = max(0.5, float(hud.get("band_blur", 4)))
+        bg = (f"[hb]crop={cw}:{ch}:{cx}:{cy},"
+              f"scale={sw}:{sh}:force_original_aspect_ratio=increase,crop={sw}:{sh},"
+              f"gblur=sigma={sigma:g},scale={width}:{band_h}:flags=bicubic,"
+              f"lutyuv=y=val*{keep:g}:u=128+(val-128)*0.8:v=128+(val-128)*0.8[hbg];")
+        # the crops carry the program's own blur, which won't line up with
+        # this one: feather their edges into it
+        fk, fh, fm, fa = (_feather("fk", vit_w, k_h, 0.03, 0.2),
+                          _feather("fh", vit_w, hb_h, 0.08, 0.15),
+                          _feather("fm", vit_w, mg_h, 0.03, 0.15),
+                          _feather("fa", av_w, av_h, 0.15, 0.03))
+    else:
+        bg = f"[hb]scale={width}:{band_h},drawbox=t=fill:color=black[hbg];"
+        fk = fh = fm = fa = ""
+    hb_y = vit_y + k_h + gap
     graph = (
-        f"scale={bw}:{bh},setsar=1,split=5[hk][hc][ha][hh][hm];"
+        f"scale={bw}:{bh},setsar=1,split=6[hk][hc][ha][hh][hm][hb];"
         f"[hc]crop={src_w}:{src_h}:{cam_x}:{cam_y},scale={width}:{mid_h}[hmid];"
-        f"[hk]crop={kw}:{kh}:{kx}:{ky}{k_dim},scale={vit_w}:{k_h},pad={vit_w}:{k_h + gap}:0:0:black[hkp];"
-        f"[hh]crop={hw}:{hh}:{hx}:{hy},scale={vit_w}:{hb_h}[hhb];"
-        f"[hm]crop={mw}:{mh}:{mx}:{my},scale={vit_w}:{mg_h}[hmg];"
-        f"[hkp][hhb][hmg]vstack=inputs=3,"
-        f"pad={width}:{band_h}:{vit_x}:{vit_y}:black[hvit];"
-        f"[ha]crop={aw}:{ah}:{ax}:{ay},scale={av_w}:{av_h}[hav];"
-        f"[hvit][hav]overlay={av_x}:{pad}[hbot];"
+        f"{bg}"
+        f"[hk]crop={kw}:{kh}:{kx}:{ky}{k_dim},scale={vit_w}:{k_h}{fk}[hkp];"
+        f"[hh]crop={hw}:{hh}:{hx}:{hy},scale={vit_w}:{hb_h}{fh}[hhb];"
+        f"[hm]crop={mw}:{mh}:{mx}:{my},scale={vit_w}:{mg_h}{fm}[hmg];"
+        f"[ha]crop={aw}:{ah}:{ax}:{ay},scale={av_w}:{av_h}{fa}[hav];"
+        f"[hbg][hkp]overlay={vit_x}:{vit_y}[hb1];"
+        f"[hb1][hhb]overlay={vit_x}:{hb_y}[hb2];"
+        f"[hb2][hmg]overlay={vit_x}:{hb_y + hb_h}[hb3];"
+        f"[hb3][hav]overlay={av_x}:{pad}[hbot];"
         f"[hmid][hbot]vstack=inputs=2,setsar=1"
     )
     return graph, band_h

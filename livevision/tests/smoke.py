@@ -1587,15 +1587,26 @@ def t_hud_stack_graph():
     hud = load_config(ROOT / "autoclip.yaml")["render"]["hud_stack"]
     graph, band = hud_stack_graph(hud, 1080, 1920)
     assert graph.startswith("scale=1920:1080,"), graph
-    assert "split=5" in graph and graph.endswith("vstack=inputs=2,setsar=1"), graph
+    assert "split=6" in graph and graph.endswith("vstack=inputs=2,setsar=1"), graph
     for box in ("compass", "camera", "avatar", "heartbeat", "magicka"):
         x, y, w, h = hud[box]
         assert f"crop={w}:{h}:{x}:{y}" in graph or box == "camera", (box, graph)
     # camera + band add up to the full height; the compass is in the band
     cam_h = int(graph.split("[hmid]")[0].rsplit("scale=", 1)[1].split(":")[1])
     assert cam_h + band == 1920, (cam_h, band)
-    assert "[hkp][hhb][hmg]vstack" in graph, "compass stacks with the vitals"
+    assert "[hbg][hkp]overlay" in graph and "[hb3][hav]overlay" in graph, \
+        "compass, vitals and avatar sit on the band backdrop"
     assert band == hud["bottom_height"], band
+    # the band backdrop is the camera blurred (matching OBS's side bars), with
+    # the crops feathered into it; black keeps the old plain band
+    cx, cy, cw, ch = hud["camera"]
+    assert hud["band_background"] == "blur"
+    assert f"[hb]crop={cw}:{ch}:{cx}:{cy}," in graph and "gblur=" in graph, graph
+    assert graph.count("alphamerge") == 4, graph
+    black, band2 = hud_stack_graph(dict(hud, band_background="black"), 1080, 1920)
+    assert band2 == band and "gblur" not in black and "alphamerge" not in black
+    assert "drawbox=t=fill:color=black[hbg]" in black, black
+    assert "color=" not in black.split("drawbox")[0], "graph stays single-input"
 
     assert resolve_layout("hud_stack", 1920, 1080, hud) == "hud_stack"
     assert resolve_layout("hud_stack", 1280, 720, hud) == "hud_stack"   # CPU-path program
@@ -1669,6 +1680,56 @@ def t_rtmp_program_fallback():
             assert got[0].source == name.split("_")[0], got[0]
 
 
+def t_obs_blur_background():
+    """The OBS seed fills the side bars with a blurred copy of the glasses
+    camera (a nested scene reusing the Glasses source, stock filters only),
+    and start.sh adds it to a scene seeded before it existed."""
+    import json, shutil, subprocess
+    obs = ROOT / "deploy/obs-vps/obs"
+    seed = json.loads((obs / "seed/IRL.json").read_text())
+    src = {x["name"]: x for x in seed["sources"]}
+    cam, blur = src["Glasses"], src["Glasses Blur"]
+    assert blur["id"] == "scene" and cam["id"] == "ffmpeg_source"
+    (inner,) = blur["settings"]["items"]
+    assert inner["source_uuid"] == cam["uuid"], "reuses the camera: one RTMP decode"
+    assert inner["bounds_type"] == 3 and inner["bounds"] == {"x": 1920.0, "y": 1080.0}  # cover
+    ids = [f["id"] for f in blur["filters"]]
+    assert ids == ["scale_filter", "scale_filter", "color_filter_v2"], ids
+    assert blur["filters"][0]["settings"]["sampling"] == "area"
+    items = src["IRL"]["settings"]["items"]
+    assert [i["name"] for i in items][:3] == ["Glasses Blur", "Glasses", "Skyrim HUD"], \
+        "blur is the bottom layer, under the sharp camera and the HUD"
+    assert items[0]["source_uuid"] == blur["uuid"] and items[0]["bounds_type"] == 1
+    assert len({i["id"] for i in items}) == len(items)
+    assert src["IRL"]["settings"]["id_counter"] >= max(i["id"] for i in items)
+    assert "jq" in (obs / "Dockerfile").read_text()
+
+    # migration: start.sh's jq block turns the pre-blur seed into the new one
+    start = (obs / "start.sh").read_text()
+    block = start[start.index("SCENE="):]
+    block = block[:block.index("\nfi\n") + 4]
+    old = subprocess.run(["git", "show", "a91aeba:livevision/deploy/obs-vps/obs/seed/IRL.json"],
+                         cwd=ROOT, capture_output=True, text=True)
+    if not shutil.which("jq") or old.returncode != 0:
+        print("       (migration skipped: no jq or no git history)")
+        return
+    with tempfile.TemporaryDirectory() as td:
+        scene = Path(td) / "IRL.json"
+        scene.write_text(old.stdout)
+        script = block.replace("/opt/obs-seed/IRL.json", str(obs / "seed/IRL.json")) \
+                      .replace('"$CFG/basic/scenes/IRL.json"', f'"{scene}"')
+        for _ in range(2):   # idempotent
+            subprocess.run(["bash", "-c", script], check=True)
+        got = json.loads(scene.read_text())
+        norm = lambda d: json.dumps(dict(d, sources=sorted(d["sources"], key=lambda x: x["name"])),
+                                    sort_keys=True)
+        assert norm(got) == norm(seed), "migrated scene matches the seed"
+        # a scene without a Glasses source is left alone (never emptied)
+        scene.write_text(json.dumps({"sources": [], "scene_order": []}))
+        subprocess.run(["bash", "-c", script], check=True)
+        assert json.loads(scene.read_text()) == {"sources": [], "scene_order": []}
+
+
 def _ffmpeg_ok() -> bool:
     import shutil
     return shutil.which("ffmpeg") is not None and shutil.which("ffprobe") is not None
@@ -1710,6 +1771,12 @@ def t_hud_stack_render():
                          if l.startswith("Style:"))
             assert style.split(",")[-2] == str(band + 40), style
         assert not any("not the program" in n for n in clip.notes), clip.notes
+        # the band behind the HUD is blurred camera, not black
+        band = cfg["render"]["hud_stack"]["bottom_height"]
+        y_band = run(["ffmpeg", "-v", "error", "-i", str(clip.path), "-frames:v", "1",
+                      "-vf", f"crop=1080:{band}:0:{1920 - band},scale=1:1,format=gray",
+                      "-f", "rawvideo", "-"], timeout=60).stdout
+        assert y_band and y_band[0] > 30, y_band
 
         fb = render_clip(raw, ClipDecision(start=0.0, end=2.0, score=1.0, title="t"),
                          rcfg, td / "out", name="raw")
@@ -1754,6 +1821,7 @@ def main() -> int:
         ("voice fires once + rumble", t_voice_once_and_rumble),
         ("clip posting", t_clip_posting),
         ("hud_stack filter graph", t_hud_stack_graph),
+        ("OBS blurred side bars", t_obs_blur_background),
         ("rtmp program/raw fallback", t_rtmp_program_fallback),
         ("hud_stack render 1080x1920", t_hud_stack_render),
     ]:

@@ -5,6 +5,9 @@
   "scene_order": [
     {
       "name": "IRL"
+    },
+    {
+      "name": "Glasses Blur"
     }
   ],
   "transitions": [],
@@ -15,9 +18,33 @@
       "name": "IRL",
       "uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0001",
       "settings": {
-        "id_counter": 3,
+        "id_counter": 4,
         "custom_size": false,
         "items": [
+          {
+            "name": "Glasses Blur",
+            "source_uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0005",
+            "id": 4,
+            "visible": true,
+            "locked": true,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "rot": 0.0,
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "align": 5,
+            "bounds_type": 1,
+            "bounds_align": 0,
+            "bounds": {
+              "x": 1920.0,
+              "y": 1080.0
+            },
+            "scale_filter": "bicubic"
+          },
           {
             "name": "Glasses",
             "source_uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0002",
@@ -89,6 +116,76 @@
           }
         ]
       }
+    },
+    {
+      "id": "scene",
+      "versioned_id": "scene",
+      "name": "Glasses Blur",
+      "uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0005",
+      "settings": {
+        "id_counter": 1,
+        "custom_size": false,
+        "items": [
+          {
+            "name": "Glasses",
+            "source_uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0002",
+            "id": 1,
+            "visible": true,
+            "locked": true,
+            "pos": {
+              "x": 0.0,
+              "y": 0.0
+            },
+            "rot": 0.0,
+            "scale": {
+              "x": 1.0,
+              "y": 1.0
+            },
+            "align": 5,
+            "bounds_type": 3,
+            "bounds_align": 0,
+            "bounds": {
+              "x": 1920.0,
+              "y": 1080.0
+            }
+          }
+        ]
+      },
+      "filters": [
+        {
+          "id": "scale_filter",
+          "versioned_id": "scale_filter",
+          "name": "Blur down",
+          "uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0006",
+          "enabled": true,
+          "settings": {
+            "resolution": "48x27",
+            "sampling": "area"
+          }
+        },
+        {
+          "id": "scale_filter",
+          "versioned_id": "scale_filter",
+          "name": "Blur up",
+          "uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0007",
+          "enabled": true,
+          "settings": {
+            "resolution": "480x270",
+            "sampling": "bicubic"
+          }
+        },
+        {
+          "id": "color_filter_v2",
+          "versioned_id": "color_filter_v2",
+          "name": "Dim",
+          "uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0008",
+          "enabled": true,
+          "settings": {
+            "color_multiply": 9211020,
+            "saturation": -0.2
+          }
+        }
+      ]
     },
     {
       "id": "ffmpeg_source",
