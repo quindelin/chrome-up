@@ -75,11 +75,12 @@ enum Settings {
     enum AudioSource: String, CaseIterable, Identifiable {
         case phone, glasses
         var id: String { rawValue }
-        var label: String { self == .phone ? "Phone mic" : "Glasses mic (DAT beta)" }
+        var label: String { self == .phone ? "Phone mic" : "Glasses mic" }
     }
 
     static var audioSource: AudioSource {
-        get { defaults.string(forKey: "audioSource").flatMap(AudioSource.init) ?? .phone }
+        // the glasses: the phone mic also hears the stream playing back nearby
+        get { defaults.string(forKey: "audioSource").flatMap(AudioSource.init) ?? .glasses }
         set { defaults.set(newValue.rawValue, forKey: "audioSource") }
     }
 

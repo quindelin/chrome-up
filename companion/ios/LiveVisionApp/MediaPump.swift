@@ -69,8 +69,9 @@ final class ClockMapper: @unchecked Sendable {
 /// (cheap) and queued; one consumer per medium appends to the encoder in
 /// order. A backed-up video queue drops its oldest frame and counts it.
 final class MediaPump: @unchecked Sendable {
-    /// received: frames DAT handed us; framesIn: frames queued for the encoder.
-    struct Counters { var received = 0; var framesIn = 0; var dropped = 0 }
+    /// received: frames DAT handed us; framesIn: frames queued for the encoder;
+    /// glassesAudio: DAT audio buffers (glasses mic) handed us.
+    struct Counters { var received = 0; var framesIn = 0; var dropped = 0; var glassesAudio = 0 }
 
     let clock = ClockMapper()
     private let counters = OSAllocatedUnfairLock(initialState: Counters())
@@ -159,6 +160,7 @@ final class MediaPump: @unchecked Sendable {
 
     /// Glasses mic audio from DAT (same clock as its video).
     func pushGlassesAudio(_ buffer: AVAudioPCMBuffer, pts: CMTime) {
+        counters.withLock { $0.glassesAudio += 1 }
         guard videoFlowing, let host = clock.mapAudio(pts.seconds) else { return }
         audio?.yield((buffer, AVAudioTime(hostTime: AVAudioTime.hostTime(forSeconds: host))))
     }
@@ -204,8 +206,16 @@ final class PhoneMic {
     private let engine = AVAudioEngine()
     private(set) var running = false
 
-    /// `forward` false keeps the session alive but sends nothing (glasses mic in use).
+    /// false keeps the session alive (background) but sends nothing: the
+    /// glasses mic is in use. Flipped on if the glasses send no audio.
+    var forward: Bool {
+        get { forwardFlag.withLock { $0 } }
+        set { forwardFlag.withLock { $0 = newValue } }
+    }
+    private let forwardFlag = OSAllocatedUnfairLock(initialState: false)
+
     func start(forward: Bool, into pump: MediaPump) throws {
+        self.forward = forward
         guard !running else { return }
         let session = AVAudioSession.sharedInstance()
         // No .allowBluetooth (HFP): that would turn the glasses into a phone
@@ -217,8 +227,9 @@ final class PhoneMic {
         let input = engine.inputNode
         let format = input.outputFormat(forBus: 0)
         guard format.sampleRate > 0 else { throw PhoneMicError.noInput }
+        let flag = forwardFlag
         input.installTap(onBus: 0, bufferSize: 1024, format: format) { [weak pump] buffer, time in
-            guard forward, let pump, time.isHostTimeValid, let copy = buffer.copy() as? AVAudioPCMBuffer else { return }
+            guard flag.withLock({ $0 }), let pump, time.isHostTimeValid, let copy = buffer.copy() as? AVAudioPCMBuffer else { return }
             pump.pushPhoneAudio(copy, hostTime: time.hostTime)
         }
         engine.prepare()
