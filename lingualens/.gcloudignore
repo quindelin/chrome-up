@@ -13,3 +13,4 @@ docs/
 branding/
 state*.json
 *.tmp
+deploy/

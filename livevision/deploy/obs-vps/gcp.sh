@@ -42,12 +42,15 @@ scp_() { "${G[@]}" compute scp --zone "$ZONE" --scp-flag=-oServerAliveInterval=1
 
 upload() {
   local tgz; tgz="$(mktemp -t chrome_up.XXXX).tgz"
-  # tracked files only: no venvs, no local secrets, no extracted game audio
-  git -C ../.. archive --format=tar.gz -o "$tgz" HEAD
+  # tracked files only: no venvs, no local secrets, no extracted game audio.
+  # Just the livevision/ tree, at the top of the archive, so the VM keeps the
+  # layout it has always had (~/chrome_up/deploy/obs-vps/setup.sh, which the
+  # boot script runs) after the repo split into livevision/ and lingualens/.
+  git -C ../.. archive --format=tar.gz -o "$tgz" HEAD:livevision
   scp_ "$tgz" "$NAME:~/chrome_up.tgz"
   # the LinguaLens panel's URL (Cloud Run, read-only stream view), if deployed
   local ll
-  ll="$(../lingualens/deploy.sh url 2>/dev/null | sed -n 's/^ *OBS browser source *\(https[^ ]*\).*/\1/p' || true)"
+  ll="$(../../../lingualens/deploy/deploy.sh url 2>/dev/null | sed -n 's/^ *OBS browser source *\(https[^ ]*\).*/\1/p' || true)"
   if [ -n "$ll" ]; then
     ssh_ "printf '%s' '$ll&view=stream' > ~/lingualens_url"
   fi

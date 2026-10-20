@@ -5,3 +5,4 @@ ios
 tests
 state.json
 *.tmp
+deploy/

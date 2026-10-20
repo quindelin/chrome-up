@@ -7,7 +7,7 @@ in here tracking me?" on the 600x600 HUD.
 **Status:** Android phone-side scanner, bearing math, parsers, classifier and
 phone debug UI are done. Glasses HUD is sketched against `MWDATDisplay` and
 will render the moment the DAT SDK is uncommented in
-`lingualens/android/app/build.gradle.kts`.
+`android/app/build.gradle.kts`.
 
 The first thing this doc says is also the most important: **what this app
 cannot do, no scanner on any platform can do.** Read §6 before drawing
@@ -54,7 +54,7 @@ this app exists to find.
 ## 2. Run it
 
 ```bash
-cd lingualens/android
+cd android
 # No gradle wrapper is committed. Use a local gradle 8.7+ or add one:
 gradle wrapper --gradle-version 8.13
 ./gradlew :app:installDebug

@@ -1,4 +1,4 @@
-# LinguaLens server for Cloud Run (deploy/lingualens/deploy.sh).
+# LinguaLens server for Cloud Run (deploy/deploy.sh).
 FROM python:3.12-slim
 WORKDIR /app
 COPY requirements.txt ./

@@ -62,8 +62,8 @@ LinguaLens runs on Google Cloud Run, so the phone and the glasses reach it
 anywhere over HTTPS. It scales to zero, so an idle day costs nothing.
 
 ```bash
-deploy/lingualens/deploy.sh        # build + deploy (keeps the same key)
-deploy/lingualens/deploy.sh url    # your phone / glasses / OBS links
+deploy/deploy.sh        # build + deploy (keeps the same key)
+deploy/deploy.sh url    # your phone / glasses / OBS links
 ```
 
 - **Phone:** open the `phone` link (it records you and plays the model audio
@@ -74,7 +74,7 @@ deploy/lingualens/deploy.sh url    # your phone / glasses / OBS links
   the link can use the app, so don't post it.
 - Progress is kept in a Cloud Storage bucket, so it survives restarts.
 - **On stream:** say "show lingualens" / "hide lingualens" (see
-  `deploy/obs-vps`); OBS shows a read-only copy of the same session.
+  `livevision/deploy/obs-vps`); OBS shows a read-only copy of the same session.
 
 ## 1. Quick start
 
@@ -500,7 +500,7 @@ The same Android wrapper hosts an RF scanner that walks the room, classifies
 what it sees (iBeacon, Eddystone, Apple Find My, generic), fits a first-harmonic
 bearing model against the user's heading (phone compass today, glasses IMU once
 DAT is pinned), and renders a 600×600 HUD on Meta Ray-Ban Display. See
-[`docs/RF_SCOPE.md`](../docs/RF_SCOPE.md) for the design, accuracy caveats and
+[`docs/RF_SCOPE.md`](docs/RF_SCOPE.md) for the design, accuracy caveats and
 the iOS status.
 
 ### Native wrapper (mic + display + haptics)

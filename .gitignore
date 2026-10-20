@@ -23,13 +23,13 @@ build/
 *.iml
 
 # game audio you extract yourself (Bethesda's, not ours to redistribute)
-overlay/assets/sfx/*
-!overlay/assets/sfx/README.md
+livevision/overlay/assets/sfx/*
+!livevision/overlay/assets/sfx/README.md
 
-# rendered on the VM by deploy/obs-vps/setup.sh
-deploy/obs-vps/mediamtx.yml
-deploy/obs-vps/hud.yaml
-deploy/obs-vps/autoclip.yaml
+# rendered on the VM by livevision/deploy/obs-vps/setup.sh
+livevision/deploy/obs-vps/mediamtx.yml
+livevision/deploy/obs-vps/hud.yaml
+livevision/deploy/obs-vps/autoclip.yaml
 
 # Xcode / SwiftPM build output and local secrets (lingualens/ios)
 .build/
@@ -37,8 +37,8 @@ DerivedData/
 xcuserdata/
 *.xcuserstate
 lingualens/ios/Config/Secrets.xcconfig
-companion/ios/Config/Secrets.xcconfig
-deploy/obs-vps/.control-token
+livevision/companion/ios/Config/Secrets.xcconfig
+livevision/deploy/obs-vps/.control-token
 
 # Claude Code: worktrees and machine-local launch configs
 .claude/

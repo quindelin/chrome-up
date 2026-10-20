@@ -34,8 +34,8 @@ links() {
 
   phone (talk here)    $url/phone?key=$key&client_id=me
   glasses web app      $url/?key=$key&client_id=me
-  OBS browser source   $url/?key=$key&client_id=me     (deploy/obs-vps: LINGUALENS_URL)
-  Android wrapper      lingualens_url=$url and lingualens_key=$key in android/local.properties
+  OBS browser source   $url/?key=$key&client_id=me     (livevision/deploy/obs-vps: LINGUALENS_URL)
+  Android wrapper      lingualens_url=$url and lingualens_key=$key in lingualens/android/local.properties
 
   Same client_id everywhere = one session shared by phone, glasses and stream.
 TXT
@@ -57,7 +57,7 @@ SA="$("${G[@]}" projects describe "$PROJECT" --format='value(projectNumber)')-co
 KEY="$(current_key || true)"
 [ -n "$KEY" ] || KEY="$(openssl rand -hex 12)"
 
-"${G[@]}" run deploy "$SERVICE" --source ../../lingualens --region "$REGION" \
+"${G[@]}" run deploy "$SERVICE" --source .. --region "$REGION" \
   --allow-unauthenticated \
   --execution-environment gen2 --cpu 1 --memory 1Gi \
   --min-instances 0 --max-instances 1 --session-affinity --timeout 3600 \
