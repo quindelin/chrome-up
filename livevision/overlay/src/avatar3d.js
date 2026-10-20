@@ -14,7 +14,9 @@
  *   body   -> payload.body (server/body.py): sits when the phone in your
  *             pocket says your thigh is horizontal, reaches its hands to
  *             where the glasses camera sees yours (two-bone arm IK), and
- *             turns its wrists with the Apple Watch / Neural Band
+ *             turns its wrists with the Apple Watch / Neural Band, and throws
+ *             a punch on the matching arm each time the Watch / band feels
+ *             one (body.punches), holding a guard while they keep coming
  *
  * Layout: config `avatar.layout` full (default: head to toe, sized for the
  * side bar beside the portrait glasses feed) | bust (shoulders up).
@@ -33,6 +35,10 @@ const VISEME = {
   A: ["aa", 1.0], I: ["ih", 0.7], U: ["ou", 0.8], E: ["ee", 0.8], O: ["oh", 1.0], e: ["ee", 0.45],
 };
 const VOWELS = ["aa", "ih", "ou", "ee", "oh"];
+// boxing guard, measured on the rig: upper arm forward (+x) and in toward the
+// chest (+z on the left, -z on the right), forearm folded up: wrists at chin
+// height, ~12 cm either side of centre, ~23 cm in front
+const GUARD_UP = 0.7, GUARD_FOLD = 2.2, GUARD_IN = 0.3;
 
 export async function tryLoadAvatar3D(canvas, cfg) {
   const av = cfg?.avatar || {};
@@ -115,6 +121,9 @@ class Rig {
     this.mirror = opts.mirror !== false;   // like a webcam: you turn left, it turns screen-left
     this.gait = 0;                         // 0 idle .. 0.55 walk .. 1 run
     this.box = 0;                          // boxing guard weight
+    this.punch = { left: null, right: null };  // {t, kind, strength} on the avatar's arm
+    this.punchSeen = -1;                   // highest body.punches id played (-1: not synced yet)
+    this.punchE = { left: 0, right: 0 };   // 0 guard .. 1 full extension, this frame
     this.phase = 0;
     this.headW = 0;                        // how much the real head drives ours
     this.headPose = { yaw: 0, pitch: 0, roll: 0 };
@@ -129,6 +138,7 @@ class Rig {
 
     const h = vrm.humanoid;
     this.bone = (name) => h.getNormalizedBoneNode(name);
+    this.restShoulder = Object.fromEntries(["left", "right"].map((s) => [s, this.bone(s + "Shoulder")?.rotation.clone()]));
     this._restPose();
     this._measure();
     this._frame();
@@ -149,6 +159,8 @@ class Rig {
   _measure() {
     this.vrm.scene.updateMatrixWorld(true);
     const at = (n) => { const b = this.bone(n); return b ? b.getWorldPosition(new THREE.Vector3()) : null; };
+    const sh = at("leftUpperArm"), el = at("leftLowerArm"), wr = at("leftHand");
+    this.armLen = sh && el && wr ? sh.distanceTo(el) + el.distanceTo(wr) : null;
     const hip = at("hips"), knee = at("leftLowerLeg"), ankle = at("leftFoot");
     this.legs = hip && knee && ankle ? {
       hipY: hip.y, shin: knee.distanceTo(ankle), ankleY: ankle.y, thigh: hip.distanceTo(knee),
@@ -243,6 +255,15 @@ class Rig {
       }
       if (this.handW[side] > 0.01 && this.handTarget[side]) this._ikArm(side, this.handTarget[side], this.handW[side]);
 
+      // a punch wins over the camera's hand for its ~0.3 s
+      const pe = this.punchE[side];
+      if (pe > 0.001 && this.punch[side]) {
+        this.vrm.scene.updateMatrixWorld(true);
+        const H0 = this.bone(side + "Hand").getWorldPosition(new THREE.Vector3());
+        const { target, pole } = this._punchTarget(side, H0, pe);
+        this._ikArm(side, target, Math.min(1, pe * 4), pole);
+      }
+
       const w = bodyIn?.wrists?.[theirs];
       const wf = !!(w && w.fresh);
       this.wristW[side] += ((wf ? 1 : 0) - this.wristW[side]) * ease;
@@ -258,11 +279,89 @@ class Rig {
     }
   }
 
+  /** New punches from body.punches, each id once. The first payload only
+   *  syncs (no replaying what happened before the page loaded); a smaller id
+   *  than we've seen means the server restarted. */
+  _takePunches(bodyIn) {
+    const list = Array.isArray(bodyIn?.punches) ? bodyIn.punches : null;
+    if (!list) return;
+    const top = list.reduce((m, p) => Math.max(m, Number(p.id) || 0), 0);
+    if (this.punchSeen < 0 || (list.length && top < this.punchSeen)) { this.punchSeen = top; return; }
+    for (const p of list) {
+      if (!(p.id > this.punchSeen) || !(p.side === "left" || p.side === "right")) continue;
+      this.punchSeen = p.id;
+      if ((Number(p.age) || 0) > 0.5) continue;             // too late to look in sync
+      // mirror: the wearer's right drives the avatar's left, like the hands
+      const side = this.mirror ? (p.side === "left" ? "right" : "left") : p.side;
+      this.punch[side] = { t: this.t, kind: p.kind || "straight",
+                           strength: Math.max(0, Math.min(1, Number(p.strength) || 0.7)) };
+    }
+  }
+
+  /** 0 at guard .. 1 at full reach: a fast ease-out (~120 ms, quicker when
+   *  harder) and a ~200 ms smooth recovery */
+  _punchEnvelope(side) {
+    const p = this.punch[side];
+    if (!p) return 0;
+    const ext = 0.12 * (1.15 - 0.3 * p.strength), rec = 0.2;
+    const t = this.t - p.t;
+    if (t >= ext + rec) { this.punch[side] = null; return 0; }
+    if (t < ext) { const u = t / ext; return 1 - (1 - u) * (1 - u); }
+    const u = (t - ext) / rec;
+    return 1 - u * u * (3 - 2 * u);
+  }
+
+  /** The fist's path from the guard (H0, world) to the punch's end point,
+   *  for the avatar's `side` arm. Straight: forward to the centre line at chin
+   *  height; hook: swings out and round to the front of the chin, elbow out;
+   *  uppercut: dips, then drives up under the chin. */
+  _punchTarget(side, H0, e) {
+    const p = this.punch[side];
+    const S = this.bone(side + "UpperArm").getWorldPosition(new THREE.Vector3());
+    const out = S.x >= 0 ? 1 : -1;
+    const L = this.armLen || 0.47;
+    const chinY = (this.bone("head")?.getWorldPosition(this._v[3]).y ?? S.y + 0.14) - 0.04;
+    const reach = 0.8 + 0.2 * p.strength;                  // harder = further
+    let end, bulge, pole;
+    if (p.kind === "hook") {
+      end = new THREE.Vector3(out * 0.02, chinY - 0.06, S.z + 0.6 * L);
+      bulge = new THREE.Vector3(out * 0.18, 0.02, -0.03);
+      pole = new THREE.Vector3(out, -0.15, -0.3);           // elbow up and out
+    } else if (p.kind === "uppercut") {
+      end = new THREE.Vector3(-out * 0.03, chinY + 0.03, S.z + 0.5 * L);
+      bulge = new THREE.Vector3(0, -0.14, 0.02);
+      pole = new THREE.Vector3(0.25 * out, -1, 0.1);        // elbow under the fist
+    } else {
+      end = S.clone().addScaledVector(new THREE.Vector3(-out * 0.22, (chinY - S.y) / L, 1).normalize(), 0.97 * L);
+      bulge = new THREE.Vector3();
+      pole = null;
+    }
+    end.sub(H0).multiplyScalar(reach).add(H0);
+    return { target: H0.clone().lerp(end, e).addScaledVector(bulge, Math.sin(Math.PI * e)), pole };
+  }
+
+  /** Close the hands into fists by k (0..1). Measured on the rig: +z curls
+   *  the left fingers toward the palm, -z the right ones. */
+  _fists(k) {
+    for (const [side, sg] of [["left", 1], ["right", -1]]) {
+      for (const f of ["Index", "Middle", "Ring", "Little"]) {
+        for (const [j, a] of [["Proximal", 1.4], ["Intermediate", 1.5], ["Distal", 1.0]]) {
+          const b = this.bone(side + f + j);
+          if (b) b.rotation.set(0, 0, sg * a * k);
+        }
+      }
+      for (const [j, a] of [["Metacarpal", 0.3], ["Proximal", 0.5], ["Distal", 0.6]]) {
+        const b = this.bone(side + "Thumb" + j);
+        if (b) b.rotation.set(0, 0, sg * a * k);
+      }
+    }
+  }
+
   /** Analytic two-bone IK: upper arm + forearm reach `target` (world), elbow
    *  bent toward a pole that points down, back and out, the way elbows go.
    *  Works on whatever rest orientation the model's bones have: each bone is
    *  turned by the world-space rotation that points it at the next joint. */
-  _ikArm(side, target, weight) {
+  _ikArm(side, target, weight, poleDir = null) {
     const up = this.bone(side + "UpperArm"), lo = this.bone(side + "LowerArm"), hand = this.bone(side + "Hand");
     if (!up || !lo || !hand) return;
     this.vrm.scene.updateMatrixWorld(true);
@@ -274,7 +373,7 @@ class Rig {
     const dist = Math.min(Math.max(d.length(), Math.abs(L1 - L2) + 0.01), (L1 + L2) * 0.999);
     const dir = d.normalize();
     const out = S.x >= 0 ? 1 : -1;                           // this arm's side of the body
-    const pole = new THREE.Vector3(0.35 * out, -1, -0.45);
+    const pole = poleDir ? poleDir.clone() : new THREE.Vector3(0.35 * out, -1, -0.45);
     const perp = pole.sub(dir.clone().multiplyScalar(pole.dot(dir))).normalize();
     const a = (L1 * L1 - L2 * L2 + dist * dist) / (2 * dist);
     const hgt = Math.sqrt(Math.max(0, L1 * L1 - a * a));
@@ -304,7 +403,7 @@ class Rig {
       if (b.hands?.[s]) hands[s] = { ...b.hands[s], fresh: true };
       if (b.wrists?.[s]) wrists[s] = { ...b.wrists[s], fresh: true };
     }
-    return { posture: b.posture || "standing", hands, wrists };
+    return { posture: b.posture || "standing", hands, wrists, punches: b.punches, punching: b.punching };
   }
 
   /** one leg forward while the other is back; the knee folds on the way through */
@@ -384,6 +483,9 @@ class Rig {
     }
     if (chest) chest.rotation.x = breathe * 0.8;
     // ---- your head drives ours when orientation is arriving, else idle motion
+    // ---- punches: envelopes first, the torso twists into them below
+    this._takePunches(bodyIn);
+    for (const s of ["left", "right"]) this.punchE[s] = this._punchEnvelope(s);
     const hp = headIn && headIn.fresh ? headIn : null;
     this.headW += ((hp ? 1 : 0) - this.headW) * Math.min(1, dt * 4);
     if (hp) {
@@ -408,24 +510,37 @@ class Rig {
     const act = vision?.activity || (running ? "running" : vision?.moving ? "walking" : "idle");
     const gaitTarget = act === "running" ? 1 : act === "walking" ? 0.55 : 0;
     this.gait += (gaitTarget - this.gait) * Math.min(1, dt * 3);
-    this.box += ((act === "boxing" ? 1 : 0) - this.box) * Math.min(1, dt * 4);
+    // guard up while boxing: the IMU's label, or real punches still coming
+    const boxing = act === "boxing" || !!bodyIn?.punching || !!(this.punch.left || this.punch.right);
+    this.box += ((boxing ? 1 : 0) - this.box) * Math.min(1, dt * 4);
     const cad = Number(vision?.cadence) > 0.5 ? Number(vision.cadence) : act === "running" ? 2.8 : 1.8;
-    this.phase += dt * Math.PI * cad * (this.gait > 0.02 || this.box > 0.02 ? 1 : 0);   // 2 steps = 1 cycle
+    this.phase += dt * Math.PI * cad * (this.gait > 0.02 ? 1 : 0);   // 2 steps = 1 cycle
     const g = this.gait, ph = Math.sin(this.phase), pc = Math.cos(this.phase);
     const run = Math.max(0, (g - 0.55) / 0.45);                 // 0 walking .. 1 running
     this._legs(g, ph, pc);
     // Offsets measured on the rig (camera at +z): +x swings an upper arm
     // forward; the elbow folds the forearm up with -y on the left, +y on the
-    // right. Guard = upper +0.5, forearm 1.9: fists in front of the chin.
+    // right. Guard (GUARD_*): fists by the chin.
+    // Punches are IK on top of this (_arms), timed by the Watch / band.
     const b = this.box;
-    const jab = Math.max(0, Math.sin(this.phase * 2));          // one punch per step
-    const jabL = b * (ph > 0 ? jab : 0), jabR = b * (ph < 0 ? jab : 0);
-    this._pose("leftUpperArm",  ph * 0.45 * g + b * 0.5 + jabL * 0.7, 0, 0);
-    this._pose("rightUpperArm", -ph * 0.45 * g + b * 0.5 + jabR * 0.7, 0, 0);
-    this._pose("leftLowerArm",  0, -(1.0 * run * (1 - b) + b * 1.9 * (1 - 0.85 * jabL / Math.max(b, 1e-3))), 0);
-    this._pose("rightLowerArm", 0, 1.0 * run * (1 - b) + b * 1.9 * (1 - 0.85 * jabR / Math.max(b, 1e-3)), 0);
+    this._pose("leftUpperArm",  ph * 0.45 * g * (1 - b) + b * GUARD_UP, 0, b * GUARD_IN);
+    this._pose("rightUpperArm", -ph * 0.45 * g * (1 - b) + b * GUARD_UP, 0, -b * GUARD_IN);
+    this._pose("leftLowerArm",  0, -(1.0 * run * (1 - b) + b * GUARD_FOLD), 0);
+    this._pose("rightLowerArm", 0, 1.0 * run * (1 - b) + b * GUARD_FOLD, 0);
+    // twist into the punch: measured, +y on the spine or a shoulder takes the
+    // avatar's left (+x) shoulder back, so -out drives the punching one forward
+    let twist = 0;
+    for (const s of ["left", "right"]) {
+      const pe = this.punchE[s], p = this.punch[s];
+      const out = s === "left" ? 1 : -1;
+      const k = p ? (p.kind === "hook" ? 0.34 : p.kind === "uppercut" ? 0.16 : 0.26) * (0.6 + 0.4 * p.strength) : 0;
+      twist += -out * k * pe;
+      const sh = this.bone(s + "Shoulder"), r0 = this.restShoulder[s];
+      if (sh && r0) sh.rotation.set(r0.x, r0.y - out * 0.22 * pe * (p ? 0.6 + 0.4 * p.strength : 0), r0.z);
+    }
+    this._fists(b);
     if (spine) {
-      spine.rotation.y = ph * 0.1 * g + Math.sin(this.phase * 2) * 0.12 * b;
+      spine.rotation.y = ph * 0.1 * g + twist;
       spine.rotation.x += 0.14 * run + 0.08 * b;                // lean in to run or fight
     }
     const hips = this.bone("hips");

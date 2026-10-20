@@ -1194,6 +1194,27 @@ def t_body_tracking():
     assert b.snapshot()["wrists"]["left"]["source"] == "watch"
 
 
+def t_body_punches():
+    """Punch events: each gets an id once, Watch + band on one wrist count once,
+    junk is refused, and they drop out of the payload after PUNCH_SHOW_S."""
+    from server import body as bodymod
+    b = bodymod.Body()
+    assert not b.snapshot()["punching"] and b.snapshot()["punches"] == []
+    assert b.ingest({"punch": {"side": "right", "kind": "hook", "strength": 0.9, "source": "watch"}})
+    assert b.ingest({"punch": {"side": "right", "kind": "straight", "strength": 1.4, "source": "neural_band"}})
+    ps = b.snapshot()["punches"]
+    assert len(ps) == 1 and ps[0]["kind"] == "hook" and ps[0]["strength"] == 1.0, ps
+    assert b.ingest({"punches": [{"side": "left", "kind": "jab?"}]})
+    ps = b.snapshot()["punches"]
+    assert [p["id"] for p in ps] == [1, 2] and ps[1]["kind"] == "straight" and ps[1]["strength"] == 0.7
+    assert not b.ingest({"punch": {"side": "middle"}}) and not b.ingest({"punch": "left"})
+    assert b.snapshot()["punching"] and b.punching()
+    for p in b._punches:
+        p["ts"] -= bodymod.PUNCH_SHOW_S + 0.1
+    snap = b.snapshot()
+    assert snap["punches"] == [] and snap["punching"], "guard stays up a little longer"
+
+
 def t_phone_route():
     """Apple Maps turn-by-turn from the companion: fresh = source of truth
     (marker on the next maneuver, the phone's along-route distance), stale or
@@ -1269,6 +1290,7 @@ def main() -> int:
         ("head pose", t_head_pose),
         ("body tracking", t_body_tracking),
         ("hud heartbeat config", t_heartbeat_config),
+        ("body punches", t_body_punches),
         ("apple maps phone route", t_phone_route),
         ("retention keeps disk bounded", t_retention_keeps_disk_bounded),
         ("captions one file per clip", t_captions_one_file_per_clip),

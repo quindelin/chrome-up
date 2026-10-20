@@ -1,7 +1,7 @@
 import SwiftUI
 
-/// LiveVision on the Apple Watch: Start, and your wrist and heart rate drive
-/// the stream avatar's arm (via the iPhone app). Runs as a workout so it keeps
+/// LiveVision on the Apple Watch: Start, and your wrist, heart rate and punches
+/// drive the stream avatar's arm (via the iPhone app). Runs as a workout so it keeps
 /// going with your wrist down.
 @main
 struct LiveVisionWatchApp: App {
@@ -43,6 +43,11 @@ struct WatchHome: View {
                     Text("Right").tag("right")
                 }
                 .disabled(t.running)
+
+                if t.running {
+                    Label("\(t.punches) punches", systemImage: "figure.boxing")
+                        .font(.footnote).monospacedDigit()
+                }
 
                 Label(t.phoneReachable ? "iPhone connected" : "Open LiveVision on your iPhone",
                       systemImage: t.phoneReachable ? "iphone" : "iphone.slash")

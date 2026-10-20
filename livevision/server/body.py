@@ -19,8 +19,16 @@ let the avatar infer the rest. The phone sends one `body` message (on
       "wrists": {"left":  {"q": [w, x, y, z], "source": "watch"},
                  "right": {"q": [w, x, y, z], "source": "neural_band"}},
 
-      "heart_rate": 96                                # bpm, Apple Watch workout
+      "heart_rate": 96,                               # bpm, Apple Watch workout
+
+      # one punch, sent the moment the Watch / Neural Band detects it
+      "punch": {"side": "left", "kind": "straight" | "hook" | "uppercut",
+                "strength": 0.8, "source": "watch" | "neural_band"}
     }}
+
+Punches come out of snapshot() as `punches` (the last PUNCH_SHOW_S seconds,
+each with an increasing `id`) so every overlay plays each one exactly once,
+and `punching` while they keep coming (the avatar holds its guard).
 
 Every signal goes stale on its own (a hand leaving the camera's view, the
 watch dropping its connection), and the avatar eases that part back to
@@ -31,11 +39,15 @@ from __future__ import annotations
 import math
 import threading
 import time
-from typing import Dict, Optional
+from collections import deque
+from typing import Dict, List, Optional
 
 from .headpose import HeadPose
 
 SIDES = ("left", "right")
+PUNCH_KINDS = ("straight", "hook", "uppercut")
+PUNCH_SHOW_S = 1.5        # how long a punch stays in the payload (overlays dedupe by id)
+PUNCH_SAME_S = 0.15       # Watch + band on one wrist both see the same punch
 
 
 class Body:
@@ -57,6 +69,9 @@ class Body:
         # the reference when data starts)
         self._wrists = {s: HeadPose({"recenter_s": 0, "stale_s": self.stale_s}) for s in SIDES}
         self._hr, self._hr_ts = None, 0.0
+        self.guard_s = float(cfg.get("punch_guard_s", 2.5))       # guard stays up this long
+        self._punches: deque = deque(maxlen=16)
+        self._punch_id = 0
 
     # ------------------------------------------------------------------ input
     def ingest(self, data: dict, source: str = "phone") -> bool:
@@ -86,6 +101,10 @@ class Body:
                 self._hands[side] = {"pos": pos, "conf": float(h.get("conf", 1.0) or 0), "ts": now}
                 used = True
 
+            punches = data.get("punches") if isinstance(data.get("punches"), list) else [data.get("punch")]
+            for p in punches:
+                used = self._punch(p, now, source) or used
+
             hr = data.get("heart_rate")
             if isinstance(hr, (int, float)) and 25 <= hr <= 250:
                 self._hr, self._hr_ts = float(hr), now
@@ -95,6 +114,28 @@ class Body:
             if side in SIDES and isinstance(w, dict):
                 used = self._wrists[side].ingest(w, source=str(w.get("source") or source)) or used
         return used
+
+    def _punch(self, p, now: float, source: str) -> bool:
+        if not isinstance(p, dict) or p.get("side") not in SIDES:
+            return False
+        try:
+            strength = max(0.0, min(1.0, float(p.get("strength", 0.7))))
+        except (TypeError, ValueError):
+            strength = 0.7
+        last = self._punches[-1] if self._punches else None
+        if last and last["side"] == p["side"] and now - last["ts"] < PUNCH_SAME_S:
+            last["strength"] = max(last["strength"], strength)   # same punch, second sensor
+            return True
+        kind = p.get("kind") if p.get("kind") in PUNCH_KINDS else "straight"
+        self._punch_id += 1
+        self._punches.append({"id": self._punch_id, "side": p["side"], "kind": kind,
+                              "strength": strength, "source": str(p.get("source") or source), "ts": now})
+        return True
+
+    def punching(self) -> bool:
+        """A punch landed recently: the wearer is boxing."""
+        with self._lock:
+            return bool(self._punches) and time.time() - self._punches[-1]["ts"] < self.guard_s
 
     def _from_gravity(self, g, now: float, source: str) -> bool:
         try:
@@ -134,6 +175,11 @@ class Body:
                 "posture_source": self._posture_src if posture_fresh else "stale",
                 "hands": hands,
                 "heart_rate": round(self._hr) if hr_fresh else None,
+                "punches": [{"id": p["id"], "side": p["side"], "kind": p["kind"],
+                             "strength": round(p["strength"], 2), "source": p["source"],
+                             "age": round(now - p["ts"], 3)}
+                            for p in self._punches if now - p["ts"] < PUNCH_SHOW_S],
+                "punching": bool(self._punches) and now - self._punches[-1]["ts"] < self.guard_s,
             }
         out["wrists"] = {s: self._wrists[s].snapshot() for s in SIDES}
         return out

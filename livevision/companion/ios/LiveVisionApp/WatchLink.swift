@@ -8,7 +8,9 @@ import WatchConnectivity
 /// and sends ~10 messages a second over WatchConnectivity:
 ///     {"wrist": [w, x, y, z], "side": "left", "hr": 96}
 /// watchOS keeps most apps off their own network sockets, so the phone relays
-/// it to the HUD with the rest of the body data (BodyTracker).
+/// it to the HUD with the rest of the body data (BodyTracker). A punch arrives
+/// on its own the moment the Watch detects it and is relayed straight away:
+///     {"side": "left", "punch": {"side": "left", "kind": "hook", "strength": 0.8, "source": "watch"}}
 @MainActor
 @Observable
 final class WatchLink: NSObject, WCSessionDelegate {
@@ -21,6 +23,9 @@ final class WatchLink: NSObject, WCSessionDelegate {
     private(set) var side: String = Settings.watchWrist
     private(set) var lastMessage: Date?
     private(set) var received = 0
+    private(set) var punches = 0
+    /// BodyTracker forwards punches to the HUD the moment they arrive
+    @ObservationIgnored var onPunch: (@MainActor ([String: Any]) -> Void)?
 
     func activate() {
         guard supported else { return }
@@ -60,7 +65,18 @@ final class WatchLink: NSObject, WCSessionDelegate {
         let q = (message["wrist"] as? [Double]).flatMap { $0.count == 4 ? $0 : nil }
         let hr = message["hr"] as? Double
         let side = message["side"] as? String
+        // [String: Any] isn't Sendable: pull out the plain values here
+        let p = message["punch"] as? [String: Any]
+        let punch = p.flatMap { p -> (String, String, Double)? in
+            guard let s = p["side"] as? String else { return nil }
+            return (s, p["kind"] as? String ?? "straight", p["strength"] as? Double ?? 0.7)
+        }
         Task { @MainActor in
+            if let punch {
+                let (s, kind, strength) = punch
+                self.punches += 1
+                self.onPunch?(["side": s, "kind": kind, "strength": strength, "source": "watch"])
+            }
             if let q { self.wrist = q }
             if let hr, hr > 0 { self.heartRate = hr }
             if let side, side == "left" || side == "right" { self.side = side; Settings.watchWrist = side }

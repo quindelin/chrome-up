@@ -3,11 +3,13 @@ import Foundation
 import MWDATCore
 import MWDATMotion
 import Observation
+import simd
 
 /// Your body, for the HUD's avatar (server/body.py, docs/BODY_TRACKING.md):
 ///
 ///   head      glasses DAT Motion, source .glasses       -> {"head": {"q": [w,x,y,z]}}
 ///   one wrist Neural Band, same Motion stream, .neuralBand -> body.wrists.<band side>
+///   punches   Neural Band accelerometer here, the Watch's own detector -> body.punch, sent at once
 ///   hands     Vision on the glasses' POV frames (HandTracker) -> body.hands
 ///   other wrist + heart rate  the LiveVision Watch app (WatchLink)
 ///   posture   phone gravity in your pocket (SensorBridge.postureOn)
@@ -30,6 +32,7 @@ final class BodyTracker {
     private(set) var motion: MotionLink = .off
     private(set) var headSamples = 0
     private(set) var bandSamples = 0
+    private(set) var punches = 0
     private(set) var hands: [String: HandTracker.Hand] = [:]
     private(set) var handsSeenAt: Date?
     private(set) var sent = 0
@@ -45,6 +48,8 @@ final class BodyTracker {
     @ObservationIgnored private let handTracker = HandTracker()
     @ObservationIgnored private var head: (q: [Double], at: Date)?
     @ObservationIgnored private var band: (q: [Double], at: Date)?
+    @ObservationIgnored private var bandPunch = PunchDetector()   // band axes unknown: no forearm
+    @ObservationIgnored private var bandGravity: SIMD3<Double>?    // slow average of the raw accelerometer, m/s^2
     @ObservationIgnored private static let defaults = UserDefaults.standard
 
     init() {
@@ -67,6 +72,7 @@ final class BodyTracker {
         self.sensors = sensors
         self.watch = watch
         watch.activate()
+        watch.onPunch = { [weak self] p in self?.sendPunch(p) }
         refresh()
         sendLoop?.cancel()
         sendLoop = Task { [weak self] in
@@ -110,8 +116,9 @@ final class BodyTracker {
         attachedTo = session
         let m: Motion
         do {
-            // 30 Hz: smooth head turns; the band rides the same stream
-            guard let added = try session.addMotion(configuration: MotionConfiguration(samplingRate: .hz30)) else {
+            // 60 Hz: a jab's acceleration spike lasts ~30-50 ms, which 30 Hz
+            // samples once at best and often misses; head turns get smoother too
+            guard let added = try session.addMotion(configuration: MotionConfiguration(samplingRate: .hz60)) else {
                 motion = .waiting          // session not started yet; the next link change retries
                 attachedTo = nil
                 return
@@ -167,9 +174,34 @@ final class BodyTracker {
         let q = [Double(o.w), Double(o.x), Double(o.y), Double(o.z)]
         switch sample.source {
         case .glasses: head = (q, Date()); headSamples += 1
-        case .neuralBand: band = (q, Date()); bandSamples += 1
+        case .neuralBand: band = (q, Date()); bandSamples += 1; bandPunches(sample)
         case .unknown: break
         }
+    }
+
+    /// The band's accelerometer includes gravity (m/s^2): a slow average of it
+    /// is gravity, the rest is the wrist's own acceleration. The average only
+    /// follows while the wrist is calm, so a punch doesn't bend it.
+    private func bandPunches(_ sample: MotionSample) {
+        guard let acc = sample.accelerometer else { return }
+        let raw = SIMD3<Double>(Double(acc.x), Double(acc.y), Double(acc.z))
+        let g0 = 9.81
+        guard var grav = bandGravity else { bandGravity = raw; return }
+        let linear = (raw - grav) / g0
+        if simd_length(linear) < 0.8 { grav += (raw - grav) * 0.04; bandGravity = grav }   // ~0.4 s at 60 Hz
+        let rot = sample.gyroscope.map { SIMD3<Double>(Double($0.x), Double($0.y), Double($0.z)) }
+        // an accelerometer at rest reads +1 g UP; the detector wants gravity pointing down
+        guard let p = bandPunch.push(linear: linear, gravity: -grav, rotation: rot,
+                                     at: Double(sample.timestampNs) / 1e9) else { return }
+        sendPunch(["side": Settings.bandWrist, "kind": p.kind, "strength": p.strength, "source": "neural_band"])
+    }
+
+    /// Punches skip the ~10 Hz tick: the avatar throws as you do.
+    private func sendPunch(_ punch: [String: Any]) {
+        guard let sensors else { return }
+        if !(punch["source"] as? String == "watch" ? watchOn : headOn) { return }
+        sensors.sendJSON(["body": ["punch": punch]])
+        punches += 1
     }
 
     private func handsFound(_ found: [String: HandTracker.Hand]) {

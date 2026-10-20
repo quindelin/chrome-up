@@ -8,9 +8,10 @@ import WatchConnectivity
 private let heartRateType = HKQuantityType.quantityType(forIdentifier: .heartRate)!
 private let beatsPerMinute = HKUnit.count().unitDivided(by: .minute())
 
-/// The Watch half of LiveVision's body tracking: your wrist's orientation and
-/// your heart rate, relayed to the iPhone app, which sends them to the HUD
-/// (docs/BODY_TRACKING.md).
+/// The Watch half of LiveVision's body tracking: your wrist's orientation, your
+/// heart rate and your punches, relayed to the iPhone app, which sends them to
+/// the HUD (docs/BODY_TRACKING.md). Punches go the moment they land
+/// (PunchDetector on 100 Hz device motion), not on the ~10 Hz tick.
 ///
 /// A workout session is what keeps a watchOS app running, and its motion
 /// sensors live, with your wrist down; it also gives live heart rate. The
@@ -22,6 +23,7 @@ final class WatchTracker: NSObject {
     private(set) var heartRate: Double?
     private(set) var phoneReachable = false
     private(set) var sent = 0
+    private(set) var punches = 0
     private(set) var error: String?
     var side: String = UserDefaults.standard.string(forKey: "wrist") ?? "left" {
         didSet { UserDefaults.standard.set(side, forKey: "wrist") }
@@ -32,6 +34,8 @@ final class WatchTracker: NSObject {
     @ObservationIgnored private var builder: HKLiveWorkoutBuilder?
     @ObservationIgnored private let motion = CMMotionManager()
     @ObservationIgnored private var attitude: [Double]?        // [w, x, y, z]
+    // Watch x runs along the forearm (crown toward the hand) on either wrist
+    @ObservationIgnored private var detector = PunchDetector(forearm: SIMD3(1, 0, 0))
     @ObservationIgnored private var loop: Task<Void, Never>?
 
     func activate() {
@@ -93,11 +97,27 @@ final class WatchTracker: NSObject {
 
     private func startMotion() {
         guard motion.isDeviceMotionAvailable else { error = "No motion sensors"; return }
-        motion.deviceMotionUpdateInterval = 1.0 / 25
+        // 100 Hz: a jab's spike lasts ~30-50 ms; attitude still goes out at ~10 Hz
+        motion.deviceMotionUpdateInterval = 1.0 / 100
+        detector = PunchDetector(forearm: SIMD3(1, 0, 0))
         motion.startDeviceMotionUpdates(to: .main) { [weak self] m, _ in
             guard let m else { return }
-            let q = m.attitude.quaternion
-            MainActor.assumeIsolated { self?.attitude = [q.w, q.x, q.y, q.z] }
+            MainActor.assumeIsolated { self?.motionSample(m) }
+        }
+    }
+
+    private func motionSample(_ m: CMDeviceMotion) {
+        let q = m.attitude.quaternion
+        attitude = [q.w, q.x, q.y, q.z]
+        let a = m.userAcceleration, g = m.gravity, r = m.rotationRate
+        guard let p = detector.push(linear: SIMD3(a.x, a.y, a.z), gravity: SIMD3(g.x, g.y, g.z),
+                                    rotation: SIMD3(r.x, r.y, r.z), at: m.timestamp) else { return }
+        punches += 1
+        let s = WCSession.default
+        guard s.activationState == .activated, s.isReachable else { return }
+        let punch: [String: Any] = ["side": side, "kind": p.kind, "strength": p.strength, "source": "watch"]
+        s.sendMessage(["side": side, "punch": punch], replyHandler: nil) { err in
+            Task { @MainActor in self.error = err.localizedDescription }
         }
     }
 

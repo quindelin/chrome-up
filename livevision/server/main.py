@@ -317,6 +317,9 @@ class Runtime:
                     activity, cadence = cam_act, vision.cadence
             else:
                 activity, cadence = cam_act, vision.cadence
+            # real punches (Watch / Neural Band) mean boxing: guard up, Combat XP
+            if activity in ("idle", "walking") and self.body.punching():
+                activity = "boxing"
             running = bool(vision.running) or activity == "running"
             moving = bool(vision.moving) or activity in ("walking", "running", "boxing", "lifting")
             self.world.vision = replace(vision, attributes=counts, focus=focus_info["kind"],
