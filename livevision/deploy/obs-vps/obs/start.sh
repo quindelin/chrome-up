@@ -30,6 +30,13 @@ if [ -f "$SCENE" ] && command -v jq >/dev/null; then
       | .scene_order += [{name: "Glasses Blur"}]
     end' "$SCENE" > "$SCENE.tmp" && [ -s "$SCENE.tmp" ] && mv "$SCENE.tmp" "$SCENE" || rm -f "$SCENE.tmp"
 fi
+# The glasses feed is read over RTSP (H.264 or the glasses' HEVC passthrough;
+# ffmpeg can't read HEVC back over RTMP): move scenes seeded on rtmp:// over.
+if [ -f "$SCENE" ] && command -v jq >/dev/null; then
+  jq '(.sources[] | select(.id == "ffmpeg_source") | .settings.input) |=
+        (if type == "string" then sub("^rtmp://127\\.0\\.0\\.1:1935/"; "rtsp://127.0.0.1:8554/") else . end)' \
+    "$SCENE" > "$SCENE.tmp" && [ -s "$SCENE.tmp" ] && mv "$SCENE.tmp" "$SCENE" || rm -f "$SCENE.tmp"
+fi
 # The stream output always follows .env (OUT_SERVER/OUT_KEY), so changing where
 # OBS sends the program is an env edit + restart, not a re-seed. Default is
 # MediaMTX live/program, which autoclip restreams to Twitch/YouTube on voice.

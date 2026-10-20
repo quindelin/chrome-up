@@ -79,6 +79,7 @@ class FFmpegSource(WatchDirSource):
                 pass
         cmd = [
             "ffmpeg", "-hide_banner", "-loglevel", "error",
+            *(["-rtsp_transport", "tcp"] if self.url.startswith("rtsp://") else []),
             "-i", self.url,
             "-map", "0:v:0", "-map", "0:a:0?",
             "-c", "copy",

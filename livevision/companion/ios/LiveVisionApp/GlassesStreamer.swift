@@ -281,7 +281,7 @@ final class GlassesStreamer {
         cameraStreamingSince = nil
         cameraTier = 0
         cameraAttempts = 0
-        pump.start(into: up)
+        pump.start(into: up, passthrough: Settings.videoPassthrough && Settings.transport == .rtmp)
         await up.start(.init(transport: Settings.transport, host: host,
                              streamKey: Settings.streamKey, srtPassphrase: Settings.srtPassphrase))
         startMeter()

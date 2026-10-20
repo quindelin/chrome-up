@@ -356,6 +356,7 @@ struct SettingsView: View {
     @State private var srtPassphrase = Settings.srtPassphrase
     @State private var transport = Settings.transport
     @State private var mock = Settings.mockGlasses
+    @State private var passthrough = Settings.videoPassthrough
     var onSave: () -> Void
 
     var body: some View {
@@ -388,10 +389,11 @@ struct SettingsView: View {
                     Picker("Send over", selection: $transport) {
                         ForEach(Settings.Transport.allCases) { Text($0.label).tag($0) }
                     }
+                    Toggle("Keep streaming when locked", isOn: $passthrough)
                 } header: {
                     Text("Glasses stream")
                 } footer: {
-                    Text("STREAM_KEY / SRT_PASSPHRASE from the VM's .env. RTMP is the tested path; SRT is experimental (the VM drops it after a few seconds). Applies the next time you start streaming.")
+                    Text("STREAM_KEY / SRT_PASSPHRASE from the VM's .env. RTMP is the tested path; SRT is experimental (the VM drops it after a few seconds). Keep streaming when locked sends the glasses' own HEVC as is (RTMP only): no phone video encoder, which iOS stops when the screen locks. Hand tracking pauses while locked. Applies the next time you start streaming.")
                 }
                 Section {
                     Toggle("Mock glasses", isOn: $mock)
@@ -411,6 +413,7 @@ struct SettingsView: View {
                         Settings.streamKey = streamKey
                         Settings.srtPassphrase = srtPassphrase
                         Settings.transport = transport
+                        Settings.videoPassthrough = passthrough
                         if mock != Settings.mockGlasses {
                             Task { await glasses.setMock(mock) }
                         }

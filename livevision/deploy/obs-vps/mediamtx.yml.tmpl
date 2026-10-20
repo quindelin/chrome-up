@@ -3,13 +3,19 @@
 #   live/<STREAM_KEY>  the raw glasses feed: publish from anywhere that knows the key
 #   live/program       OBS's composited output (HUD + avatar): publish from this host only
 # Reading and the API are allowed from this host only (OBS, HUD, autoclip).
+# The phone may publish H.264, or the glasses' own HEVC over enhanced RTMP
+# (it keeps streaming with the phone locked). Local readers pull over RTSP,
+# which carries either codec; ffmpeg can't read HEVC back over RTMP.
 logLevel: info
 # localhost only: autoclip reads it for /api/autoclip/stack
 api: yes
 apiAddress: 127.0.0.1:9997
 metrics: no
 playback: no
-rtsp: no
+rtsp: yes
+rtspAddress: 127.0.0.1:8554
+rtpAddress: 127.0.0.1:8000
+rtcpAddress: 127.0.0.1:8001
 hls: no
 webrtc: no
 

@@ -194,7 +194,7 @@
       "uuid": "9a6c1a2e-0b1f-4c6e-9d3c-6f7c1e2a0002",
       "settings": {
         "is_local_file": false,
-        "input": "rtmp://127.0.0.1:1935/live/${STREAM_KEY}",
+        "input": "rtsp://127.0.0.1:8554/live/${STREAM_KEY}",
         "input_format": "",
         "reconnect_delay_sec": 1,
         "restart_on_activate": true,

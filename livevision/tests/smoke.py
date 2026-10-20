@@ -1734,10 +1734,10 @@ def t_obs_blur_background():
     assert src["IRL"]["settings"]["id_counter"] >= max(i["id"] for i in items)
     assert "jq" in (obs / "Dockerfile").read_text()
 
-    # migration: start.sh's jq block turns the pre-blur seed into the new one
+    # migration: start.sh's jq blocks (blur, then rtmp -> rtsp input) turn the
+    # pre-blur seed into the new one
     start = (obs / "start.sh").read_text()
-    block = start[start.index("SCENE="):]
-    block = block[:block.index("\nfi\n") + 4]
+    block = start[start.index("SCENE="):start.index("# The stream output always follows")]
     old = subprocess.run(["git", "show", "a91aeba:livevision/deploy/obs-vps/obs/seed/IRL.json"],
                          cwd=ROOT, capture_output=True, text=True)
     if not shutil.which("jq") or old.returncode != 0:

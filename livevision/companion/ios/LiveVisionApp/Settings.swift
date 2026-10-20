@@ -72,6 +72,16 @@ enum Settings {
         set { defaults.set(newValue.rawValue, forKey: "transport") }
     }
 
+    /// Send the glasses' own HEVC to the VPS instead of decoding it and
+    /// re-encoding H.264 on the phone. iOS won't let a locked phone use the
+    /// hardware video encoder, so re-encoding cut the stream on lock; the
+    /// passthrough needs no encoder at all (and saves battery). RTMP only
+    /// (enhanced RTMP, MediaMTX 1.15+ on the VM). On unless turned off.
+    static var videoPassthrough: Bool {
+        get { defaults.object(forKey: "videoPassthrough") == nil ? true : defaults.bool(forKey: "videoPassthrough") }
+        set { defaults.set(newValue, forKey: "videoPassthrough") }
+    }
+
     /// DAT's Mock Device Kit instead of real glasses: a simulated Ray-Ban
     /// Display whose camera plays a bundled test pattern. Works in the Simulator.
     static var mockGlasses: Bool {

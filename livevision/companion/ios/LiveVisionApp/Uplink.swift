@@ -98,7 +98,9 @@ actor Uplink {
         emit.yield(.state(.idle))
     }
 
-    /// One uncompressed video frame, already on the host clock.
+    /// One video frame, already on the host clock: pixels for the H.264
+    /// encoder, or (passthrough) the glasses' HEVC, which RTMPStream sends as
+    /// is over enhanced RTMP (sequence header from its hvcC, then the frames).
     func append(video sampleBuffer: CMSampleBuffer) async {
         await stream?.append(sampleBuffer)
     }

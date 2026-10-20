@@ -11,7 +11,7 @@
 source:
   mode: rtmp
   rtmp:
-    url: "rtmp://127.0.0.1:1935/live"
+    url: "rtsp://127.0.0.1:8554/live"     # RTSP: the glasses feed may be HEVC
     stream_key: program                # OBS's composited program
     fallback_key: "${STREAM_KEY}"      # the raw glasses feed (no HUD)
     mediamtx_api: "http://127.0.0.1:9997"

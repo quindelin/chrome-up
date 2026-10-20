@@ -82,8 +82,16 @@ final class MediaPump: @unchecked Sendable {
     private var audio: AsyncStream<(AVAudioPCMBuffer, AVAudioTime)>.Continuation?
     private var consumers: [Task<Void, Never>] = []
 
-    func start(into uplink: Uplink) {
+    /// Passthrough: the glasses' HEVC goes out as is (no phone encoder, so it
+    /// keeps going with the screen locked). Decided on the first frame and
+    /// kept for the whole publish: the stream's codec must not change midway.
+    func start(into uplink: Uplink, passthrough: Bool = false) {
         stop()
+        counters.withLock { _ in
+            wantPassthrough = passthrough
+            mode = .undecided
+            awaitKeyframe = false
+        }
         let (v, vc) = AsyncStream.makeStream(of: CMSampleBuffer.self, bufferingPolicy: .bufferingNewest(15))
         let (a, ac) = AsyncStream.makeStream(of: (AVAudioPCMBuffer, AVAudioTime).self, bufferingPolicy: .bufferingNewest(100))
         video = vc
@@ -122,6 +130,17 @@ final class MediaPump: @unchecked Sendable {
                                         presentationTimeStamp: CMTime(seconds: host, preferredTimescale: 1_000_000_000),
                                         decodeTimeStamp: .invalid)
         if sb.imageBuffer == nil, sb.formatDescription?.mediaType == .video {
+            if passthroughFrame(sb) {
+                // hand tracking still wants pixels; VideoToolbox refuses to
+                // decode while locked, and then the tracker just goes quiet
+                if let tap = onPixels, let pixels = decoder.decode(sb) { tap(pixels) }
+                var out: CMSampleBuffer?
+                guard CMSampleBufferCreateCopyWithNewTiming(allocator: nil, sampleBuffer: sb, sampleTimingEntryCount: 1,
+                                                            sampleTimingArray: &timing, sampleBufferOut: &out) == noErr,
+                      let out else { return }
+                enqueueCompressed(out)
+                return
+            }
             if let pixels = decoder.decode(sb) { onPixels?(pixels); enqueue(pixels, timing: &timing) }
             else if first { log.error("first frame has no pixels and does not decode") }
             return
@@ -136,6 +155,54 @@ final class MediaPump: @unchecked Sendable {
 
     private let decoder = FrameDecoder()
     private var sawFrame = false
+    private enum Mode { case undecided, passthrough, encode }
+    private var wantPassthrough = false
+    private var mode = Mode.undecided
+    /// a compressed frame was dropped: skip to the next keyframe (frames
+    /// after a gap reference what's missing and would smear until then)
+    private var awaitKeyframe = false
+
+    /// Pass this frame through untouched? Only HEVC that carries its hvcC
+    /// (RTMPStream builds the sequence header from it); decided once.
+    private func passthroughFrame(_ sb: CMSampleBuffer) -> Bool {
+        if mode == .undecided {
+            var ok = false
+            if wantPassthrough, let fd = sb.formatDescription,
+               CMFormatDescriptionGetMediaSubType(fd) == kCMVideoCodecType_HEVC {
+                let atoms = CMFormatDescriptionGetExtension(
+                    fd, extensionKey: kCMFormatDescriptionExtension_SampleDescriptionExtensionAtoms) as? [String: Any]
+                ok = atoms?["hvcC"] != nil
+                if !ok { log.error("passthrough: HEVC without hvcC, re-encoding instead") }
+            }
+            mode = ok ? .passthrough : .encode
+            log.notice("video: \(ok ? "HEVC passthrough" : "H.264 encode")")
+        }
+        return mode == .passthrough
+    }
+
+    private func enqueueCompressed(_ frame: CMSampleBuffer) {
+        guard let video else { return }
+        if awaitKeyframe {
+            guard Self.isKeyframe(frame) else {
+                counters.withLock { $0.dropped += 1 }
+                return
+            }
+            awaitKeyframe = false
+        }
+        let r = video.yield(frame)
+        videoFlowing = true
+        counters.withLock { c in
+            c.framesIn += 1
+            if case .dropped = r { c.dropped += 1 }
+        }
+        if case .dropped = r { awaitKeyframe = true }
+    }
+
+    private static func isKeyframe(_ sb: CMSampleBuffer) -> Bool {
+        guard let atts = CMSampleBufferGetSampleAttachmentsArray(sb, createIfNecessary: false) as? [[CFString: Any]],
+              let first = atts.first else { return true }
+        return !((first[kCMSampleAttachmentKey_NotSync] as? Bool) ?? false)
+    }
     /// No audio until video flows: MediaMTX sets up the path's tracks from the
     /// first packets, and an audio-only start made it drop the publish
     /// ("received a video packet, but track is not set up") on the first frame.

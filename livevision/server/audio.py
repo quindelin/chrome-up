@@ -127,6 +127,7 @@ class AudioAnalyzer:
         cmd = ["ffmpeg", "-nostdin", "-loglevel", "error",
                "-fflags", "nobuffer", "-flags", "low_delay",
                "-probesize", "32768", "-analyzeduration", "0",
+               *(["-rtsp_transport", "tcp"] if self.url.startswith("rtsp://") else []),
                "-i", self.url, "-vn", "-ac", "1", "-ar", str(self.rate),
                "-f", "s16le", "-"]
         need = BLOCK * 2
