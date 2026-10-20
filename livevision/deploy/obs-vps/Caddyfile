@@ -9,6 +9,12 @@
 		rewrite * /outbox{path}
 		reverse_proxy 127.0.0.1:8899
 	}
+	# TikTok Share Kit's callback (companion ClipShare). Without a universal
+	# link set up it opens here in Safari instead of in the app.
+	handle /autoclip/tiktok* {
+		header Content-Type "text/html; charset=utf-8"
+		respond `<!doctype html><meta name="viewport" content="width=device-width"><body style="font:17px -apple-system;text-align:center;padding:3em 1em">Handed to TikTok. <p><a href="livevision://">Back to LiveVision</a> to mark it posted.</p></body>` 200
+	}
 	handle_path /autoclip/* {
 		basic_auth {
 			{$AUTOCLIP_USER} {$AUTOCLIP_PASS_HASH}

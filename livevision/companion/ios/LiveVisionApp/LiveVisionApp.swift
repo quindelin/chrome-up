@@ -42,8 +42,10 @@ struct LiveVisionApp: App {
                 bodyTracker.sessionChanged(glasses)        // DAT Motion rides the same session
             }
             // livevision://navigate?to=<maps link or place> (Shortcuts, links);
-            // anything else is the Meta AI app's registration callback
+            // TikTok's Share Kit answer (ClipShare); anything else is the
+            // Meta AI app's registration callback
             .onOpenURL { url in
+                if ClipShare.handle(url: url) { return }
                 if url.host() == "navigate",
                    let to = URLComponents(url: url, resolvingAgainstBaseURL: false)?
                        .queryItems?.first(where: { $0.name == "to" })?.value {
@@ -51,6 +53,10 @@ struct LiveVisionApp: App {
                 } else {
                     glasses.handle(url: url)
                 }
+            }
+            // TikTok's callback as a universal link, once Associated Domains is set up
+            .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                if let url = activity.webpageURL { _ = ClipShare.handle(url: url) }
             }
         }
         .onChange(of: phase, initial: true) { _, p in

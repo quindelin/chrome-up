@@ -1,46 +1,50 @@
-import AVKit
 import SwiftUI
 
-/// autoclip's approval queue, natively: watch a clip, then post or drop it.
-/// Replaces the https://<host>/autoclip/ page.
+/// autoclip's approval queue, natively (docs/CLIP_POSTING.md): every clip
+/// autoclip cuts waits here. Tap one to watch it, fix the caption, pick the
+/// platforms and post; posted clips move to the bottom with their links.
 struct ClipsView: View {
     @State private var pending: [HUDClient.Pending] = []
-    @State private var recent: [HUDClient.Clip] = []
-    @State private var acting: Set<String> = []
+    @State private var posted: [HUDClient.Pending] = []
+    @State private var platforms: HUDClient.Platforms?
     @State private var error: String?
     @State private var loaded = false
 
     var body: some View {
         NavigationStack {
             List {
-                Section("Waiting for approval") {
+                if let platforms, !platforms.isLive {
+                    Section {
+                        Label("Dry run: posting only copies to the VPS outbox. Set AUTOCLIP_PUBLISH=live on the VM to post for real.",
+                              systemImage: "testtube.2")
+                            .font(.footnote).foregroundStyle(.secondary)
+                    }
+                }
+                Section("Waiting for you") {
                     if pending.isEmpty {
                         Text(loaded ? "Nothing waiting" : "Loading…").foregroundStyle(.secondary)
                     }
                     ForEach(pending) { item in
-                        VStack(alignment: .leading, spacing: 8) {
-                            ClipCard(clip: item.clip, platforms: item.platforms)
-                            HStack {
-                                Button(role: .destructive) { act(item.id) { try await $0.reject(item.id) } } label: {
-                                    Label("Drop", systemImage: "trash").frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.bordered)
-                                Button { act(item.id) { try await $0.approve(item.id) } } label: {
-                                    Label("Post", systemImage: "paperplane.fill").frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.borderedProminent)
+                        NavigationLink(value: item.id) { ClipRow(item: item) }
+                            .swipeActions {
+                                Button(role: .destructive) { drop(item.id) } label: { Label("Drop", systemImage: "trash") }
                             }
-                            .disabled(acting.contains(item.id))
-                        }
-                        .padding(.vertical, 4)
                     }
                 }
-                Section("Recent clips") {
-                    if recent.isEmpty && loaded { Text("No clips yet").foregroundStyle(.secondary) }
-                    ForEach(recent) { ClipCard(clip: $0, platforms: nil) }
+                if !posted.isEmpty {
+                    Section("Posted") {
+                        ForEach(posted) { item in
+                            NavigationLink(value: item.id) { ClipRow(item: item) }
+                        }
+                    }
                 }
             }
             .navigationTitle("Clips")
+            .navigationDestination(for: String.self) { id in
+                if let item = (pending + posted).first(where: { $0.id == id }) {
+                    ClipDetailView(item: item, platforms: platforms, changed: { Task { await load() } })
+                }
+            }
             .refreshable { await load() }
             .task {
                 while !Task.isCancelled {
@@ -58,66 +62,87 @@ struct ClipsView: View {
         do {
             let c = try HUDClient.fromSettings()
             async let p = c.pending()
-            async let r = c.clips()
+            async let d = c.posted()
+            async let f = c.platforms()
             pending = try await p
-            recent = Array(try await r.suffix(10).reversed())
+            posted = (try? await d) ?? []
+            platforms = try? await f
         } catch {
             if !loaded { self.error = error.localizedDescription }
         }
         loaded = true
     }
 
-    private func act(_ id: String, _ action: @escaping (HUDClient) async throws -> Void) {
+    private func drop(_ id: String) {
         Task {
-            acting.insert(id)
-            defer { acting.remove(id) }
-            do { try await action(try HUDClient.fromSettings()) } catch { self.error = error.localizedDescription }
+            do { try await HUDClient.fromSettings().reject(id) } catch { self.error = error.localizedDescription }
             await load()
         }
     }
 }
 
-private struct ClipCard: View {
-    let clip: HUDClient.Clip
-    let platforms: [String]?
-    @State private var player: AVPlayer?
+private struct ClipRow: View {
+    let item: HUDClient.Pending
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            ZStack {
-                if let player {
-                    VideoPlayer(player: player)
-                } else {
-                    Button { start() } label: {
-                        Image(systemName: "play.circle.fill").font(.system(size: 44)).foregroundStyle(.white)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                            .background(.black)
-                    }
-                    .buttonStyle(.plain)
+        HStack(spacing: 12) {
+            AsyncImage(url: thumbURL) { img in
+                img.resizable().aspectRatio(contentMode: .fill)
+            } placeholder: {
+                Color.black.overlay(Image(systemName: "film").foregroundStyle(.secondary))
+            }
+            .frame(width: 54, height: 96)
+            .clipShape(RoundedRectangle(cornerRadius: 6))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(item.title.isEmpty ? item.clip.fileName : item.title).font(.headline).lineLimit(2)
+                if !item.caption.isEmpty {
+                    Text(item.caption).font(.subheadline).foregroundStyle(.secondary).lineLimit(2)
                 }
+                Text(String(format: "%.0fs · score %.2f", item.clip.duration ?? 0, item.clip.decision?.score ?? 0))
+                    .font(.caption).foregroundStyle(.secondary)
+                PostBadges(posts: item.posts ?? [:])
             }
-            .aspectRatio(9 / 16, contentMode: .fit)
-            .frame(maxHeight: 360)
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            Text(clip.decision?.title ?? clip.fileName).font(.headline)
-            if let c = clip.decision?.caption, !c.isEmpty {
-                Text(c).font(.subheadline).foregroundStyle(.secondary).lineLimit(3)
-            }
-            Text(meta).font(.caption).foregroundStyle(.secondary)
         }
     }
 
-    private var meta: String {
-        var parts = [String(format: "%.0fs", clip.duration ?? 0),
-                     String(format: "score %.2f", clip.decision?.score ?? 0)]
-        if let p = platforms, !p.isEmpty { parts.append("→ " + p.joined(separator: ", ")) }
-        return parts.joined(separator: " · ")
+    private var thumbURL: URL? {
+        guard let t = item.thumbUrl, !t.isEmpty else { return nil }
+        return try? HUDClient.fromSettings().mediaURL(t)
     }
+}
 
-    private func start() {
-        guard let c = try? HUDClient.fromSettings() else { return }
-        let p = AVPlayer(url: c.videoURL(clip))   // outbox is public: no login needed
-        player = p
-        p.play()
+/// One chip per platform the clip went to: spinner, ✓ or ✗.
+struct PostBadges: View {
+    let posts: [String: HUDClient.Post]
+
+    var body: some View {
+        if !posts.isEmpty {
+            HStack(spacing: 6) {
+                ForEach(posts.keys.sorted(), id: \.self) { name in
+                    let p = posts[name]!
+                    HStack(spacing: 3) {
+                        if p.isBusy { ProgressView().controlSize(.mini) }
+                        else { Image(systemName: p.isDone ? "checkmark.circle.fill" : "xmark.circle.fill") }
+                        Text(PlatformName.label(name))
+                    }
+                    .font(.caption2)
+                    .padding(.horizontal, 6).padding(.vertical, 2)
+                    .background(Capsule().fill(p.isDone ? Color.green.opacity(0.2)
+                                               : p.isBusy ? Color.gray.opacity(0.2) : Color.red.opacity(0.2)))
+                }
+            }
+        }
+    }
+}
+
+enum PlatformName {
+    static func label(_ name: String) -> String {
+        switch name {
+        case "youtube": "YouTube"
+        case "instagram": "Instagram"
+        case "tiktok": "TikTok"
+        case "x": "X"
+        default: name.capitalized
+        }
     }
 }

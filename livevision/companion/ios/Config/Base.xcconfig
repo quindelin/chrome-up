@@ -17,6 +17,9 @@ LIVEVISION_SRT_PASSPHRASE =
 META_APP_ID = 0
 META_CLIENT_TOKEN = 0
 DEVELOPMENT_TEAM =
+// TikTok Share Kit (docs/CLIP_POSTING.md): client key from developers.tiktok.com;
+// empty = TikTok goes through the share sheet instead
+TIKTOK_CLIENT_KEY =
 // HaishinKit's libsrt.xcframework has no x86_64 simulator slice
 EXCLUDED_ARCHS[sdk=iphonesimulator*] = x86_64
 

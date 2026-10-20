@@ -170,6 +170,8 @@ TXT"
     # LiveVision (companion/ios) build settings: host, approval-page login, and
     # the glasses ingest (stream key + SRT passphrase)
     OUT=../../companion/ios/Config/Secrets.xcconfig
+    # lines that only live on this laptop survive the rewrite (TikTok client key)
+    KEEP="$(grep -E '^TIKTOK_' "$OUT" 2>/dev/null || true)"
     ssh_ "cd $REMOTE/deploy/obs-vps && . ./.env && IP=\$(curl -fsS -H 'Metadata-Flavor: Google' http://metadata.google.internal/computeMetadata/v1/instance/network-interfaces/0/access-configs/0/external-ip) && \
           printf '// written by deploy/obs-vps/gcp.sh companion - keep private\nLIVEVISION_HOST = %s.sslip.io\nLIVEVISION_USER = %s\nLIVEVISION_PASSWORD = %s\nLIVEVISION_STREAM_KEY = %s\nLIVEVISION_SRT_PASSPHRASE = %s\n' \"\${IP//./-}\" \"\$AUTOCLIP_USER\" \"\$AUTOCLIP_PASSWORD\" \"\$STREAM_KEY\" \"\$SRT_PASSPHRASE\"" 2>/dev/null \
       | grep -E '^(//|LIVEVISION_)' > "$OUT.tmp" && mv "$OUT.tmp" "$OUT" && chmod 600 "$OUT"
@@ -178,6 +180,7 @@ TXT"
       URL="$("${G[@]}" run services describe "$NAME-control" --region "$REGION" --format='value(status.url)' 2>/dev/null || true)"
       [ -n "$URL" ] && printf 'LIVEVISION_CONTROL_HOST = %s\nLIVEVISION_CONTROL_TOKEN = %s\n' "${URL#https://}" "$(cat .control-token)" >> "$OUT"
     fi
+    [ -n "$KEEP" ] && printf '%s\n' "$KEEP" >> "$OUT"
     grep -E "LIVEVISION_(HOST|CONTROL_HOST)" "$OUT"
     ;;
   control-deploy)

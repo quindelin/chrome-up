@@ -72,6 +72,7 @@ Tools (all return JSON text):
 | `autoclip_run` | `agent?`, `publish?` | one full cycle |
 | `autoclip_clips` | – | clips produced so far |
 | `autoclip_pending` / `autoclip_approve` | `id`, `platforms?` | approval queue |
+| `autoclip_platforms` / `autoclip_clip_post` | `id`, `platforms?`, `title?`, `caption?`, `hashtags?`, `youtube_privacy?` | edit + post a queued clip ([CLIP_POSTING](docs/CLIP_POSTING.md)) |
 | `autoclip_events` | – | **SSE stream** of `voice_command` + `transcript_chunk` events for HUD agents |
 | `autoclip_events_history` | `n?`, `type?` | last N events (JSON, for polling) |
 | `autoclip_command` | `text`, `intent?`, `target?`, `value?` | inject a voice event manually |
@@ -424,8 +425,10 @@ throttles, and is the cheapest way to actually ship this.
 
 - **`publish.mode` defaults to `dry_run`.** Nothing leaves the machine unless a
   human flips it to `live` and approves.
-- **`publish.require_approval` defaults to `true`.** In live mode clips land in
-  the pending queue; publish via `approve`.
+- **`publish.require_approval` defaults to `true`.** Clips land in the pending
+  queue (in dry_run too, `publish.queue: always`); publish via `approve` or the
+  phone's Clips tab, and `publish.mode` still decides whether that reaches the
+  platforms. Contract: [`docs/CLIP_POSTING.md`](docs/CLIP_POSTING.md).
 - Every external service degrades gracefully. Missing SDK/creds ⇒ `ok=False,
   dry_run=True`, never an exception that kills the loop.
 - Captions burn in through one of two paths, chosen automatically
@@ -480,6 +483,7 @@ autoclip/
   clips.py      ffmpeg cut/reframe/caption/normalize
   agents.py     ClipDecision, AgentContext, heuristic/llm/remote + registry
   publishers/   local (outbox), youtube, instagram, x
+  posting.py    approval queue records, async per-platform posting
   pipeline.py   run_cycle(): the whole product
   api.py        FastAPI REST + OpenAPI + SSE
   mcp_server.py MCP over stdio (no SDK dependency)

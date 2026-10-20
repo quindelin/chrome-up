@@ -24,7 +24,15 @@ struct HUDClient {
         return URLSession(configuration: c)
     }()
 
-    private func send(_ url: URL, method: String = "GET", json: [String: Any]? = nil, auth: Bool = false) async throws -> Data {
+    /// Posting answers in a second or two, but the VPS may be busy cutting a clip.
+    private static let slowSession: URLSession = {
+        let c = URLSessionConfiguration.ephemeral
+        c.timeoutIntervalForRequest = 30
+        return URLSession(configuration: c)
+    }()
+
+    private func send(_ url: URL, method: String = "GET", json: [String: Any]? = nil, auth: Bool = false,
+                      slow: Bool = false) async throws -> Data {
         var r = URLRequest(url: url)
         r.httpMethod = method
         if let json {
@@ -36,11 +44,16 @@ struct HUDClient {
             r.setValue("Basic \(token)", forHTTPHeaderField: "Authorization")
         }
         let data: Data, resp: URLResponse
-        do { (data, resp) = try await Self.session.data(for: r) } catch {
+        do { (data, resp) = try await (slow ? Self.slowSession : Self.session).data(for: r) } catch {
             throw StackError.unreachable(error.localizedDescription)
         }
         let code = (resp as? HTTPURLResponse)?.statusCode ?? 0
         if code == 401 { throw StackError.unauthorized }
+        // autoclip says why it refused (FastAPI {"detail": "..."})
+        if (400..<500).contains(code),
+           let why = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])?["detail"] as? String {
+            throw StackError.refused(why)
+        }
         guard (200..<300).contains(code) else { throw StackError.server(code) }
         return data
     }
@@ -109,45 +122,145 @@ struct HUDClient {
         _ = try await send(root.appending(path: "api/destination"), method: "POST", json: ["clear": true])
     }
 
-    // MARK: clips (autoclip, behind basic auth)
+    // MARK: clips (autoclip, behind basic auth; docs/CLIP_POSTING.md)
 
     struct Clip: Decodable, Identifiable {
         var path: String
         var duration: Double?
         var decision: Decision?
         var ts: Double?
+        var thumb: String?
         var id: String { path }
         var fileName: String { (path as NSString).lastPathComponent }
     }
     struct Decision: Decodable {
         var title: String?
         var caption: String?
+        var hashtags: [String]?
         var score: Double?
     }
+
+    /// One queued clip: what the agent wrote, your edits, and each platform's post.
     struct Pending: Decodable, Identifiable {
         var id: String
         var clip: Clip
         var platforms: [String]?
+        var edits: Edits?
+        var posts: [String: Post]?
+        var status: String?
+        var videoUrl: String?
+        var thumbUrl: String?
+        var created: Double?
+
+        var title: String { edits?.title ?? clip.decision?.title ?? "" }
+        var caption: String { edits?.caption ?? clip.decision?.caption ?? "" }
+        var hashtags: [String] { edits?.hashtags ?? clip.decision?.hashtags ?? [] }
+        var isPosting: Bool { status == "posting" }
+        func post(_ platform: String) -> Post? { posts?[platform] }
     }
+    struct Edits: Decodable {
+        var title: String?
+        var caption: String?
+        var hashtags: [String]?
+        var youtubePrivacy: String?
+    }
+    /// queued / uploading / posted / dry_run / failed; device: shared / cancelled
+    struct Post: Decodable {
+        var state: String
+        var url: String?
+        var message: String?
+        var dryRun: Bool?
+        var at: Double?
+
+        var isBusy: Bool { state == "queued" || state == "uploading" }
+        var isDone: Bool { ["posted", "dry_run", "shared"].contains(state) }
+    }
+
+    struct Platforms: Decodable {
+        var mode: String
+        var platforms: [Platform]
+        var youtubePrivacy: String?
+        var youtubePrivacyOptions: [String]?
+        var isLive: Bool { mode == "live" }
+    }
+    struct Platform: Decodable, Identifiable {
+        var name: String
+        var path: String            // "server" (autoclip posts) or "device" (the phone shares)
+        var configured: Bool
+        var reason: String?
+        var limits: Limits?
+        var id: String { name }
+        var onDevice: Bool { path == "device" }
+    }
+    struct Limits: Decodable {
+        var title: Int?
+        var caption: Int?
+        var maxSeconds: Int?
+    }
+
+    private func clipsURL(_ path: String) -> URL { clipsBase.appending(path: "api/autoclip/" + path) }
 
     func pending() async throws -> [Pending] {
         struct R: Decodable { var pending: [Pending] }
-        return try decode(R.self, try await send(clipsBase.appending(path: "api/autoclip/pending"), auth: true)).pending
+        return try decode(R.self, try await send(clipsURL("pending"), auth: true)).pending
+    }
+
+    func posted() async throws -> [Pending] {
+        struct R: Decodable { var posted: [Pending] }
+        return try decode(R.self, try await send(clipsURL("posted"), auth: true)).posted
     }
 
     func clips() async throws -> [Clip] {
         struct R: Decodable { var clips: [Clip] }
-        return try decode(R.self, try await send(clipsBase.appending(path: "api/autoclip/clips"), auth: true)).clips
+        return try decode(R.self, try await send(clipsURL("clips"), auth: true)).clips
     }
 
-    func approve(_ id: String) async throws {
-        _ = try await send(clipsBase.appending(path: "api/autoclip/approve/\(id)"), method: "POST", auth: true)
+    func platforms() async throws -> Platforms {
+        try decode(Platforms.self, try await send(clipsURL("platforms"), auth: true))
+    }
+
+    func clip(_ id: String) async throws -> Pending {
+        try decode(Pending.self, try await send(clipsURL("clips/\(id)"), auth: true))
+    }
+
+    private func editBody(title: String, caption: String, hashtags: [String], youtubePrivacy: String?) -> [String: Any] {
+        var body: [String: Any] = ["title": title, "caption": caption, "hashtags": hashtags]
+        if let youtubePrivacy { body["youtube_privacy"] = youtubePrivacy }
+        return body
+    }
+
+    @discardableResult
+    func edit(_ id: String, title: String, caption: String, hashtags: [String], youtubePrivacy: String?) async throws -> Pending {
+        try decode(Pending.self, try await send(clipsURL("clips/\(id)"), method: "PATCH",
+                                                 json: editBody(title: title, caption: caption, hashtags: hashtags,
+                                                                youtubePrivacy: youtubePrivacy),
+                                                 auth: true, slow: true))
+    }
+
+    /// Starts YouTube / Instagram on the VPS and answers right away (202):
+    /// poll clip(id) for each platform's result.
+    @discardableResult
+    func post(_ id: String, platforms: [String], title: String, caption: String, hashtags: [String],
+              youtubePrivacy: String?) async throws -> Pending {
+        var body = editBody(title: title, caption: caption, hashtags: hashtags, youtubePrivacy: youtubePrivacy)
+        body["platforms"] = platforms
+        return try decode(Pending.self, try await send(clipsURL("clips/\(id)/post"), method: "POST",
+                                                        json: body, auth: true, slow: true))
+    }
+
+    /// TikTok / X went through the phone: tell the queue how it went.
+    @discardableResult
+    func shared(_ id: String, platform: String, state: String, message: String = "") async throws -> Pending {
+        try decode(Pending.self, try await send(clipsURL("clips/\(id)/shared"), method: "POST",
+                                                 json: ["platform": platform, "state": state, "message": message],
+                                                 auth: true))
     }
 
     func reject(_ id: String) async throws {
-        _ = try await send(clipsBase.appending(path: "api/autoclip/reject/\(id)"), method: "POST", auth: true)
+        _ = try await send(clipsURL("clips/\(id)/reject"), method: "POST", auth: true)
     }
 
     /// Rendered clips are public (Instagram fetches them), so AVPlayer needs no login.
     func videoURL(_ clip: Clip) -> URL { clipsBase.appending(path: "outbox/\(clip.fileName)") }
+    func mediaURL(_ relative: String) -> URL { clipsBase.appending(path: relative) }
 }
