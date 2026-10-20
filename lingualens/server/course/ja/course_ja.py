@@ -37,6 +37,7 @@ UNIT_1 = {
                 ("ありがとう", "ありがとう", "thank you", ""),
                 ("どういたしまして", "どういたしまして", "you're welcome", ""),
                 ("さようなら", "さようなら", "goodbye", ""),
+                ("またね", "またね", "see you", "casual goodbye"),
             ],
             "dialogue": [
                 ("them", "こんにちは。", "こんにちは。", "Hello."),
@@ -86,6 +87,8 @@ UNIT_1 = {
                 ("大丈夫です", "だいじょうぶです", "it's fine / no problem", ""),
                 ("どうぞ", "どうぞ", "here you go / go ahead", ""),
                 ("ありがとうございます", "ありがとうございます", "thank you very much", ""),
+                ("おそくなりました", "おそくなりました", "sorry I'm late", "literally: I have become late"),
+                ("どうも", "どうも", "thanks / very", ""),
             ],
             "dialogue": [
                 ("them", "どうぞ、すわってください。", "どうぞ、すわってください。", "Please, sit down."),
@@ -134,6 +137,7 @@ UNIT_1 = {
                 ("英語", "えいご", "English", ""),
                 ("日本語", "にほんご", "Japanese", ""),
                 ("少し", "すこし", "a little", ""),
+                ("よく", "よく", "well / really", "よくわかりません: I don't really understand"),
             ],
             "dialogue": [
                 ("them", "こんにちは。日本語がわかりますか。", "こんにちは。にほんごがわかりますか。",
@@ -296,6 +300,7 @@ UNIT_2 = {
                 ("右", "みぎ", "right", ""),
                 ("左", "ひだり", "left", ""),
                 ("近く", "ちかく", "nearby", ""),
+                ("遠い", "とおい", "far", ""),
             ],
             "dialogue": [
                 ("you", "すみません、トイレはどこですか。", "すみません、トイレはどこですか。",
@@ -493,6 +498,7 @@ UNIT_2 = {
                 ("次", "つぎ", "next", ""),
                 ("急行", "きゅうこう", "express train", ""),
                 ("何時", "なんじ", "what time", ""),
+                ("買います", "かいます", "to buy", ""),
             ],
             "dialogue": [
                 ("you", "すみません、切符はどこで買いますか。", "すみません、きっぷはどこでかいますか。",
@@ -555,6 +561,7 @@ UNIT_3 = {
                 ("おいしい", "おいしい", "delicious", ""),
                 ("レストラン", "レストラン", "restaurant", ""),
                 ("何", "なに", "what", ""),
+                ("楽しみ", "たのしみ", "something to look forward to", ""),
             ],
             "dialogue": [
                 ("them", "おなかがすきましたね。", "おなかがすきましたね。", "You're hungry, aren't you."),
@@ -701,6 +708,7 @@ UNIT_3 = {
                 ("食べに行きませんか", "たべにいきませんか", "shall we go and eat?", ""),
                 ("ごちそうします", "ごちそうします", "it's my treat", ""),
                 ("十二時", "じゅうにじ", "twelve o'clock", ""),
+                ("あした", "あした", "tomorrow", ""),
             ],
             "dialogue": [
                 ("you", "あした、暇ですか。", "あした、ひまですか。", "Are you free tomorrow?"),
@@ -816,6 +824,7 @@ UNIT_4 = {
                 ("サイズ", "サイズ", "size", ""),
                 ("色", "いろ", "colour", ""),
                 ("似合います", "にあいます", "to suit (someone)", ""),
+                ("ほか", "ほか", "other", "ほかの色: another colour"),
             ],
             "dialogue": [
                 ("you", "すみません、着てみてもいいですか。", "すみません、きてみてもいいですか。",
@@ -1126,6 +1135,7 @@ UNIT_5 = {
                 ("週末", "しゅうまつ", "weekend", ""),
                 ("土曜日", "どようび", "Saturday", ""),
                 ("都合", "つごう", "convenience, schedule", ""),
+                ("ちょっと", "ちょっと", "a little / not really", "trailing off is a soft no"),
             ],
             "dialogue": [
                 ("them", "明日、都合はどうですか。", "あした、つごうはどうですか。",
@@ -1280,6 +1290,8 @@ UNIT_5 = {
                 ("まだ", "まだ", "still, not yet", ""),
                 ("本当ですか", "ほんとうですか", "really?", ""),
                 ("面白い", "おもしろい", "interesting", ""),
+                ("上手", "じょうず", "good at / skilled", ""),
+                ("まだまだ", "まだまだ", "still a long way to go", "modest reply to praise"),
             ],
             "dialogue": [
                 ("them", "こんにちは。出身はどこですか。", "こんにちは。しゅっしんはどこですか。",

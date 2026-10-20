@@ -52,6 +52,9 @@ UNITS: List[Dict[str, Any]] = [
                     ("今月", "こんげつ", "this month"),
                     ("噂", "うわさ", "rumour"),
                     ("本当", "ほんとう", "true / really"),
+                    ("知る", "しる", "to know"),
+                    ("びっくりする", "びっくりする", "to be surprised"),
+                    ("いっぱい", "いっぱい", "until the end of (今月いっぱい)"),
                 ],
                 "dialogue": [
                     ("them", "部長が来月から転勤するそうです。", "ぶちょうがらいげつからてんきんするそうです。",
@@ -117,6 +120,9 @@ UNITS: List[Dict[str, Any]] = [
                     ("事故", "じこ", "accident"),
                     ("影響", "えいきょう", "effect / impact"),
                     ("報告", "ほうこく", "report"),
+                    ("早く", "はやく", "early / sooner"),
+                    ("安心", "あんしん", "relief / peace of mind"),
+                    ("もっと", "もっと", "more"),
                 ],
                 "dialogue": [
                     ("them", "今朝は遅刻でしたね。理由を聞かせてください。", "けさはちこくでしたね。りゆうをきかせてください。",
@@ -170,6 +176,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("上司", "じょうし", "boss / superior"),
                     ("会議", "かいぎ", "meeting"),
                     ("意見", "いけん", "opinion"),
+                    ("困る", "こまる", "to be in trouble / at a loss"),
+                    ("認める", "みとめる", "to recognise / acknowledge"),
                 ],
                 "dialogue": [
                     ("them", "今朝、部長に呼ばれました。", "けさ、ぶちょうによばれました。",
@@ -224,6 +232,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("資料", "しりょう", "materials / handout"),
                     ("担当", "たんとう", "person in charge"),
                     ("待つ", "まつ", "to wait"),
+                    ("避ける", "さける", "to avoid"),
                 ],
                 "dialogue": [
                     ("them", "新しい企画は誰が担当しますか。", "あたらしいきかくはだれがたんとうしますか。",
@@ -291,6 +300,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("減る", "へる", "to decrease"),
                     ("増える", "ふえる", "to increase"),
                     ("来月", "らいげつ", "next month"),
+                    ("選挙", "せんきょ", "election"),
+                    ("なるほど", "なるほど", "I see"),
                 ],
                 "dialogue": [
                     ("them", "今朝のニュースを見ましたか。", "けさのニュースをみましたか。",
@@ -346,6 +357,10 @@ UNITS: List[Dict[str, Any]] = [
                     ("顔", "かお", "face"),
                     ("現場", "げんば", "the scene / the site"),
                     ("逃げる", "にげる", "to run away"),
+                    ("社内", "しゃない", "inside the company"),
+                    ("違いない", "ちがいない", "there is no doubt / must be"),
+                    ("記録", "きろく", "record"),
+                    ("はず", "はず", "should (expectation)"),
                 ],
                 "dialogue": [
                     ("them", "財布がなくなったそうですね。犯人は分かりましたか。", "さいふがなくなったそうですね。はんにんはわかりましたか。",
@@ -455,6 +470,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("成功", "せいこう", "success"),
                     ("準備", "じゅんび", "preparation"),
                     ("油断", "ゆだん", "carelessness"),
+                    ("声", "こえ", "voice"),
                 ],
                 "dialogue": [
                     ("them", "昨日の発表、うまくいきましたか。", "きのうのはっぴょう、うまくいきましたか。",
@@ -578,6 +594,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("値段", "ねだん", "price"),
                     ("決心", "けっしん", "resolve / decision"),
                     ("納得", "なっとく", "being convinced"),
+                    ("壊れる", "こわれる", "to break"),
+                    ("それなら", "それなら", "in that case"),
                 ],
                 "dialogue": [
                     ("them", "このパソコン、古いですが性能はいいです。", "このパソコン、ふるいですがせいのうはいいです。",
@@ -687,6 +705,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("対応", "たいおう", "response / handling"),
                     ("損害", "そんがい", "loss / damage"),
                     ("客", "きゃく", "customer / client"),
+                    ("回答", "かいとう", "reply / answer"),
                 ],
                 "dialogue": [
                     ("them", "納品が一週間遅れるそうですね。客にはもう話しましたか。", "のうひんがいっしゅうかんおくれるそうですね。きゃくにはもうはなしましたか。",

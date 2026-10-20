@@ -187,6 +187,28 @@ def t_zh_beginner_word_lists_cover_learner_lines():
     assert not bad, bad
 
 
+def t_ja_word_lists_cover_learner_lines():
+    """Every band: every kanji you say is in this lesson's word list or was
+    met in an earlier lesson. Kana is read from lesson 1, so kana-only words
+    (びっくり) are not caught here - they are listed by hand."""
+    import re
+    kanji_re = re.compile(r"[一-鿿々]")
+    course = Course("ja")
+    sess = _session("ja", 1)
+    bad = []
+    for lid in course.lesson_ids:
+        lesson = course.lesson(lid)
+        known = sess._known_before(lesson) | {ch for v in lesson.vocab
+                                              for ch in kanji_re.findall(v.text)}
+        for t in lesson.dialogue:
+            if t.speaker == "you":
+                new = set(kanji_re.findall(t.text)) - known
+                if new:
+                    bad.append(f"L{lid} {t.text}: {''.join(sorted(new))}")
+            known |= set(kanji_re.findall(t.text))
+    assert not bad, bad
+
+
 def t_readings():
     assert not readings.check(), readings.check()[:5]
     assert readings.stats()["passages"] == 73, readings.stats()

@@ -39,6 +39,9 @@ UNITS: List[Dict[str, Any]] = [
                     ("本紙", "ほんし", "this newspaper"),
                     ("独占", "どくせん", "exclusive (scoop)"),
                     ("波紋", "はもん", "ripples / repercussions"),
+                    ("助詞", "じょし", "particle (grammar)"),
+                    ("他紙", "たし", "other newspapers"),
+                    ("追随", "ついずい", "following suit"),
                 ],
                 "dialogue": [
                     ("them", "今朝の見出しをご覧になりましたか。", "けさのみだしをごらんになりましたか。",
@@ -98,6 +101,10 @@ UNITS: List[Dict[str, Any]] = [
                     ("警鐘", "けいしょう", "alarm bell / warning"),
                     ("踏み込む", "ふみこむ", "to go further into"),
                     ("提言", "ていげん", "recommendation"),
+                    ("慎重", "しんちょう", "cautious / careful"),
+                    ("鳴らす", "ならす", "to sound / ring"),
+                    ("内容", "ないよう", "content"),
+                    ("維持", "いじ", "maintenance / upkeep"),
                 ],
                 "dialogue": [
                     ("them", "今朝の社説はどんな論調でしたか。", "けさのしゃせつはどんなろんちょうでしたか。",
@@ -158,6 +165,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("軌道修正", "きどうしゅうせい", "changing course"),
                     ("含み", "ふくみ", "implication / what is left unsaid"),
                     ("留保", "りゅうほ", "reservation / caveat"),
+                    ("こちらこそ", "こちらこそ", "likewise / the pleasure is mine"),
                 ],
                 "dialogue": [
                     ("them", "本日は取材をお受けいただき、ありがとうございます。",
@@ -293,6 +301,10 @@ UNITS: List[Dict[str, Any]] = [
                     ("狭義", "きょうぎ", "narrow sense"),
                     ("広義", "こうぎ", "broad sense"),
                     ("用例", "ようれい", "example of use"),
+                    ("装置", "そうち", "device / apparatus"),
+                    ("周辺", "しゅうへん", "surroundings / periphery"),
+                    ("厳密", "げんみつ", "strict / precise"),
+                    ("扱う", "あつかう", "to treat / handle"),
                 ],
                 "dialogue": [
                     ("them", "その専門用語の定義を確認させてください。",
@@ -353,6 +365,9 @@ UNITS: List[Dict[str, Any]] = [
                     ("有意差", "ゆういさ", "significant difference"),
                     ("追試", "ついし", "replication study"),
                     ("制約", "せいやく", "constraint"),
+                    ("明快", "めいかい", "clear / lucid"),
+                    ("標本", "ひょうほん", "sample / specimen"),
+                    ("やや", "やや", "somewhat / slightly"),
                 ],
                 "dialogue": [
                     ("them", "この論文の手法についてどう評価しますか。",
@@ -414,6 +429,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("補足", "ほそく", "supplementary detail"),
                     ("質疑", "しつぎ", "questions and answers"),
                     ("結び", "むすび", "closing / conclusion"),
+                    ("想定", "そうてい", "assumption / anticipated"),
                 ],
                 "dialogue": [
                     ("them", "発表の構成はどうなっていますか。", "はっぴょうのこうせいはどうなっていますか。",
@@ -474,6 +490,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("再考", "さいこう", "reconsideration"),
                     ("宿題", "しゅくだい", "unfinished business / action item"),
                     ("精査", "せいさ", "close examination"),
+                    ("触れる", "ふれる", "to touch on / mention"),
+                    ("もっとも", "もっとも", "quite right / reasonable"),
                 ],
                 "dialogue": [
                     ("them", "一点、指摘させていただいてよろしいですか。",
@@ -549,6 +567,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("語彙", "ごい", "vocabulary"),
                     ("言い回し", "いいまわし", "turn of phrase"),
                     ("場面", "ばめん", "setting / situation"),
+                    ("了解", "りょうかい", "understood"),
+                    ("最上級", "さいじょうきゅう", "highest grade / superlative"),
                 ],
                 "dialogue": [
                     ("them", "同じ内容を三つの段階で言ってみてください。",
@@ -612,6 +632,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("手を打つ", "てをうつ", "to take steps / act"),
                     ("拍子抜け", "ひょうしぬけ", "let-down / anticlimax"),
                     ("肩の力を抜く", "かたのちからをぬく", "to ease off / relax"),
+                    ("悔やむ", "くやむ", "to regret"),
                 ],
                 "dialogue": [
                     ("them", "わざわざ足を運んでいただき、恐縮です。",
@@ -675,6 +696,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("天秤", "てんびん", "scales / balance"),
                     ("折衷", "せっちゅう", "splitting the difference"),
                     ("統合", "とうごう", "integration"),
+                    ("仮説", "かせつ", "hypothesis"),
+                    ("単純", "たんじゅん", "simple / plain"),
                 ],
                 "dialogue": [
                     ("them", "議論が同じ枠組みの中で回っていますね。",
@@ -738,6 +761,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("微力", "びりょく", "one's modest ability"),
                     ("結び", "むすび", "closing / conclusion"),
                     ("所期", "しょき", "one's original aim"),
+                    ("一端", "いったん", "a part / a portion"),
+                    ("述べる", "のべる", "to state / express"),
                 ],
                 "dialogue": [
                     ("them", "本日は一言ご挨拶をお願いできますか。",

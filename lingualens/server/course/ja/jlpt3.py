@@ -89,6 +89,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("部屋", "へや", "room"),
                     ("広い", "ひろい", "spacious / big"),
                     ("狭い", "せまい", "cramped / small"),
+                    ("台所", "だいどころ", "kitchen"),
+                    ("あまり", "あまり", "not very (with a negative)"),
                 ],
                 "dialogue": [
                     ("them", "お家は何部屋ありますか。", "おうちはなんへやありますか。",
@@ -141,6 +143,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("晴れ", "はれ", "sunny"),
                     ("暖かい", "あたたかい", "warm"),
                     ("涼しい", "すずしい", "pleasantly cool"),
+                    ("散歩", "さんぽ", "a walk / stroll"),
+                    ("たぶん", "たぶん", "probably"),
                 ],
                 "dialogue": [
                     ("them", "今日の天気はどうですか。", "きょうのてんきはどうですか。",
@@ -257,6 +261,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("兄", "あに", "my older brother"),
                     ("優しい", "やさしい", "kind / gentle"),
                     ("似る", "にる", "to resemble"),
+                    ("背", "せ", "height / stature (背が高い: tall)"),
+                    ("みんな", "みんな", "everyone"),
                 ],
                 "dialogue": [
                     ("them", "ご家族は何人ですか。", "ごかぞくはなんにんですか。",
@@ -364,6 +370,10 @@ UNITS: List[Dict[str, Any]] = [
                     ("読書", "どくしょ", "reading (books)"),
                     ("練習", "れんしゅう", "practice"),
                     ("始める", "はじめる", "to start (something)"),
+                    ("聞く", "きく", "to listen / hear"),
+                    ("見る", "みる", "to see / watch"),
+                    ("ギター", "ギター", "guitar"),
+                    ("少しずつ", "すこしずつ", "little by little"),
                 ],
                 "dialogue": [
                     ("them", "ご趣味は何ですか。", "ごしゅみはなんですか。",
@@ -417,6 +427,9 @@ UNITS: List[Dict[str, Any]] = [
                     ("古い", "ふるい", "old"),
                     ("便利", "べんり", "convenient / practical"),
                     ("例えば", "たとえば", "for example"),
+                    ("年", "ねん", "year"),
+                    ("貯める", "ためる", "to save (money)"),
+                    ("ほう", "ほう", "side / direction (AのほうがB: A is more B)"),
                 ],
                 "dialogue": [
                     ("them", "日本の車とドイツの車と、どっちがいいですか。", "にほんのくるまとドイツのくるまと、どっちがいいですか。",
@@ -640,6 +653,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("旅行", "りょこう", "travel / trip"),
                     ("運転", "うんてん", "driving"),
                     ("挑戦", "ちょうせん", "challenge / try"),
+                    ("台湾", "たいわん", "Taiwan"),
                 ],
                 "dialogue": [
                     ("them", "海外に行ったことがありますか。", "かいがいにいったことがありますか。",

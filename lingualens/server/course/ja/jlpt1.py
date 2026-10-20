@@ -49,6 +49,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("担当", "たんとう", "in charge of"),
                     ("前職", "ぜんしょく", "one's previous position"),
                     ("契約", "けいやく", "contract"),
+                    ("お客様", "おきゃくさま", "customer / client (polite)"),
                 ],
                 "dialogue": [
                     ("them", "初めまして。自己紹介をお願いいたします。",
@@ -122,6 +123,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("送付", "そうふ", "sending (documents)"),
                     ("承知", "しょうち", "noted / I understand"),
                     ("対応", "たいおう", "handling / dealing with it"),
+                    ("次第", "しだい", "as soon as (Vます-stem + 次第)"),
+                    ("かしこまりました", "かしこまりました", "certainly (humble)"),
                 ],
                 "dialogue": [
                     ("them", "恐れ入りますが、至急ご確認いただけますでしょうか。",
@@ -195,6 +198,9 @@ UNITS: List[Dict[str, Any]] = [
                     ("見送る", "みおくる", "to pass on (an offer)"),
                     ("今回", "こんかい", "this time"),
                     ("改めて", "あらためて", "again / at another time"),
+                    ("存じます", "ぞんじます", "to think / know (humble)"),
+                    ("せっかく", "せっかく", "kindly / despite the trouble taken"),
+                    ("あいにく", "あいにく", "unfortunately"),
                 ],
                 "dialogue": [
                     ("them", "今週の金曜日、ご都合はいかがですか。",
@@ -359,6 +365,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("余白", "よはく", "room to breathe / slack"),
                     ("価値観", "かちかん", "values / what one holds dear"),
                     ("求める", "もとめる", "to seek / to look for"),
+                    ("深い", "ふかい", "deep"),
                 ],
                 "dialogue": [
                     ("them", "自由とは何だとお考えですか。",
@@ -431,6 +438,10 @@ UNITS: List[Dict[str, Any]] = [
                     ("短期", "たんき", "the short term"),
                     ("長期", "ちょうき", "the long term"),
                     ("満足度", "まんぞくど", "degree of satisfaction"),
+                    ("顧客", "こきゃく", "client / customer"),
+                    ("添える", "そえる", "to attach / add"),
+                    ("結論", "けつろん", "conclusion"),
+                    ("そして", "そして", "and / and then"),
                 ],
                 "dialogue": [
                     ("you", "今回の主張の根拠は三つございます。",
@@ -503,6 +514,10 @@ UNITS: List[Dict[str, Any]] = [
                     ("負担", "ふたん", "burden / load"),
                     ("及ぼす", "およぼす", "to exert (an influence)"),
                     ("仕組み", "しくみ", "structure / mechanism"),
+                    ("伸びる", "のびる", "to grow / rise"),
+                    ("将来", "しょうらい", "the future"),
+                    ("不安", "ふあん", "anxiety / unease"),
+                    ("支え合う", "ささえあう", "to support each other"),
                 ],
                 "dialogue": [
                     ("them", "この問題の背景には何があるとお考えですか。",
@@ -572,6 +587,8 @@ UNITS: List[Dict[str, Any]] = [
                     ("妥協", "だきょう", "compromise"),
                     ("不利", "ふり", "disadvantage"),
                     ("判断", "はんだん", "judgement / decision"),
+                    ("形", "かたち", "form / shape"),
+                    ("高齢", "こうれい", "advanced age / elderly"),
                 ],
                 "dialogue": [
                     ("them", "便利さと安全、どちらを優先すべきでしょうか。",
@@ -653,6 +670,9 @@ UNITS: List[Dict[str, Any]] = [
                     ("確実", "かくじつ", "certainty"),
                     ("一時的", "いちじてき", "temporary"),
                     ("見通し", "みとおし", "outlook / forecast"),
+                    ("含める", "ふくめる", "to include"),
+                    ("幅", "はば", "range / width"),
+                    ("しばらく", "しばらく", "for a while"),
                 ],
                 "dialogue": [
                     ("them", "今後、この状況は続くと思われますか。",
@@ -722,6 +742,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("守る", "まもる", "to protect / to keep"),
                     ("信頼", "しんらい", "trust"),
                     ("変える", "かえる", "to change"),
+                    ("課題", "かだい", "issue / challenge"),
                 ],
                 "dialogue": [
                     ("them", "今回こそ変えるべき点はどこでしょうか。",
@@ -859,6 +880,7 @@ UNITS: List[Dict[str, Any]] = [
                     ("遠回し", "とおまわし", "indirect (speech)"),
                     ("顔をつぶす", "かおをつぶす", "to make someone lose face"),
                     ("断る", "ことわる", "to decline"),
+                    ("申し訳ありません", "もうしわけありません", "I am truly sorry"),
                 ],
                 "dialogue": [
                     ("you", "この提案、一度持ち帰らせていただけますか。",
