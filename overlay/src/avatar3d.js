@@ -110,15 +110,21 @@ class Rig {
     set("rightHand", 0, 0, -0.1);
   }
 
-  /** frame head and shoulders, whatever the model's height */
+  /** bust shot cut halfway through the shoulders, whatever the model's
+   *  proportions: top of the hair down to the shoulder joints */
   _frame() {
     this.vrm.scene.updateMatrixWorld(true);
-    const head = this.bone("head");
     const p = new THREE.Vector3();
-    head.getWorldPosition(p);
+    this.bone("head").getWorldPosition(p);
     this.headY = p.y;
-    this.camera.position.set(0, p.y - 0.02, 2.05);
-    this.camera.lookAt(0, p.y - 0.2, 0);
+    const top = p.y + 0.24;                       // head bone sits at the jaw; hair above
+    const arm = this.bone("leftUpperArm") || this.bone("leftShoulder");
+    const bottom = arm ? arm.getWorldPosition(new THREE.Vector3()).y : p.y - 0.22;
+    const half = (top - bottom) / 2;
+    const dist = half / Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
+    const mid = (top + bottom) / 2;
+    this.camera.position.set(0, mid + 0.02, dist);
+    this.camera.lookAt(0, mid, 0);
   }
 
   /** one-shot facial reactions driven by HUD events */

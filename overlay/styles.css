@@ -276,8 +276,8 @@ body.show-skills #left-stack {
 #avatar-wrap canvas { position: absolute; left: 0; bottom: 0; }
 #ring { left: 0; bottom: 60px; z-index: 1; }
 #avatar { left: 30px; z-index: 2; }
-#avatar-wrap.is-3d { width: 440px; height: 520px; right: 24px; bottom: 96px; }
-#avatar3d { position: absolute; left: 0; bottom: 0; width: 440px; height: 520px; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.55)); }
+#avatar-wrap.is-3d { width: 440px; height: 330px; right: 24px; bottom: 96px; }
+#avatar3d { position: absolute; left: 0; bottom: 0; width: 440px; height: 330px; filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.55)); }
 #nameplate {
   position: absolute;
   bottom: -6px;

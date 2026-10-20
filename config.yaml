@@ -125,10 +125,12 @@ avatar:
   # vrm: a 3D VTuber model rendered in the overlay, lip-synced to your voice.
   # Any VRM works (VRoid Studio exports, VRoid Hub downloads you are allowed
   # to use): drop it in overlay/assets/avatar/ and set `model`. The default
-  # is VRoid's CC0 sample "Sakurada Fumiriya". Falls back to procedural if
-  # WebGL or the file is missing.
+  # is VRoid's CC0 sample "HairSample_Male" (white hoodie; from
+  # opengameart.org/content/vroid-studio-cc0-models). fumiriya.vrm (school
+  # uniform) is the other bundled one. Falls back to procedural if WebGL or
+  # the file is missing.
   engine: vrm               # vrm | procedural | live2d
-  model: fumiriya.vrm
+  model: hairsample_male.vrm
 
 # VTube Studio Plugin API — the practical way to use a real anime model.
 # Turn it on in VTube Studio: Settings -> Plugins -> "Start API Server".
