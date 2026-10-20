@@ -76,110 +76,54 @@ _LATIN_WORD = re.compile(r"[^\W\d_]+", re.UNICODE)
 
 
 def _fold(text: str) -> str:
-    """casefold + drop accents, keeping ñ (año and ano are different words)."""
+    """casefold + drop accents on Latin letters, keeping ñ (año / ano).
+
+    Only Latin-script accents are dropped: in Devanagari, Arabic or Thai the
+    combining marks are vowels, and removing them would merge real words.
+    """
     text = unicodedata.normalize("NFD", (text or "").casefold().replace("ñ", "\x00"))
-    text = "".join(ch for ch in text if unicodedata.category(ch) != "Mn")
-    return unicodedata.normalize("NFC", text).replace("\x00", "ñ")
+    out, base = [], ""
+    for ch in text:
+        if unicodedata.category(ch) == "Mn" and base and ord(base) < 0x0250:
+            continue
+        out.append(ch)
+        if unicodedata.category(ch) != "Mn":
+            base = ch
+    return unicodedata.normalize("NFC", "".join(out)).replace("\x00", "ñ")
+
+
+_UNSPACED_SCRIPTS = ((0x3040, 0x30FF), (0x3400, 0x9FFF), (0xF900, 0xFAFF), (0x0E00, 0x0E7F),
+                     (0x0E80, 0x0EFF), (0x1000, 0x109F), (0x1780, 0x17FF))
 
 
 def _spaced(text: str) -> bool:
-    """A line written with spaces between Latin-script words (Spanish)."""
+    """A line written with spaces between words: any script except Chinese,
+    Japanese, Thai, Lao, Burmese and Khmer. (Used only when the caller does
+    not say which language the line is in.)"""
     letters = [ch for ch in text if ch.isalpha()]
-    return bool(letters) and " " in text.strip() and all(ord(ch) < 0x0370 for ch in letters)
+    return (bool(letters) and " " in text.strip()
+            and not any(lo <= ord(ch) <= hi for ch in letters for lo, hi in _UNSPACED_SCRIPTS))
 
 
-_ES_UNITS = ("cero uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece "
-             "catorce quince dieciséis diecisiete dieciocho diecinueve veinte veintiuno "
-             "veintidós veintitrés veinticuatro veinticinco veintiséis veintisiete "
-             "veintiocho veintinueve").split()
-_ES_TENS = {3: "treinta", 4: "cuarenta", 5: "cincuenta", 6: "sesenta", 7: "setenta",
-            8: "ochenta", 9: "noventa"}
-_ES_HUNDREDS = {2: "doscientos", 3: "trescientos", 4: "cuatrocientos", 5: "quinientos",
-                6: "seiscientos", 7: "setecientos", 8: "ochocientos", 9: "novecientos"}
-_ES_ORDINALS = {1: "primero", 2: "segundo", 3: "tercero", 4: "cuarto", 5: "quinto",
-                6: "sexto", 7: "séptimo", 8: "octavo", 9: "noveno", 10: "décimo"}
+def coverage_of(reference: str, recognized: str, lang: str = "") -> float:
+    """Fraction of the reference that actually made it into the audio.
 
-
-def _es_number(n: int) -> str:
-    """Spanish words for 0 <= n < 10**9, the way a learner says it."""
-    if n < 30:
-        return _ES_UNITS[n]
-    if n < 100:
-        tens, unit = divmod(n, 10)
-        return _ES_TENS[tens] + (f" y {_ES_UNITS[unit]}" if unit else "")
-    if n < 1000:
-        hund, rest = divmod(n, 100)
-        head = ("cien" if not rest else "ciento") if hund == 1 else _ES_HUNDREDS[hund]
-        return head + (f" {_es_number(rest)}" if rest else "")
-    if n < 10 ** 6:
-        thou, rest = divmod(n, 1000)
-        head = "mil" if thou == 1 else f"{_es_number(thou)} mil"
-        return head + (f" {_es_number(rest)}" if rest else "")
-    mill, rest = divmod(n, 10 ** 6)
-    head = "un millón" if mill == 1 else f"{_es_number(mill)} millones"
-    return head + (f" {_es_number(rest)}" if rest else "")
-
-
-_ES_NUMERAL = re.compile(
-    r"(\d{1,3}(?:\.\d{3})+|\d+)"        # 14 · 30.000 (Spanish thousands point)
-    r"(?::(\d{2}))?"                    # 10:30
-    r"(?:,(\d+))?"                      # 3,5
-    r"(\.?º|\.?ª|er\b)?"                # 3.º · 1.ª · 3er
-)
-
-
-def _es_spell_numerals(text: str) -> str:
-    """Write dictation's digits back as the words the learner actually said.
-
-    Azure (and phone dictation) apply inverse text normalisation: "son doce
-    euros" comes back as "Son 12 €". The word check below only counts
-    letters, so without this every price, time and date line fails on the
-    number the learner said correctly.
+    For a space-delimited language the unit is the word: any two sentences in
+    Spanish or Russian share most of their letters, so letter coverage passes
+    almost anything. Latin accents are folded: dictation that writes "si"
+    for "sí" is the transcriber's spelling, not the learner's pronunciation.
+    The course's meta.py may add `normalize_spoken` (e.g. Spanish spells out
+    "10" as "diez") and `word_key` (un / una / uno count as one word).
     """
-    def one(m: "re.Match") -> str:
-        whole, minutes, decimals, ordinal = m.groups()
-        n = int(whole.replace(".", ""))
-        if ordinal and 1 <= n <= 10:
-            return _ES_ORDINALS[n]
-        if n >= 10 ** 9:
-            return m.group(0)
-        out = _es_number(n)
-        if minutes is not None:
-            mm = int(minutes)
-            out += {0: "", 15: " y cuarto", 30: " y media"}.get(mm, f" y {_es_number(mm)}")
-        if decimals:
-            out += " coma " + _es_number(int(decimals)) if len(decimals) < 10 else ""
-        return f" {out} "
-
-    text = text.replace("%", " por ciento ").replace("€", " euros ").replace("$", " dólares ")
-    return _ES_NUMERAL.sub(one, text)
-
-
-# Forms that differ only in agreement - un / una / uno, doscientos / doscientas,
-# primer / primera - count as the same word. Gender is the scorer's business
-# (Azure grades the audio); this check only asks whether each word came through.
-_ES_SAME = {"un": "uno", "una": "uno", "veintiun": "veintiuno", "veintiuna": "veintiuno",
-            "primer": "primero", "primera": "primero", "tercer": "tercero", "tercera": "tercero"}
-
-
-def _es_word_key(word: str) -> str:
-    word = _ES_SAME.get(word, word)
-    return word[:-6] + "ientos" if word.endswith("ientas") else word
-
-
-def coverage_of(reference: str, recognized: str) -> float:
-    """Fraction of reference characters that actually made it into the audio.
-
-    For a space-delimited line the unit is the word: any two Spanish
-    sentences share most of their letters, so letter coverage passes almost
-    anything. Accents are folded (ñ is kept): dictation that writes "si" for
-    "sí" is the transcriber's spelling, not the learner's pronunciation.
-    Digits are spelled out first, so "a las 10" counts as "a las diez".
-    """
-    if _spaced(reference or ""):
-        ref_w = [_es_word_key(w) for w in _LATIN_WORD.findall(_fold(_es_spell_numerals(reference)))]
-        rec_w = [_es_word_key(w) for w in
-                 _LATIN_WORD.findall(_fold(_es_spell_numerals(recognized or "")))]
+    from . import course as course_pkg
+    spaced = course_pkg.is_spaced(lang) if lang else _spaced(reference or "")
+    if spaced:
+        norm = course_pkg.meta_get(lang, "normalize_spoken") if lang else None
+        key = course_pkg.meta_get(lang, "word_key") if lang else None
+        prep = (lambda t: norm(t)) if callable(norm) else (lambda t: t)
+        keyf = key if callable(key) else (lambda w: w)
+        ref_w = [keyf(w) for w in course_pkg.words(_fold(prep(reference or "")))]
+        rec_w = [keyf(w) for w in course_pkg.words(_fold(prep(recognized or "")))]
         if not ref_w:
             return 1.0
         pool = list(rec_w)
@@ -540,11 +484,11 @@ def score_attempt(
     name = provider or resolve_provider(cfg)
     fn = PROVIDERS.get(name, _mock_score)
     score = fn(pcm, sample_rate, reference, cfg)
-    score.coverage = coverage_of(reference, score.recognized)
+    score.coverage = coverage_of(reference, score.recognized, cfg.get("language", ""))
     return score
 
 
-def simulated_score(reference: str, quality: str = "good") -> Score:
+def simulated_score(reference: str, quality: str = "good", lang: str = "") -> Score:
     """Dev shortcut: grade an attempt without any audio."""
     q = (quality or "good").lower()
     if q in ("bad", "fail", "wrong"):
@@ -573,7 +517,7 @@ def simulated_score(reference: str, quality: str = "good") -> Score:
             phone=92.0,
             recognized=reference,
         )
-    score.coverage = coverage_of(reference, score.recognized)
+    score.coverage = coverage_of(reference, score.recognized, lang)
     return score
 
 
@@ -599,9 +543,6 @@ def simulated_score(reference: str, quality: str = "good") -> Score:
 _FILLERS = {
     "zh": ("那个", "这个", "就是", "然后", "嗯", "呃", "啊", "就是说"),
     "ja": ("えっと", "ええと", "あの", "あのー", "まあ", "その", "うーん"),
-    # matched against de-spaced text, so only fillers that cannot hide inside
-    # a real word: not "este" (a demonstrative) and not "em" (tiempo)
-    "es": ("ehh", "emm", "mmm", "osea", "estee"),
 }
 
 
@@ -633,7 +574,9 @@ def fluency_reasons(
     if max_filler > 0:
         said = normalize_text(score.recognized or "")
         if said:
-            junk = sum(said.count(word) * len(word) for word in _FILLERS.get(lang, ()))
+            from . import course as course_pkg
+            fillers = course_pkg.meta_get(lang, "FILLERS") or _FILLERS.get(lang, ())
+            junk = sum(said.count(word) * len(word) for word in fillers)
             if junk / len(said) > max_filler:
                 out.append({"es": "Too much filler - drop the 'eh's and 'o sea's and just say it",
                             "ja": "Too much filler - drop the えっとs and just say it"}

@@ -34,7 +34,8 @@ from typing import Dict, List, Optional, Tuple
 from .course import LANG_NAMES, is_spaced, normalize
 from .curriculum import content_chars
 from .models import Score
-from .pronunciation import _LATIN_WORD, _fold, coverage_of, evaluate, normalize_text
+from .course import meta_get, words as _words
+from .pronunciation import _fold, coverage_of, evaluate, normalize_text
 
 # keys the gate uses that we relax for free speech
 _RELIEVED = ("min_pron_score", "min_accuracy", "min_completeness", "min_tone_score",
@@ -70,25 +71,27 @@ _GRADER_SYSTEM = {
         "in English, \"better\": a corrected version in Japanese}. "
         "If it is acceptable, \"reason\" is empty and \"better\" is empty."
     ),
-    "es": (
-        "You are grading a spoken answer in Spanish for a language learner. "
-        "You are given the question and the learner's answer as transcribed by "
-        "speech recognition, so minor transcription errors (a missing accent, "
-        "a dropped article, ¿ or ¡) are not the learner's fault - judge the "
-        "language, not the ASR.\n"
-        "Decide: (a) does it actually answer the question, (b) is the grammar "
-        "acceptable Spanish - agreement of gender and number, the right person "
-        "on the verb, ser vs estar - and (c) is the register consistent: tú or "
-        "usted, whichever the question used. Latin American and Peninsular "
-        "usage are both correct; vosotros is fine, so is ustedes.\n"
-        "Be strict on agreement, verb person and actually answering the "
-        "question. Do not penalise a dropped subject pronoun - Spanish drops "
-        "them.\n"
-        "Reply with JSON only: {\"ok\": true|false, \"reason\": one short sentence "
-        "in English, \"better\": a corrected version in Spanish}. "
-        "If it is acceptable, \"reason\" is empty and \"better\" is empty."
-    ),
+
 }
+
+
+def grader_prompt(lang: str) -> str:
+    """The course's own GRADER_PROMPT (meta.py), else the built-in table."""
+    return meta_get(lang, "GRADER_PROMPT") or _GRADER_SYSTEM.get(lang) or _generic_grader(lang)
+
+
+def _generic_grader(lang: str) -> str:
+    name = LANG_NAMES.get(lang, lang)
+    return (
+        f"You are grading a spoken answer in {name} for a language learner. You are given the "
+        "question and the learner's answer as transcribed by speech recognition, so minor "
+        "transcription errors are not the learner's fault - judge the language, not the ASR.\n"
+        "Decide: (a) does it actually answer the question, (b) is the grammar acceptable, "
+        "(c) is the register consistent with the question.\n"
+        "Reply with JSON only: {\"ok\": true|false, \"reason\": one short sentence in English, "
+        f"\"better\": a corrected version in {name}}}. If it is acceptable, \"reason\" and "
+        "\"better\" are empty."
+    )
 
 
 def llm_check(
@@ -136,7 +139,7 @@ def llm_check(
         "max_tokens": 200,
         "response_format": {"type": "json_object"},
         "messages": [
-            {"role": "system", "content": _GRADER_SYSTEM.get(lang, _GRADER_SYSTEM["zh"])},
+            {"role": "system", "content": grader_prompt(lang)},
             {"role": "user", "content": user},
         ],
     }
@@ -303,9 +306,9 @@ def grade_writing(
             if is_spaced(lang):
                 # `said` has lost its spaces; compare folded text instead, so
                 # "medio ambiente" and "Medio Ambiente" both count
-                heard = " ".join(_LATIN_WORD.findall(_fold(score.recognized or "")))
+                heard = " ".join(_words(_fold(score.recognized or "")))
                 kept = [k for k in keywords
-                        if " ".join(_LATIN_WORD.findall(_fold(k))) in heard]
+                        if " ".join(_words(_fold(k))) in heard]
             else:
                 kept = [k for k in keywords if k in said]
             if len(kept) < need:

@@ -54,43 +54,41 @@ def _strip(text: str) -> str:
     return _PUNCT.sub("", text or "")
 
 
-# Spanish glue: articles, clitics, the commonest prepositions, the copulas and
-# the courtesy words that open half the lines in the course. Stripped before
-# we ask "did you actually answer this question?" - the same job
-# _JA_FUNCTION_WORDS does for です/ます.
-_ES_FUNCTION_WORDS = set("""
-el la los las un una unos unas lo le les me te se nos os mi mis tu tus su sus
-de del a al en con por para sin y o u e ni que qué si sí no pero como
-hay muy más ya también
-yo tú usted ustedes él ella nosotros nosotras vosotros ellos ellas
-hola gracias por favor bueno buena vale pues entonces bien este esta eso esto
-""".split())
-_WORD = re.compile(r"[^\W\d_]+", re.UNICODE)
+# Words that carry no meaning for "did you answer the question?", and the
+# verb forms a question and its answer share in different persons ("¿de
+# dónde eres?" - "soy de Canadá"). Both come from the course's meta.py
+# (FUNCTION_WORDS, LEMMAS), so a spaced language needs no engine edit.
+_FUNCTION_CACHE: Dict[str, set] = {}
+_LEMMA_CACHE: Dict[str, Dict[str, str]] = {}
 
-# The verbs a question and its answer most often share in different persons:
-# "¿de dónde eres?" - "soy de Canadá". Mapped to one lemma so they meet;
-# everything else is cut to a three-letter stem (trabajas / trabajo -> tra).
-_ES_LEMMA = {}
-for _lemma, _forms in {
-    "ser": "soy eres es somos sois son era",
-    "estar": "estoy estás está estamos estáis están",
-    "ir": "voy vas va vamos vais van",
-    "tener": "tengo tienes tiene tenemos tenéis tienen",
-    "hacer": "hago haces hace hacemos hacéis hacen",
-}.items():
-    for _form in _forms.split():
-        _ES_LEMMA[_form] = _lemma
+
+def _function_words(lang: str) -> set:
+    if lang not in _FUNCTION_CACHE:
+        raw = course_pkg.meta_get(lang, "FUNCTION_WORDS", "") or ""
+        _FUNCTION_CACHE[lang] = set((raw.split() if isinstance(raw, str) else raw))
+    return _FUNCTION_CACHE[lang]
+
+
+def _lemmas(lang: str) -> Dict[str, str]:
+    if lang not in _LEMMA_CACHE:
+        table: Dict[str, str] = {}
+        for lemma, forms in (course_pkg.meta_get(lang, "LEMMAS", {}) or {}).items():
+            for form in (forms.split() if isinstance(forms, str) else forms):
+                table[form] = lemma
+        _LEMMA_CACHE[lang] = table
+    return _LEMMA_CACHE[lang]
 
 
 def _words(text: str) -> List[str]:
-    """Lower-cased words of a space-delimited line, accents kept for display."""
-    return _WORD.findall((text or "").casefold())
+    """Lower-cased words of a space-delimited line, any script."""
+    return course_pkg.words(text)
 
 
-def _stem(word: str) -> str:
+def _stem(word: str, lang: str) -> str:
     from .pronunciation import _fold  # accents are the transcriber's, not yours
-    if word in _ES_LEMMA:
-        return _ES_LEMMA[word]
+    lemma = _lemmas(lang).get(word)
+    if lemma:
+        return lemma
     return _fold(word)[:3]
 
 
@@ -101,7 +99,7 @@ def content_runs(text: str, lang: str = "zh", min_len: int = 2) -> List[str]:
     """
     if course_pkg.is_spaced(lang):
         # a word is already a "run"; min_len is in words' letters here
-        runs = [w for w in _words(text) if w not in _ES_FUNCTION_WORDS]
+        runs = [w for w in _words(text) if w not in _function_words(lang)]
         long_runs = [r for r in runs if len(r) >= 3]
         return long_runs or runs
     s = _strip(text)
@@ -131,7 +129,7 @@ def content_chars(text: str, lang: str = "zh") -> set:
     set would call every answer on-topic.
     """
     if course_pkg.is_spaced(lang):
-        return {_stem(w) for w in _words(text) if w not in _ES_FUNCTION_WORDS}
+        return {_stem(w, lang) for w in _words(text) if w not in _function_words(lang)}
     s = _strip(text)
     if lang == "ja":
         return {ch for ch in _JA_FUNCTION_RE.sub("", s)}
@@ -144,7 +142,7 @@ def derive_keywords(question: str, answer: str, vocab: List[Phrase], lang: str =
         q_words = set(_words(question))
         hits = [" ".join(_words(v.text)) for v in vocab
                 if _words(v.text) and set(_words(v.text)) <= q_words
-                and not set(_words(v.text)) <= _ES_FUNCTION_WORDS]
+                and not set(_words(v.text)) <= _function_words(lang)]
         runs = content_runs(question, lang) or content_runs(answer, lang)
         out = []
         for word in hits + sorted(runs, key=len, reverse=True):

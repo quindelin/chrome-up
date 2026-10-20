@@ -21,15 +21,72 @@ raises ImportError for a broken package and the registry reports it as
 from __future__ import annotations
 
 import importlib
+import importlib.util
+import os
 import pkgutil
+import unicodedata
 from typing import Any, Dict, List, Tuple
 
 DEFAULT_LANG = "zh"
 
-LANG_NAMES = {"zh": "Mandarin", "ja": "Japanese", "es": "Spanish"}
-
 # discovered from the filesystem: a course is a package, not an entry in a list
 _LOADED: Dict[str, Any] = {}
+
+
+# -- per-language metadata ----------------------------------------------------
+#
+# Everything the engine needs to know about a language lives in that
+# language's own folder, in `meta.py`: its name, aliases, level label,
+# whether it is matched by word or by character, and optionally its function
+# words, fillers, prompts, UI labels and config defaults. See
+# docs/NEW_COURSE.md. That is what lets a new course be added as one folder
+# and one config file, by several agents at once, without any of them
+# editing a shared engine file.
+#
+# meta.py is loaded as a standalone file, not through the package: importing
+# the package loads the whole course, and a course that is half-written must
+# not stop the registry from knowing the others.
+
+_META: Dict[str, Any] = {}
+
+
+def _discover_meta() -> None:
+    here = os.path.dirname(os.path.abspath(__file__))
+    for m in pkgutil.iter_modules([here]):
+        if not m.ispkg or m.name in _META:
+            continue
+        path = os.path.join(here, m.name, "meta.py")
+        if not os.path.exists(path):
+            continue
+        try:
+            spec = importlib.util.spec_from_file_location(f"lingualens_meta_{m.name}", path)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+        except Exception:  # a broken meta.py hides that course, not the others
+            continue
+        _META[m.name] = mod
+
+
+_discover_meta()
+
+
+def meta(lang: str):
+    """The language's meta module, or None."""
+    return _META.get(normalize(lang))
+
+
+def meta_get(lang: str, attr: str, default: Any = None) -> Any:
+    m = meta(lang)
+    value = getattr(m, attr, None) if m else None
+    return default if value is None else value
+
+
+LANG_NAMES: Dict[str, str] = {code: getattr(m, "NAME", code) for code, m in _META.items()}
+
+_ALIASES: Dict[str, str] = {}
+for _code, _m in _META.items():
+    for _alias in getattr(_m, "ALIASES", ()) or ():
+        _ALIASES[str(_alias).strip().lower()] = _code
 
 
 def supported() -> List[str]:
@@ -44,13 +101,7 @@ def normalize(lang: str) -> str:
     key = (lang or "").strip().lower()
     if key in LANG_NAMES or key in _LOADED:
         return key
-    aliases = {
-        "chinese": "zh", "zh-cn": "zh", "zh_cn": "zh", "mandarin": "zh", "cn": "zh",
-        "japanese": "ja", "ja-jp": "ja", "ja_jp": "ja", "jp": "ja", "nihongo": "ja",
-        "spanish": "es", "es-mx": "es", "es-es": "es", "es_mx": "es", "es_es": "es",
-        "espanol": "es", "español": "es", "castellano": "es",
-    }
-    return aliases.get(key, DEFAULT_LANG)
+    return _ALIASES.get(key, DEFAULT_LANG)
 
 
 def package_for(lang: str):
@@ -68,14 +119,33 @@ def package_for(lang: str):
     return mod
 
 
-#: languages written with spaces between words. Every "which characters carry
-#: meaning" heuristic in the engine was built for 汉字 and かな, where one
-#: character is a unit of meaning; for these, a word is the unit instead.
-SPACED = {"es"}
+#: languages written with spaces between words (meta.TOKENS == "spaced").
+#: Every "which characters carry meaning" heuristic in the engine was built
+#: for 汉字 and かな, where one character is a unit of meaning; for these, a
+#: word is the unit instead. Languages without spaces (zh, ja, th) are "char".
+SPACED = {code for code, m in _META.items() if getattr(m, "TOKENS", "char") == "spaced"}
 
 
 def is_spaced(lang: str) -> bool:
     return normalize(lang) in SPACED
+
+
+def words(text: str) -> List[str]:
+    """Lower-cased words of a space-delimited line, in any script.
+
+    Splits on whitespace and drops punctuation, symbols and digits, but keeps
+    combining marks: a regex on \\w breaks Devanagari and Arabic words apart
+    at every vowel sign, which is the letter-by-letter matching this is here
+    to avoid.
+    """
+    out: List[str] = []
+    for raw in (text or "").casefold().split():
+        w = "".join(ch for ch in raw
+                    if not unicodedata.category(ch)[0] in ("P", "S", "Z")
+                    and not unicodedata.category(ch) == "Nd")
+        if w:
+            out.append(w)
+    return out
 
 
 def __getattr__(name: str):
@@ -126,17 +196,19 @@ def speech_lang(lang: str) -> str:
 
 def band_label(lang: str) -> str:
     """What the menu calls a band: HSK / JLPT / CEFR…"""
-    pkg = package_for(lang)
-    label = getattr(pkg, "LABEL", None)
-    return {"zh": "HSK", "ja": "JLPT", "es": "CEFR"}.get(normalize(lang), label or "Level")
+    found = meta_get(lang, "BAND_LABEL")
+    if found:
+        return found
+    label = getattr(package_for(lang), "LABEL", None)
+    return label or "Level"
 
 
 def native_label(lang: str) -> str:
     """The course in its own language: 中文 / 日本語 / Español."""
-    return {"zh": "中文", "ja": "日本語", "es": "Español"}.get(normalize(lang), LANG_NAMES.get(normalize(lang), lang))
+    return meta_get(lang, "NATIVE") or LANG_NAMES.get(normalize(lang), lang)
 
 
 __all__ = [
-    "DEFAULT_LANG", "LANG_NAMES", "SPACED", "is_spaced", "supported", "normalize", "package_for", "module_for",
+    "DEFAULT_LANG", "LANG_NAMES", "SPACED", "is_spaced", "words", "meta", "meta_get", "supported", "normalize", "package_for", "module_for",
     "course_data", "scenes", "speech_lang", "band_label", "native_label", "zh", "ja", "es",
 ]

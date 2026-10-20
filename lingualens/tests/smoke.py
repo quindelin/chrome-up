@@ -395,7 +395,12 @@ def t_es_digits_in_dictation_still_match():
     """
     import re
     from server import drills
-    from server.pronunciation import _ES_UNITS, coverage_of
+    from server.course import meta
+    from server.pronunciation import coverage_of as _cov
+    _ES_UNITS = meta("es")._ES_UNITS
+
+    def coverage_of(ref, heard):   # the number spelling is Spanish's own hook
+        return _cov(ref, heard, "es")
     assert coverage_of("A las diez, andén tres.", "A las 10, andén 3.") == 1.0
     assert coverage_of("Normalmente me acuesto a las once y media.", "Normalmente me acuesto a las 11:30.") == 1.0
     assert coverage_of("Serán unos treinta mil euros.", "Serán unos 30.000 €.") == 1.0
@@ -703,6 +708,22 @@ def t_spacing_promotes_only_when_due_and_reviews_hit_the_real_line():
         assert prog["mastery"][warm[0].key]["stage"] == 5   # 1 day survived -> 3 days
         assert s.start_review(5) >= 0
         assert not [k for k in prog["mastery"] if k.startswith("review:")]
+
+
+def t_every_new_course_passes_the_gate():
+    """tools/validate_course.py on every course except the two legacy ones
+    (zh, ja), so a merged course cannot quietly fall below the bar."""
+    sys.path.insert(0, str(ROOT / "tools"))
+    from validate_course import validate
+    from server.course import supported
+    bad = {}
+    for code in supported():
+        if code in ("zh", "ja"):
+            continue
+        errors, _ = validate(code, strict=True)
+        if errors:
+            bad[code] = errors[:3]
+    assert not bad, bad
 
 
 def main() -> int:

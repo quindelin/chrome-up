@@ -22,10 +22,16 @@ from .think import Target
 # no character teaching and no grammar notes - while its own config spent
 # thirty lines deciding how to fade the pinyin crutch out. A course that has
 # no `hanzi.py` simply gets no hanzi steps; that is the whole mechanism.
-_HEAR_NOTE = {"zh": "只听，不看", "ja": "聞くだけ、見ない", "es": "Solo escucha, no mires"}
+_HEAR_NOTE = {"zh": "只听，不看", "ja": "聞くだけ、見ない"}
 _WRITE_NOTE = {"zh": "用你自己的话说，不用跟原文一样",
-               "ja": "自分の言葉で、原文と同じでなくていい",
-               "es": "Con tus propias palabras, no hace falta copiar el texto"}
+               "ja": "自分の言葉で、原文と同じでなくていい"}
+
+
+def _note(lang: str, which: str) -> str:
+    """The hear / write step note: the course's meta.py NOTES first."""
+    own = (course_pkg.meta_get(lang, "NOTES", {}) or {}).get(which)
+    table = _HEAR_NOTE if which == "hear" else _WRITE_NOTE
+    return own or table.get(lang, table["zh"])
 
 
 def inject_count(vocab_cfg: Dict, band: int) -> int:
@@ -453,7 +459,7 @@ class Session:
                 en="Listen. Nothing on the screen.",
                 # in the course's own language: this note used to be Chinese
                 # on the Japanese course too
-                note=_HEAR_NOTE.get(self.lang, _HEAR_NOTE["zh"]),
+                note=_note(self.lang, "hear"),
                 key=f"hear:{lesson.id}",
             ),
             self._comprehension_step(lesson, q, f"hear-q:{lesson.id}",
@@ -488,7 +494,7 @@ class Session:
                 hide_text=True,
                 reading=self._joined([t.reading for t in turns]),
                 en="Listen to the whole conversation. Nothing on the screen.",
-                note=_HEAR_NOTE.get(self.lang, _HEAR_NOTE["zh"]),
+                note=_note(self.lang, "hear"),
                 requires=[f"{lesson.id}:{t.text}" for t in mine],
                 key=f"hear-dialogue:{lesson.id}",
             )
@@ -565,7 +571,7 @@ class Session:
                 min_chars=int(item.get("min_chars")
                               or cfg.get("min_chars", 30) or 30),
                 key=f"write:{lesson.id}",
-                note=_WRITE_NOTE.get(self.lang, _WRITE_NOTE["zh"]),
+                note=_note(self.lang, "write"),
             )
         ]
 
@@ -905,8 +911,8 @@ class Session:
         """What has to have been heard before a line can be asked for:
         words for a spaced language, characters for Chinese and Japanese."""
         if is_spaced(self.lang):
-            from .pronunciation import _LATIN_WORD, _fold
-            return set(_LATIN_WORD.findall(_fold(text or "")))
+            from .pronunciation import _fold
+            return set(course_pkg.words(_fold(text or "")))
         return {ch for ch in self._norm(text) if not ch.isascii()}
 
     def _model_before_recall(self, steps: List["Step"]) -> List["Step"]:

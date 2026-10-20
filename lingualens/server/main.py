@@ -29,7 +29,13 @@ from fastapi.staticfiles import StaticFiles
 from . import asr, progress
 from .access import AccessKey
 from .config import load_config, resolve_provider
-from .course import LANG_NAMES, native_label, normalize, supported
+from .course import LANG_NAMES, meta_get, native_label, normalize, supported
+
+
+def course_meta_ui(lang: str) -> dict:
+    """The step labels a course's meta.py declares (empty: the page's own)."""
+    ui = meta_get(lang, "UI", {}) or {}
+    return {k: ui[k] for k in ("read", "literacy", "hearing", "writing") if k in ui}
 from .courses import CourseNotReady, Registry
 from .curriculum import Course
 from .engine import Session
@@ -178,6 +184,9 @@ class App:
             "display_size": sess.cfg["ui"].get("display_size", 600),
             "show_english_default": bool(sess.cfg["ui"].get("show_english_default", False)),
             "vocab_label": sess.cfg["ui"].get("vocab_label", "Vocabulary"),
+            # step labels for the page (read / characters / listen / summary),
+            # from the course's meta.py UI block when it has one
+            "step_labels": course_meta_ui(sess.lang),
             # listening: several voices, at something nearer natural speed
             "listening_rate": (sess.cfg.get("listening") or {}).get("rate") or {},
             "listening_vary_pitch": bool(
@@ -403,7 +412,7 @@ def build_app(cfg: Dict) -> FastAPI:
             return JSONResponse({"error": "no placement running"}, status_code=409)
         lang = key[1]
         reference = (test.current() or {}).get("text", "") or "你好"
-        out = test.submit(simulated_score(reference, quality))
+        out = test.submit(simulated_score(reference, quality, lang))
         if out.get("done"):
             # the point of the test: start where the learner actually is
             recommended = out.get("recommended")
@@ -558,7 +567,7 @@ def build_app(cfg: Dict) -> FastAPI:
             reference = step.sample_text or (step.text or "")
         else:
             reference = sess.reference_text() or (step.text if step else "") or "你好"
-        score = simulated_score(reference, quality)
+        score = simulated_score(reference, quality, sess.lang)
         result = sess.submit(score)
         state.persist(client_id)
         result["score"] = score.to_dict()
@@ -640,13 +649,17 @@ def build_app(cfg: Dict) -> FastAPI:
 
 
 def default_config(lang: str) -> str:
-    return {"ja": "config.ja.yaml", "es": "config.es.yaml"}.get(normalize(lang), "config.yaml")
+    # config.yaml is Mandarin's; every other course has config.<code>.yaml
+    key = normalize(lang)
+    root = Path(__file__).resolve().parents[1]
+    named = f"config.{key}.yaml"
+    return named if key != "zh" and (root / named).exists() else "config.yaml"
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="LinguaLens language coach")
     parser.add_argument("--config", default=None,
-                        help="config file; default config.yaml (zh) or config.ja.yaml (ja)")
+                        help="config file; default config.yaml (zh) or config.<lang>.yaml")
     parser.add_argument("--lang", default=None, choices=sorted(supported()),
                         help="which course to load (picks the default config too)")
     parser.add_argument("--host", default=None)

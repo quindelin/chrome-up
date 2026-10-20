@@ -9,10 +9,13 @@ cd "$(dirname "$0")"
 
 LANG_CODE="${1:-zh}"
 case "$LANG_CODE" in
-  zh|chinese|mandarin) CONFIG="config.yaml";   shift || true ;;
-  ja|japanese)         CONFIG="config.ja.yaml"; shift || true ;;
-  es|spanish)          CONFIG="config.es.yaml"; shift || true ;;
-  *)                   CONFIG="config.yaml" ;;
+  zh|chinese|mandarin) CONFIG="config.yaml"; shift || true ;;
+  japanese)            CONFIG="config.ja.yaml"; shift || true ;;
+  spanish)             CONFIG="config.es.yaml"; shift || true ;;
+  *)
+    # any course with its own config: ./run.sh fr -> config.fr.yaml
+    if [ -f "config.$LANG_CODE.yaml" ]; then CONFIG="config.$LANG_CODE.yaml"; shift || true
+    else CONFIG="config.yaml"; fi ;;
 esac
 
 PY="${PYTHON:-python3.13}"

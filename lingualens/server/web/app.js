@@ -71,10 +71,15 @@ const STEP_LABELS = {
   zh: { read: '读', literacy: '汉字', hearing: '听', writing: '缩写' },
   es: { read: 'Leer', literacy: 'Letras', hearing: 'Escuchar', writing: 'Resumen' },
 };
-function readingLabel() { return (STEP_LABELS[lang()] || STEP_LABELS.zh).read; }
-function literacyLabel() { return (STEP_LABELS[lang()] || STEP_LABELS.zh).literacy; }
-function hearingLabel() { return (STEP_LABELS[lang()] || STEP_LABELS.zh).hearing; }
-function writingLabel() { return (STEP_LABELS[lang()] || STEP_LABELS.zh).writing; }
+// a course's meta.py may declare its own labels (state.config.step_labels)
+function stepLabels() {
+  const own = (state && state.config && state.config.step_labels) || {};
+  return Object.assign({}, STEP_LABELS[lang()] || STEP_LABELS.zh, own);
+}
+function readingLabel() { return stepLabels().read; }
+function literacyLabel() { return stepLabels().literacy; }
+function hearingLabel() { return stepLabels().hearing; }
+function writingLabel() { return stepLabels().writing; }
 function vocabLabel() {
   return (state && state.config && state.config.vocab_label) || ({ ja: '単語', es: 'Vocabulario' }[lang()] || '词汇');
 }

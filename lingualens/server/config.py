@@ -313,44 +313,13 @@ LANG_DEFAULTS: Dict[str, Any] = {
         "listening": {"natural_bands": [2, 1, 0]},
         "storage": {"path": "state.ja.json"},
     },
-    "es": {
-        "pronunciation": {
-            "prefer": "azure",
-            # The course lines are Peninsular (billete, zumo, ¿qué le pongo?),
-            # so the scorer and the voice are too. es-MX scores the same
-            # lines fine - set it in config.es.yaml for a Latin American voice.
-            "language": "es-ES",
-            # iFlytek ISE has no Spanish evaluation. Without this, `auto`
-            # with Chinese keys in the environment scores Spanish as Chinese.
-            "iflytek": {"enabled": False},
-        },
-        # Spanish has no lexical tone; nothing reports one, so leave it off.
-        "gate": {"min_tone_score": 0.0},
-        "ui": {
-            # The line is already phonetic: there is no second script to fall
-            # back on, so the reading slot is used only for stress/linking
-            # hints on the odd hard line and is otherwise empty.
-            "reading_by_level": {1: "always", 2: "fade", 3: "reveal", 4: "never",
-                                 5: "never", 6: "never"},
-            "scene_by_level": {1: "always", 2: "always", 3: "first", 4: "first",
-                               5: "tip", 6: "tip"},
-            "vocab_label": "Vocabulario",
-        },
-        # ~12 letters/s in natural speech, vs ~3 kana/s
-        "audio": {"seconds_per_char": 0.075},
-        # Bands count up here (1 = A1 ... 6 = C2): spoken summaries from C1,
-        # fluency from B2. The rate is letters a second with the spaces
-        # gone, so it is about four times the Mandarin number.
-        "writing": {"min_band": 5, "min_chars": 80},
-        "fluency": {"min_chars_per_second": 9.0, "min_band": 4},
-        "reading": {"per_lesson": 1, "read_aloud": True, "comprehension": True},
-        # B2, C1, C2 hear natural speed and rotating voices
-        "listening": {"natural_bands": [4, 5, 6]},
-        # composing, not reciting: four of your own answers a lesson
-        "free": {"per_lesson": 4},
-        "storage": {"path": "state.es.json"},
-    },
 }
+
+
+def lang_defaults(lang: str) -> Dict[str, Any]:
+    """A course's config defaults: its meta.py DEFAULTS, else the table above."""
+    from .course import meta_get
+    return meta_get(lang, "DEFAULTS") or LANG_DEFAULTS.get(lang, {})
 
 
 def _merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any]:
@@ -371,7 +340,7 @@ def load_config(path: str | Path = "config.yaml") -> Dict[str, Any]:
             raw = yaml.safe_load(fh) or {}
 
     lang = normalize(raw.get("language") or DEFAULTS["language"])
-    cfg = _merge(_merge(DEFAULTS, LANG_DEFAULTS.get(lang, {})), raw)
+    cfg = _merge(_merge(DEFAULTS, lang_defaults(lang)), raw)
     cfg["language"] = lang
     cfg["language_name"] = LANG_NAMES.get(lang, lang)
 
@@ -398,7 +367,7 @@ def course_config(cfg: Dict[str, Any], lang: str) -> Dict[str, Any]:
     holds every course's progress, so switching language never loses anything.
     """
     key = normalize(lang)
-    out = _merge(cfg, LANG_DEFAULTS.get(key, {}))
+    out = _merge(cfg, lang_defaults(key))
     out["language"] = key
     out["language_name"] = LANG_NAMES.get(key, key)
     out["storage"] = _merge(cfg.get("storage") or {}, {})
