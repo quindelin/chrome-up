@@ -53,8 +53,9 @@ Section "Device"
     Identifier "gpu0"
     Driver     "nvidia"
     BusID      "$BUSID"
+    # headless: no monitor on a data-centre GPU. (UseDisplayDevice "None", the
+    # old recipe, is rejected by current drivers: "not supported with virtual display")
     Option     "AllowEmptyInitialConfiguration" "True"
-    Option     "UseDisplayDevice" "None"
 EndSection
 Section "Screen"
     Identifier   "screen0"

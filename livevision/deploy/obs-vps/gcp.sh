@@ -28,12 +28,17 @@ PROJECT="${PROJECT:-chrome-up-irl-e8d7}"
 REGION="${REGION:-us-central1}"
 ZONE="${ZONE:-${REGION}-a}"
 NAME="${NAME:-obs-irl}"
-# g2-standard-8 = 8 vCPU / 32 GB + one NVIDIA L4 (~$0.85/h running): OBS
-# composites, encodes (NVENC 1080p) and renders the HUD on the GPU. Without a
-# GPU (MACHINE=e2-standard-8, ~$0.27/h) the software path saturated 8 cores.
-MACHINE="${MACHINE:-g2-standard-8}"
+# n1-standard-8 + one NVIDIA T4 (~$0.75-0.80/h running): OBS composites,
+# encodes (NVENC 1080p) and renders the HUD on the GPU. The newer L4
+# (MACHINE=g2-standard-8 ACCELERATOR=, ~$0.85/h) was out of stock in every US
+# zone in Oct 2026. Without a GPU (MACHINE=e2-standard-8 ACCELERATOR=,
+# ~$0.27/h) the software path saturated 8 cores.
+MACHINE="${MACHINE:-n1-standard-8}"
 DISK_GB="${DISK_GB:-40}"                 # OS + NVIDIA driver + images
 DISK_TYPE="${DISK_TYPE:-pd-balanced}"    # G2 machines don't take pd-standard
+# ACCELERATOR=nvidia-tesla-t4: attach a GPU to an N1 machine (the T4 fallback
+# when L4s are out of stock: MACHINE=n1-standard-8 ACCELERATOR=nvidia-tesla-t4)
+ACCELERATOR="${ACCELERATOR-nvidia-tesla-t4}"   # ACCELERATOR= (empty) for none
 # RESTORE_ENV=<file>: a saved deploy/obs-vps/.env to start a new VM with (same
 # stream key, passwords and approval login as the VM it replaces)
 STATIC_IP="${STATIC_IP:-0}"
@@ -107,6 +112,7 @@ case "${1:-help}" in
       GPU_FLAGS=()
       # GPU VMs can't live-migrate: they stop for host maintenance and restart
       case "$MACHINE" in g2-*|a2-*|a3-*) GPU_FLAGS=(--maintenance-policy TERMINATE --restart-on-failure) ;; esac
+      [ -n "$ACCELERATOR" ] && GPU_FLAGS=(--accelerator "type=$ACCELERATOR,count=1" --maintenance-policy TERMINATE --restart-on-failure)
       "${G[@]}" compute instances create "$NAME" --zone "$ZONE" \
         --machine-type "$MACHINE" --tags "$NAME" ${GPU_FLAGS[@]+"${GPU_FLAGS[@]}"} \
         --image-family ubuntu-2404-lts-amd64 --image-project ubuntu-os-cloud \
