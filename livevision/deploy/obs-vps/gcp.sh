@@ -46,7 +46,13 @@ upload() {
   # Just the livevision/ tree, at the top of the archive, so the VM keeps the
   # layout it has always had (~/chrome_up/deploy/obs-vps/setup.sh, which the
   # boot script runs) after the repo split into livevision/ and lingualens/.
-  git -C ../.. archive --format=tar.gz -o "$tgz" HEAD:livevision
+  # From the repo root: run from inside livevision/, HEAD:livevision is an
+  # empty tree, and every deploy after the split uploaded a 45-byte archive.
+  git -C "$(git rev-parse --show-toplevel)" archive --format=tar.gz -o "$tgz" HEAD:livevision
+  if ! tar -tzf "$tgz" | grep -qx 'deploy/obs-vps/setup.sh'; then
+    echo "refusing to deploy: the archive has no deploy/obs-vps/setup.sh" >&2
+    rm -f "$tgz"; return 1
+  fi
   scp_ "$tgz" "$NAME:~/chrome_up.tgz"
   # the LinguaLens panel's URL (Cloud Run, read-only stream view), if deployed
   local ll
