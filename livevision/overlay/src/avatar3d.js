@@ -274,8 +274,10 @@ class Rig {
       // adding to the current rotation would spin the hand)
       const r = THREE.MathUtils.degToRad, k = this.wristW[side], wp = this.wristPose[side];
       const clamp = (v, m) => Math.max(-m, Math.min(m, v));
-      this._pose(side + "Hand", r(clamp(wp.pitch, 70)) * k,
-                 r(clamp(wp.yaw, 60)) * k * flip, r(clamp(wp.roll, 80)) * k * flip);
+      // a real wrist bends ~±70 deg, but the sensor also reads whole-arm
+      // turns as wrist turns: keep it to a believable bend
+      this._pose(side + "Hand", r(clamp(wp.pitch, 40)) * k,
+                 r(clamp(wp.yaw, 30)) * k * flip, r(clamp(wp.roll, 60)) * k * flip);
     }
   }
 

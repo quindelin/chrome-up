@@ -67,9 +67,11 @@ class Body:
         self._thigh_deg: Optional[float] = None
         self._hands: Dict[str, dict] = {}
         # wrist orientation: relative to the first sample, like the head (the
-        # watch's and the band's frames differ; "arm relaxed at your side" is
-        # the reference when data starts)
-        self._wrists = {s: HeadPose({"recenter_s": 0, "pitch_level_s": 0, "roll_level_s": 0,
+        # watch's and the band's frames differ). That first sample is often the
+        # arm raised to tap Start, so every axis drifts back to neutral over
+        # wrist_level_s: the hand rests straight and quick turns still show
+        lvl = float(cfg.get("wrist_level_s", 8.0))
+        self._wrists = {s: HeadPose({"recenter_s": lvl, "pitch_level_s": lvl, "roll_level_s": lvl,
                                      "stale_s": self.stale_s}) for s in SIDES}
         self._hr, self._hr_ts = None, 0.0
         self.guard_s = float(cfg.get("punch_guard_s", 2.5))       # guard stays up this long

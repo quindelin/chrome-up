@@ -54,6 +54,11 @@ hands after 0.6 s (out of the camera's view), the rest after 2 s.
   pitch and roll more slowly (`pitch_level_s` 30 s, `roll_level_s` 15 s), so a
   reference taken while looking down doesn't leave the avatar staring at the
   floor.
+- **Wrist level**: every wrist axis drifts back to neutral over
+  `body.wrist_level_s` (8 s): the first Watch sample is usually the arm raised
+  to tap Start, which otherwise left the hand bent ~100° for good. The avatar
+  bends the hand at most 40° / 30° / 60° (pitch / yaw / twist), since the sensor
+  reads whole-arm turns as wrist turns too.
 
 ## Punches
 
