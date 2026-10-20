@@ -55,6 +55,12 @@ ini_set "$PROFILE" Video FPSCommon "${OUT_FPS:-30}"
 ini_set "$PROFILE" SimpleOutput VBitrate "$KBPS"
 for f in "$CFG/user.ini" "$CFG/global.ini"; do [ -f "$f" ] && ini_set "$f" General BrowserHWAccel "$HWACCEL"; done
 echo "obs: gpu=${OBS_GPU:-0} display=$DISPLAY encoder=$(grep '^StreamEncoder=' "$PROFILE" | cut -d= -f2) ${W}x${H}@${OUT_FPS:-30} ${KBPS} kbps browser-hwaccel=$HWACCEL"
+# --startstreaming tries once: if MediaMTX (the local RTMP target) isn't
+# listening yet - boot order isn't guaranteed - the stream just stops. Wait.
+case "${OUT_SERVER:-}" in rtmp://127.0.0.1:*|rtmp://localhost:*)
+  PORT="$(echo "$OUT_SERVER" | sed -E 's#^rtmp://[^:/]+:([0-9]+).*#\1#')"
+  for _ in $(seq 1 120); do (exec 3<>"/dev/tcp/127.0.0.1/$PORT") 2>/dev/null && break; sleep 0.5; done ;;
+esac
 ARGS=(--profile IRL --collection IRL --scene IRL --disable-shutdown-check --disable-updater)
 [ "${OBS_AUTOSTREAM:-0}" = "1" ] && ARGS+=(--startstreaming)
 exec obs "${ARGS[@]}"
