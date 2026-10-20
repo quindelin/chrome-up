@@ -77,6 +77,10 @@ DEFAULTS: Dict[str, Any] = {
         # seconds of speech expected per character of reference text - the mock
         # scorer uses it to tell a rushed line from a full one
         "seconds_per_char": 0.32,
+        # mock scorer only (no speech key): any reply past min_seconds that
+        # clears the noise gate passes, however short - for testing the flow
+        # quickly. false = judge length against seconds_per_char as above.
+        "mock_quick": True,
     },
     # Pimsleur "graduated interval recall": same item comes back at growing gaps.
     # anticipation_seconds is a different thing and is Pimsleur's "principle of

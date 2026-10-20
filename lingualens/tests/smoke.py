@@ -352,6 +352,41 @@ def t_es_matching_is_word_level():
     assert not content_chars("¿De dónde eres?", "es") & content_chars("Me gusta el café.", "es")
 
 
+def t_mock_scorer_passes_short_replies_in_every_course():
+    """No speech key: a short, audible reply passes every gate, Spanish included.
+
+    The mock used to report what it heard with the spaces stripped, so the
+    Spanish word check saw one long word and failed every attempt - however
+    long or well said. With audio.mock_quick (the default) length no longer
+    matters; silence and a tap still fail.
+    """
+    import math
+    import struct
+    from server.config import course_config
+    from server.pronunciation import evaluate, score_attempt
+    sr = 16000
+    voice = b"".join(struct.pack("<h", int(8000 * math.sin(i * 0.2)) + (i * 7919) % 600 - 300)
+                     for i in range(int(0.6 * sr)))
+    for lang in ("es", "ja", "zh"):
+        cfg, c = course_config(load_config(), lang), Course(lang)
+        bad = []
+        for lid in c.lesson_ids:
+            gate = c.gate_for(lid, cfg["gate"])
+            for t in [t for t in c.lessons[lid].dialogue if t.speaker == "you"][:2]:
+                ok, why = evaluate(score_attempt(voice, sr, t.text, cfg, provider="mock"), gate)
+                if not ok:
+                    bad.append((lid, t.text, why))
+        assert not bad, (lang, bad[:3])
+        assert not evaluate(score_attempt(b"\0\0" * sr, sr, "Hola", cfg, provider="mock"), gate)[0]
+        assert not evaluate(score_attempt(voice[: sr // 5], sr, "Hola", cfg, provider="mock"), gate)[0]
+    # strict mode still tells a rushed line from a full one - and Spanish can pass it
+    cfg = course_config(load_config(), "es")
+    cfg["audio"]["mock_quick"] = False
+    line, gate = "Me levanto a las siete, pero los lunes, a las seis.", Course("es").gate_for(17, cfg["gate"])
+    assert not evaluate(score_attempt(voice, sr, line, cfg, provider="mock"), gate)[0]
+    assert evaluate(score_attempt(voice * 8, sr, line, cfg, provider="mock"), gate)[0]
+
+
 def t_es_digits_in_dictation_still_match():
     """Azure writes "son doce euros" as "Son 12 €" - a right answer must still pass.
 

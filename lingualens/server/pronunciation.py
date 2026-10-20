@@ -232,16 +232,29 @@ def _mock_score(pcm: bytes, sample_rate: int, reference: str, cfg: Dict) -> Scor
     per_char = float(audio.get("seconds_per_char", 0.32) or 0.32)
     expected = max(1.0, len(ref) * per_char)
     ratio = duration / expected
+    quick = bool(audio.get("mock_quick", True))
+    if quick:
+        ratio = max(ratio, 1.0)   # testing: a short reply counts as the whole line
     rng = random.Random(hash(pcm[:512]) & 0xFFFF)
-    # short / rushed utterances score badly, full-length ones pass
-    base = 40.0 + 60.0 * ratio if ratio < 0.7 else min(95.0, 62.0 + 32.0 * min(1.15, ratio))
-    jitter = rng.uniform(-6.0, 6.0)
-    accuracy = max(0.0, min(100.0, base + jitter))
-    score.accuracy = accuracy
-    score.fluency = max(0.0, min(100.0, accuracy + rng.uniform(-8.0, 8.0)))
-    score.completeness = max(0.0, min(100.0, 100.0 * min(1.0, ratio) + rng.uniform(-5.0, 5.0)))
+    if quick:
+        # high and steady, so the strictest gate (88 at C2 / JLPT top) never trips
+        accuracy = 94.0 + rng.uniform(0.0, 4.0)
+        score.accuracy = accuracy
+        score.fluency = accuracy - rng.uniform(0.0, 3.0)
+        score.completeness = 100.0
+    else:
+        # short / rushed utterances score badly, full-length ones pass
+        base = 40.0 + 60.0 * ratio if ratio < 0.7 else min(95.0, 62.0 + 32.0 * min(1.15, ratio))
+        jitter = rng.uniform(-6.0, 6.0)
+        accuracy = max(0.0, min(100.0, base + jitter))
+        score.accuracy = accuracy
+        score.fluency = max(0.0, min(100.0, accuracy + rng.uniform(-8.0, 8.0)))
+        score.completeness = max(0.0, min(100.0, 100.0 * min(1.0, ratio) + rng.uniform(-5.0, 5.0)))
     score.pron = 0.6 * min(accuracy, score.fluency, 100.0) + 0.4 * accuracy
-    score.recognized = ref if ratio >= 0.7 else ref[: max(1, int(len(ref) * ratio))]
+    # keep the spaces: Spanish is checked word by word, and "Melevantoalassiete"
+    # is one word that matches nothing - every Spanish attempt used to fail here
+    text = reference or ""
+    score.recognized = text if ratio >= 0.7 else text[: max(1, int(len(text) * ratio))]
     if ratio < 0.55:
         score.reasons.append("Too rushed - say the whole line, every syllable.")
     return score
