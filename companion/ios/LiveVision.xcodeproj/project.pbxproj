@@ -169,6 +169,7 @@
 			baseConfigurationReference = 2B0000000000000000000006 /* Base.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = LiveVisionApp/LiveVision.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = XPP3L755ZM;
@@ -179,7 +180,9 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Needed to connect to your Meta glasses.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Needed to reach your Meta glasses.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Your heading and position drive the HUD's compass and navigation objective on stream.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "LiveVision sends your voice with the glasses video to your streaming server.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Phone motion lets the HUD tell running, lifting and boxing apart for its skills.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
@@ -203,6 +206,7 @@
 			baseConfigurationReference = 2B0000000000000000000006 /* Base.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = LiveVisionApp/LiveVision.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = XPP3L755ZM;
@@ -212,7 +216,9 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_NSBluetoothAlwaysUsageDescription = "Needed to connect to your Meta glasses.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "Needed to reach your Meta glasses.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Your heading and position drive the HUD's compass and navigation objective on stream.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "LiveVision sends your voice with the glasses video to your streaming server.";
+				INFOPLIST_KEY_NSMotionUsageDescription = "Phone motion lets the HUD tell running, lifting and boxing apart for its skills.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;

@@ -2,6 +2,7 @@ import AVFoundation
 import Foundation
 import MWDATCamera
 import MWDATCore
+import Network
 import Observation
 import os
 
@@ -271,6 +272,7 @@ final class GlassesStreamer {
         if !(await AVAudioApplication.requestRecordPermission()) {
             lastError = "Microphone access is off (Settings > LiveVision): streaming video only."
         }
+        LocalNetworkProbe.shared.trigger()
         micForward = !useGlassesMic
         cameraTier = 0
         cameraAttempts = 0
@@ -347,21 +349,28 @@ final class GlassesStreamer {
             return
         }
         log.notice("attachCamera tier \(self.cameraTier) mock \(self.isMock): \(self.deviceSummary())")
+        // Meta AI's camera grant for LiveVision; asking opens Meta AI.
         do {
-            if try await Wearables.shared.checkPermissionStatus(.camera) != .granted,
-               try await Wearables.shared.requestPermission(.camera) != .granted {
-                lastError = "Camera access for LiveVision is off in the Meta AI app."
+            var status = try await Wearables.shared.checkPermissionStatus(.camera)
+            log.notice("camera permission: \(String(describing: status))")
+            if status != .granted {
+                status = try await Wearables.shared.requestPermission(.camera)
+                log.notice("camera permission after request: \(String(describing: status))")
+            }
+            guard status == .granted else {
+                lastError = "Camera access for LiveVision is off in the Meta AI app (App connections)."
                 return
             }
         } catch {
-            log.notice("camera permission: \(String(describing: error))")
+            log.error("camera permission check failed: \(String(describing: error))")
         }
         let glassesMic = Settings.audioSource == .glasses
         let config = StreamConfiguration(
-            // Real glasses: decoded frames for our H.264 encoder. The mock only
-            // plays its file as HEVC (Meta's samples all use hvc1 with it);
-            // MediaPump decodes that back to pixels so it takes the same path.
-            videoCodec: isMock ? .hvc1 : .raw,
+            // HEVC from the glasses, as in all of Meta's samples: with .raw a
+            // Ray-Ban Display sat in waitingForDevice and timed out with
+            // deviceNotConnected. MediaPump decodes it to pixels for the H.264
+            // encoder (the mock only plays hvc1 anyway).
+            videoCodec: .hvc1,
             audioCodec: glassesMic ? .pcm(sampleRate: .rate48000, numberOfChannels: 1) : nil,
             // 720x1280@30 first; DAT also steps down by itself on a weak link
             resolution: Self.cameraTiers[cameraTier].0,
@@ -477,6 +486,33 @@ final class GlassesStreamer {
             isMock = true
         } catch {
             lastError = "Mock glasses: \(error.localizedDescription)"
+        }
+    }
+}
+
+/// iOS asks for Local Network access only when an app actually browses the
+/// LAN, and Meta's camera path on Ray-Ban Display goes over Wi-Fi to the
+/// glasses. Browsing the Bonjour type DAT declares (NSBonjourServices) puts
+/// the prompt up when streaming starts, and logs whether access is refused.
+final class LocalNetworkProbe: @unchecked Sendable {
+    static let shared = LocalNetworkProbe()
+    private var browser: NWBrowser?
+
+    func trigger() {
+        guard browser == nil else { return }
+        let b = NWBrowser(for: .bonjour(type: "_bonjour._tcp", domain: nil), using: .tcp)
+        b.stateUpdateHandler = { state in
+            switch state {
+            case .failed(let e), .waiting(let e): log.notice("local network: \(String(describing: e)) (Settings > LiveVision > Local Network)")
+            case .ready: log.notice("local network: browsing")
+            default: break
+            }
+        }
+        b.start(queue: .global(qos: .utility))
+        browser = b
+        // a short browse is enough to raise the prompt / learn the answer
+        DispatchQueue.global().asyncAfter(deadline: .now() + 20) { [weak self] in
+            self?.browser?.cancel(); self?.browser = nil
         }
     }
 }
