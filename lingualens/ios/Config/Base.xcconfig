@@ -1,0 +1,13 @@
+// Shared build settings. Machine-specific values (server, key, Apple team,
+// Meta app id) go in Secrets.xcconfig, which is gitignored - copy
+// Secrets.example.xcconfig to start.
+PRODUCT_BUNDLE_IDENTIFIER = com.lingualens.app
+LL_SERVER_HOST =
+LL_SERVER_KEY =
+LL_CLIENT_ID = me
+// "0" = DAT Developer Mode (no Wearables Developer Center app needed)
+META_APP_ID = 0
+META_CLIENT_TOKEN = 0
+DEVELOPMENT_TEAM =
+
+#include? "Secrets.xcconfig"

@@ -29,10 +29,12 @@ public struct LessonState: Decodable, Equatable, Sendable {
     public var provider: String?
     public var courses: [CourseRow]
     public var config: ClientConfig
+    /// What the glasses waveguide shows for this step (engine.glasses_card).
+    public var glasses: GlassesCard?
 
     enum CodingKeys: String, CodingKey {
         case mode, lesson, level, topic, step, position, attempts, message, scene, history
-        case active, language, native, provider, courses, config
+        case active, language, native, provider, courses, config, glasses
         case slowReplay = "slow_replay"
         case lastScore = "last_score"
         case reviewDue = "review_due"
@@ -65,6 +67,7 @@ public struct LessonState: Decodable, Equatable, Sendable {
         provider = try? c.decodeIfPresent(String.self, forKey: .provider)
         courses = (try? c.decodeIfPresent([CourseRow].self, forKey: .courses)) ?? []
         config = (try? c.decodeIfPresent(ClientConfig.self, forKey: .config)) ?? ClientConfig()
+        glasses = try? c.decodeIfPresent(GlassesCard.self, forKey: .glasses)
     }
 
     /// BCP-47 tag to speak with; same fallback as app.js speechLang().
@@ -78,6 +81,50 @@ public struct LessonState: Decodable, Equatable, Sendable {
         if let t = topic { return "Vocabulary · \(t.titleNative ?? "") \(t.title ?? "")" }
         if let l = lesson { return "\(level?.code ?? "") · L\(l.id) \(l.title ?? "")" }
         return "—"
+    }
+}
+
+/// One screen for the glasses, decided by the server for every step kind so
+/// that a recall shows its English cue and never a bare "…".
+public struct GlassesCard: Decodable, Equatable, Sendable {
+    public var header: String
+    public var cue: String
+    public var target: String
+    public var reading: String
+    public var english: String
+    public var footer: String
+
+    public init(header: String = "", cue: String = "", target: String = "",
+                reading: String = "", english: String = "", footer: String = "") {
+        self.header = header; self.cue = cue; self.target = target
+        self.reading = reading; self.english = english; self.footer = footer
+    }
+
+    enum CodingKeys: String, CodingKey { case header, cue, target, reading, english, footer }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        func s(_ k: CodingKeys) -> String { (try? c.decodeIfPresent(String.self, forKey: k)) ?? "" }
+        self.init(header: s(.header), cue: s(.cue), target: s(.target),
+                  reading: s(.reading), english: s(.english), footer: s(.footer))
+    }
+
+    /// For a server that predates `glasses`: the old three-field mirror,
+    /// fixed so a recall still shows its English cue.
+    public static func fallback(for step: Step?) -> GlassesCard {
+        guard let step else { return GlassesCard(target: "Lesson complete") }
+        switch step.kind {
+        case "hear":
+            return GlassesCard(cue: "Listen", target: step.note.isEmpty ? "Just listen" : step.note)
+        case "info":
+            return GlassesCard(target: step.en.isEmpty ? step.text : step.en)
+        default:
+            if step.text.isEmpty {
+                return GlassesCard(cue: "Say it", target: step.promptEn.isEmpty ? step.en : step.promptEn)
+            }
+            return GlassesCard(target: step.text, reading: step.showReading ? step.reading : "",
+                               english: step.en.isEmpty ? step.promptEn : step.en)
+        }
     }
 }
 

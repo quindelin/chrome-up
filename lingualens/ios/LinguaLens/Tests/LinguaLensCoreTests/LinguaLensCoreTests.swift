@@ -117,6 +117,13 @@ final class StepPlannerTests: XCTestCase {
         XCTAssertEqual(StepPlanner.rate("slow", ClientConfig(listeningRate: ListeningRate(slow: 0.5)), fallback: 0.6), 0.5)
     }
 
+    func testCharacterVoicesAreExcluded() {
+        XCTAssertTrue(SpeechVoices.isNatural(identifier: "com.apple.voice.super-compact.zh-CN.Tingting", isNovelty: false))
+        XCTAssertTrue(SpeechVoices.isNatural(identifier: "com.apple.voice.enhanced.ja-JP.Kyoko", isNovelty: false))
+        XCTAssertFalse(SpeechVoices.isNatural(identifier: "com.apple.eloquence.zh-CN.Grandpa", isNovelty: false))
+        XCTAssertFalse(SpeechVoices.isNatural(identifier: "com.apple.speech.synthesis.voice.Bells", isNovelty: true))
+    }
+
     func testSpeechRateAndPitchMapping() {
         XCTAssertEqual(SpeechRate.avRate(fromWeb: 1.0), 0.5)
         XCTAssertEqual(SpeechRate.avRate(fromWeb: 0.6), 0.3, accuracy: 0.0001)

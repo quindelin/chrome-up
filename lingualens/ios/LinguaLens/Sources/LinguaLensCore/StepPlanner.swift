@@ -135,3 +135,12 @@ public enum SpeechRate {
         0.85 + Float((cursor * 7) % 5) * 0.07
     }
 }
+
+/// Which system voices are fit to model a line.
+public enum SpeechVoices {
+    /// Apple's Eloquence voices (Eddy, Flo, Grandma, Grandpa, Reed, Rocko,
+    /// Sandy, Shelley) and the novelty voices are characters, not speakers.
+    public static func isNatural(identifier: String, isNovelty: Bool) -> Bool {
+        !isNovelty && !identifier.lowercased().contains("eloquence")
+    }
+}
