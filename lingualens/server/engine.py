@@ -182,11 +182,12 @@ class Session:
         self.cfg = cfg
         self.lang = course.lang
         self.progress = progress
-        self.mode: str = "lesson"  # lesson | think | review | vocab
+        self.mode: str = "lesson"  # lesson | think | review | vocab | library
         self.lesson_id: int = int(progress.get("lesson_id") or course.first_lesson_id())
         self.band: int = course.lesson_band(self.lesson_id)
         self.level_id: int = course.level_id_of(self.lesson_id)
         self.topic_id: str = ""
+        self.story_id: str = ""
         self.steps: List[Step] = []
         self.pos: int = 0
         self.attempts: int = 0
@@ -381,7 +382,7 @@ class Session:
                 )
         return out
 
-    def _comprehension_step(self, lesson: Lesson, q: Dict, key: str, note: str) -> Step:
+    def _comprehension_step(self, lesson: Optional[Lesson], q: Dict, key: str, note: str) -> Step:
         """One question about a text, answered in the language and gated."""
         return Step(
             kind="answer",
@@ -1018,6 +1019,90 @@ class Session:
         self.message = f"{label} · {topic.title} ({topic.title_native}): {len(topic.words)} words"
         return len(topic.words)
 
+    def start_story(self, story_id: str) -> int:
+        """One library story: heard blind, asked about, then followed line by
+        line with the text up, then asked about in detail.
+
+        Blind first on purpose: listening is decoding a signal you cannot see
+        (see _hearing_steps), and a gist question straight after it tells you
+        whether you did. The read-along is the scaffold that comes after, not
+        the crutch that comes before.
+        """
+        story = self.course.story(story_id)
+        if not story or not story.chunks:
+            self.message = "No such story."
+            return 0
+        if self.mode not in ("vocab", "review", "library"):
+            self._saved = (self.steps, self.pos)
+        self.mode = "library"
+        self.story_id = story.id
+        self.topic_id = ""
+        self.band = story.band
+        level = self.course.level_by_band(story.band)
+        self.level_id = level.id if level else 1
+        self.pos = 0
+        self.attempts = 0
+        self.thought = None
+        self.session_correct = {}
+
+        parts = [c.text for c in story.chunks]
+        voices = [(i % 2 if story.voices > 1 else 0) for i in range(len(parts))]
+        lines = len(parts)
+        steps: List[Step] = [
+            Step(kind="info", en=f"Story: {story.title_en or story.title} · {lines} lines",
+                 wait_seconds=3.0, key=f"story:{story.id}:head"),
+            Step(
+                kind="hear",
+                audio_text=self._joined(parts),
+                audio_parts=parts,
+                audio_voices=voices,
+                natural=self._natural(),
+                hide_text=True,
+                en="Listen. Nothing on the screen.",
+                note=_note(self.lang, "hear"),
+                key=f"story:{story.id}:hear",
+            ),
+        ]
+        questions = list(story.questions)
+        if questions:
+            steps.append(self._comprehension_step(
+                None, questions[0], f"story-q:{story.id}:1", "from the story you just heard"))
+        for n, chunk in enumerate(story.chunks, 1):
+            steps.append(
+                Step(
+                    kind="listen",
+                    text=chunk.text,
+                    reading=chunk.reading,
+                    en=chunk.en,
+                    speaker="them",
+                    passage_title=story.title,
+                    chunk_index=n,
+                    chunk_total=lines,
+                    key=f"story:{story.id}:{n}",
+                )
+            )
+        for i, q in enumerate(questions[1:], 2):
+            steps.append(self._comprehension_step(
+                None, q, f"story-q:{story.id}:{i}", "from the story"))
+        self.steps = steps
+        self.message = f"Story · {story.title} ({story.title_en})"
+        return lines
+
+    def _finish_story(self, result: Optional[dict] = None) -> None:
+        """Record a finished story and go back to where the learner was."""
+        done = set(self.progress.get("stories") or [])
+        if self.story_id:
+            done.add(self.story_id)
+        self.progress["stories"] = sorted(done)
+        story = self.course.story(self.story_id)
+        self.message = f"Story done: {story.title if story else ''}".rstrip(": ")
+        self.mode = "lesson"
+        self.story_id = ""
+        self._restore_lesson()
+        if result is not None:
+            result["story_complete"] = True
+            result["mode"] = "lesson"
+
     # -- current state ------------------------------------------------------
     def current(self) -> Optional[Step]:
         if self.pos < len(self.steps):
@@ -1025,7 +1110,7 @@ class Session:
         return None
 
     def gate(self) -> Dict:
-        if self.mode == "vocab":
+        if self.mode in ("vocab", "library"):
             return self.course.gate_for_band(self.band, self.cfg["gate"])
         return self.course.gate_for(self.lesson_id, self.cfg["gate"])
 
@@ -1106,6 +1191,8 @@ class Session:
             self.pos += 1
             self.attempts = 0
             self._settle()
+            if self.pos >= len(self.steps) and self.mode == "library":
+                self._finish_story()
             return True
         return False
 
@@ -1227,7 +1314,7 @@ class Session:
             pass
         if (passed and not forced_advance and self.mode != "think"
                 and step.kind not in ("answer", "converse")):
-            if self.mode == "vocab":
+            if self.mode in ("vocab", "library"):
                 band, lesson_id = self.band, None
             else:
                 band = self.course.lesson_band(self.lesson_id) if self.lesson_id else self.band
@@ -1348,6 +1435,9 @@ class Session:
                 self._restore_lesson()
                 result["review_complete"] = True
                 result["mode"] = "lesson"
+                return result
+            if self.pos >= len(self.steps) and self.mode == "library":
+                self._finish_story(result)
                 return result
             if self.pos >= len(self.steps) and self.mode == "vocab":
                 topic = self.course.topic(self.topic_id)
@@ -1511,6 +1601,11 @@ class Session:
                 if self.mode == "vocab" and self.course.topic(self.topic_id)
                 else None
             ),
+            "story": (
+                self.course.story(self.story_id).to_dict(brief=True)
+                if self.mode == "library" and self.course.story(self.story_id)
+                else None
+            ),
             "attempts": self.attempts,
             "gate": self.gate(),
             "slow_replay": self.slow_replay(),
@@ -1551,6 +1646,8 @@ class Session:
             where = f"L{lesson.id} · {lesson.title}"
         elif self.mode == "vocab" and self.course.topic(self.topic_id):
             where = self.course.topic(self.topic_id).title
+        elif self.mode == "library" and self.course.story(self.story_id):
+            where = self.course.story(self.story_id).title
         else:
             where = {"review": "Review", "think": "Think"}.get(self.mode, "LinguaLens")
         header = f"{where} · {min(index + 1, total)}/{total}" if total else where

@@ -79,6 +79,10 @@ public final class LessonClient: Sendable {
         try await get("/api/course", ["course": course], as: CourseTree.self)
     }
 
+    public func library(_ course: String = "") async throws -> Library {
+        try await get("/api/library", ["course": course], as: Library.self)
+    }
+
     public func progress() async throws -> ProgressSummary {
         try await get("/api/progress", as: ProgressSummary.self)
     }
@@ -108,6 +112,10 @@ public final class LessonClient: Sendable {
 
     public func startVocab(topic: String) async throws {
         try await form("/api/vocab/start", ["topic_id": topic])
+    }
+
+    public func startStory(_ id: String) async throws {
+        try await form("/api/library/start", ["story_id": id])
     }
 
     public func selectCourse(_ id: String) async throws {

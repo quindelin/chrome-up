@@ -126,6 +126,9 @@ class VocabTopic:
     title: str
     title_native: str  # 人与家庭 / 人と家族
     words: List[Phrase] = field(default_factory=list)
+    # a deck topic (deck.py) is studied on its own and met in the library;
+    # it is never injected into lessons, so it can be as big as the band needs
+    deck: bool = False
 
     def to_dict(self) -> dict:
         return {
@@ -133,9 +136,40 @@ class VocabTopic:
             "band": self.band,
             "title": self.title,
             "title_native": self.title_native,
+            "deck": self.deck,
             "count": len(self.words),
             "words": [w.to_dict() for w in self.words],
         }
+
+
+@dataclass
+class Story:
+    """One graded story from the course library (library.py).
+
+    The lessons teach a band's grammar; the library is where the hours of
+    input come from. A story is heard blind first, then followed line by
+    line with the text up, then asked about.
+    """
+
+    id: str
+    band: int
+    title: str
+    title_en: str
+    chunks: List[Phrase] = field(default_factory=list)   # one sentence each
+    questions: List[dict] = field(default_factory=list)  # same shape as readings
+    voices: int = 1      # 2 = a dialogue, alternating speakers by chunk
+
+    def running_words(self, words) -> int:
+        """Running words (or characters, for an unspaced script) in the text."""
+        return sum(words(c.text) for c in self.chunks)
+
+    def to_dict(self, brief: bool = False) -> dict:
+        out = {"id": self.id, "band": self.band, "title": self.title,
+               "title_en": self.title_en, "lines": len(self.chunks)}
+        if not brief:
+            out["chunks"] = [c.to_dict() for c in self.chunks]
+            out["questions"] = list(self.questions)
+        return out
 
 
 @dataclass
@@ -205,6 +239,8 @@ class Level:
     gate: Dict[str, float] = field(default_factory=dict)
     units: List[Unit] = field(default_factory=list)
     vocab_topics: List[VocabTopic] = field(default_factory=list)
+    deck_topics: List[VocabTopic] = field(default_factory=list)
+    story_count: int = 0
 
     def lesson_count(self) -> int:
         return sum(len(u.lessons) for u in self.units)
@@ -232,6 +268,13 @@ class Level:
                 }
                 for t in self.vocab_topics
             ],
+            "deck_topics": [
+                {"id": t.id, "band": t.band, "title": t.title,
+                 "title_native": t.title_native, "count": len(t.words)}
+                for t in self.deck_topics
+            ],
+            "deck_count": sum(len(t.words) for t in self.deck_topics),
+            "story_count": self.story_count,
             "units": [u.to_dict() for u in self.units],
         }
 

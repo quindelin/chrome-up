@@ -104,7 +104,9 @@ function connect() {
   ws = new WebSocket(`${proto}://${location.host}/ws?client_id=${encodeURIComponent(CLIENT)}`);
   ws.onmessage = (e) => {
     const prev = state && state.last_score;
+    const prevMode = state && state.mode;
     state = JSON.parse(e.data);
+    if (prevMode === 'library' && state.mode !== 'library') loadLibrary();
     if (state.last_score && state.last_score !== prev) {
       haptic(state.last_score.passed ? 'pass' : 'fail');
     }
@@ -257,7 +259,33 @@ async function loadCourse(force) {
   course = data;
   courseLangLoaded = lang;
   spokenKey = '';
+  await loadLibrary();
   if (IS_PHONE) buildLessonPicker();
+}
+
+// the course library (graded stories), by band, with what this learner has done
+let library = { bands: [] };
+async function loadLibrary() {
+  const lang = (state && state.active) || '';
+  try {
+    const q = `?client_id=${encodeURIComponent(CLIENT)}` + (lang ? `&course=${encodeURIComponent(lang)}` : '');
+    const res = await fetch('/api/library' + q);
+    library = res.ok ? await res.json() : { bands: [] };
+  } catch (err) {
+    library = { bands: [] };
+  }
+}
+
+function storiesOf(band) {
+  const b = (library.bands || []).find((x) => x.band === band);
+  return b ? b.stories : [];
+}
+
+// "Grammar C2 · words A1 · listening pre-A1": what the content backs up, not
+// just what the lessons cover (server/fluency.py)
+function contentLabel(c) {
+  const k = c && c.content;
+  return k ? `grammar ${k.grammar} · words ${k.vocabulary} · listening ${k.listening}` : '';
 }
 
 async function switchCourse(lang) {
@@ -291,6 +319,7 @@ function renderCourses() {
       ? `${active.name} · ${active.lessons_done || 0}/${active.lessons} lessons · `
         + `${active.words_learned || 0} words · ${active.minutes || 0} min · `
         + `${active.streak_days || 0}-day streak · ${active.review_due || 0} due`
+        + (active.content ? ` · content: ${contentLabel(active)}` : '')
       : active.error || '';
   }
   const badge = el('course');
@@ -314,7 +343,7 @@ function menuRows() {
     return (state && state.courses ? state.courses : []).map((c) => ({
       label: `${c.native || ''} · ${c.name}`,
       sub: c.ready
-        ? `${c.lessons} lessons · ${c.vocab} words${c.active ? ' · studying now' : ''}`
+        ? `${contentLabel(c) || `${c.lessons} lessons · ${c.vocab} words`}${c.active ? ' · studying now' : ''}`
         : c.error || 'not ready',
       act: 'course',
       id: c.id,
@@ -332,11 +361,33 @@ function menuRows() {
         id: lv.id,
       });
     }
+    if (lv.deck_topics && lv.deck_topics.length) {
+      rows.push({
+        label: 'Word deck',
+        sub: `${lv.deck_count} words · ${lv.deck_topics.length} topics`,
+        act: 'deck',
+        id: lv.id,
+      });
+    }
+    const stories = storiesOf(lv.band);
+    if (stories.length) {
+      const done = stories.filter((x) => x.done).length;
+      rows.push({ label: 'Library', sub: `${stories.length} stories · ${done} heard`, act: 'library', id: lv.id });
+    }
     return rows;
   }
-  if (at.type === 'vocab') {
+  if (at.type === 'library') {
     const lv = course.levels.find((l) => l.id === at.id);
-    return (lv.vocab_topics || []).map((t) => ({
+    return storiesOf(lv.band).map((st) => ({
+      label: `${st.done ? '✓ ' : ''}${st.title}`,
+      sub: `${st.title_en} · ${st.lines} lines`,
+      act: 'story',
+      id: st.id,
+    }));
+  }
+  if (at.type === 'vocab' || at.type === 'deck') {
+    const lv = course.levels.find((l) => l.id === at.id);
+    return ((at.type === 'deck' ? lv.deck_topics : lv.vocab_topics) || []).map((t) => ({
       label: `${t.title_native} · ${t.title}`,
       sub: `${t.count} words`,
       act: 'topic',
@@ -442,6 +493,23 @@ async function menuSelect() {
     const lv = course.levels.find((l) => l.id === row.id);
     navPush();
     menu.path.push({ type: 'vocab', id: lv.id, title: `${lv.code} ${vocabLabel()}` });
+    menu.index = 0;
+    renderMenu();
+    return;
+  }
+  if (row.act === 'deck' || row.act === 'library') {
+    const lv = course.levels.find((l) => l.id === row.id);
+    navPush();
+    menu.path.push({ type: row.act, id: lv.id, title: `${lv.code} ${row.act === 'deck' ? 'Word deck' : 'Library'}` });
+    menu.index = 0;
+    renderMenu();
+    return;
+  }
+  if (row.act === 'story') {
+    await api('/api/library/start', { client_id: CLIENT, story_id: row.id });
+    menu.open = false;
+    navReset();
+    menu.path = [];
     menu.index = 0;
     renderMenu();
     return;

@@ -42,6 +42,7 @@ class Registry:
         self._errors: Dict[str, str] = {}
         self._failed_at: Dict[str, float] = {}
         self._cfgs: Dict[str, Dict[str, Any]] = {}
+        self._reports: Dict[str, Dict[str, Any]] = {}
         # Probe everything at boot so the menu knows what is available.
         for lang in enabled_courses(cfg):
             try:
@@ -123,7 +124,19 @@ class Registry:
             "prompts": c.prompt_count(),
             "speech_lang": c.speech_lang,
             "band_label": course_pkg.band_label(lang),
+            # what the content backs up, next to the grammar the lessons cover
+            "content": self._content(lang, c),
         }
+
+    def _content(self, lang: str, c: Course) -> Dict[str, Any]:
+        cached = self._reports.get(lang)
+        if cached is None:
+            from . import fluency
+            rep = fluency.report(c)
+            cached = {k: rep[k] for k in ("grammar", "vocabulary", "listening", "earned", "hours")}
+            cached["stories"] = len(c.stories)
+            self._reports[lang] = cached
+        return cached
 
     def all(self) -> List[Dict[str, Any]]:
         return [self.describe(lang) for lang in self.languages()]
@@ -141,3 +154,4 @@ class Registry:
                 self._cfgs.pop(k, None)
                 self._errors.pop(k, None)
                 self._failed_at.pop(k, None)
+                self._reports.pop(k, None)

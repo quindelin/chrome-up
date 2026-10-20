@@ -26,7 +26,7 @@ from fastapi import (
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import asr, progress
+from . import asr, fluency, progress
 from .access import AccessKey
 from .config import load_config, resolve_provider
 from .course import LANG_NAMES, meta_get, native_label, normalize, supported
@@ -596,6 +596,53 @@ def build_app(cfg: Dict) -> FastAPI:
         state.persist(client_id)
         await state.broadcast(client_id, sess.lang)
         return JSONResponse({"queued": queued, "state": state.state(client_id, sess.lang)})
+
+    @app.get("/api/library")
+    async def library(course: str = Query(""), client_id: str = Query("default")):
+        """Every story in the course library, by band, with what this learner
+        has finished."""
+        lang = normalize(course) if course else state.store.learner(
+            client_id, state.default_lang).active
+        try:
+            c = state.registry.get(lang)
+        except CourseNotReady as exc:
+            raise HTTPException(404, str(exc))
+        learner = state.store.learner(client_id, state.default_lang)
+        cp = learner.course(lang) if learner.has(lang) else {}
+        done = set((cp or {}).get("stories") or [])
+        bands = []
+        for lv in c.levels:
+            stories = c.stories_of_band(lv.band)
+            if not stories:
+                continue
+            bands.append({
+                "band": lv.band, "code": lv.code,
+                "stories": [dict(st.to_dict(brief=True), done=st.id in done) for st in stories],
+            })
+        return {"language": lang, "bands": bands, "done": len(done)}
+
+    @app.post("/api/library/start")
+    async def library_start(
+        client_id: str = Form("default"),
+        story_id: str = Form(""),
+        course: str = Form(""),
+    ):
+        """Play one library story: heard blind, then followed line by line."""
+        sess = state.session_for(client_id, course or None)
+        queued = sess.start_story(story_id)
+        state.persist(client_id)
+        await state.broadcast(client_id, sess.lang)
+        return JSONResponse({"queued": queued, "state": state.state(client_id, sess.lang)})
+
+    @app.get("/api/fluency")
+    async def fluency_of(course: str = Query("")):
+        """What the course's content backs up, band by band (server/fluency.py)."""
+        lang = normalize(course) if course else state.default_lang
+        try:
+            c = state.registry.get(lang)
+        except CourseNotReady as exc:
+            raise HTTPException(404, str(exc))
+        return fluency.report(c, state.registry.config_for(lang))
 
     @app.get("/api/vocab/topic")
     async def vocab_topic(topic_id: str = "", course: str = ""):

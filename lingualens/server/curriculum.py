@@ -19,6 +19,7 @@ from .models import (
     Lesson,
     Level,
     Phrase,
+    Story,
     Turn,
     Unit,
     VocabTopic,
@@ -223,6 +224,42 @@ class Course:
             for topic in topics:
                 self.topics[topic.id] = topic
 
+        # The deck (deck.py): the rest of each band's vocabulary, studied as
+        # its own topics and met in the library, never injected into a
+        # lesson. Kept apart from the bank because the bank must be exactly
+        # lessons x inject_by_band, and a band needs thousands of words.
+        # A deck word the bank already owns is a duplicate, like any other.
+        self.decks_by_band: Dict[int, List[VocabTopic]] = {}
+        deck_mod = course_pkg.module_for(self.lang, "deck")
+        raw_decks = dict(getattr(deck_mod, "DECKS", None) or {})
+        # easiest band first, as above, so a word lands in the band it belongs to
+        deck_order = [b for b in level_order if b in raw_decks] + [
+            b for b in sorted(raw_decks, reverse=True) if b not in level_order]
+        for band in deck_order:
+            topics = self._build_topics(band, raw_decks, seen_words,
+                                        self.duplicate_words)
+            for topic in topics:
+                topic.deck = True
+                self.topics[topic.id] = topic
+            self.decks_by_band[band] = topics
+
+        # The library (library.py): graded stories, the hours of input.
+        self.stories: Dict[str, Story] = {}
+        lib_mod = course_pkg.module_for(self.lang, "library")
+        for raw in list(getattr(lib_mod, "STORIES", None) or []):
+            story = Story(
+                id=str(raw["id"]),
+                band=int(raw["band"]),
+                title=raw.get("title", ""),
+                title_en=raw.get("title_en", ""),
+                chunks=[Phrase(*(list(c) + ["", ""])[:3]) for c in raw.get("chunks", [])],
+                questions=list(raw.get("questions") or []),
+                voices=int(raw.get("voices") or 1),
+            )
+            if story.id in self.stories:
+                raise ValueError(f"library: story id {story.id!r} defined twice")
+            self.stories[story.id] = story
+
         for raw_level in raw_levels:
             band = int(raw_level["band"])
             level_units: List[Unit] = []
@@ -277,6 +314,8 @@ class Course:
                     gate=dict(raw_level.get("gate", {})),
                     units=level_units,
                     vocab_topics=self.vocab_by_band.get(band, []),
+                    deck_topics=self.decks_by_band.get(band, []),
+                    story_count=sum(1 for st in self.stories.values() if st.band == band),
                 )
             )
 
@@ -410,6 +449,16 @@ class Course:
         start = (index * count) % len(words)
         return [words[(start + i) % len(words)] for i in range(min(count, len(words)))]
 
+    def deck_words(self, band: int) -> List[Phrase]:
+        """Every word in this band's deck (deck.py), in topic order."""
+        return [w for t in self.decks_by_band.get(band, []) for w in t.words]
+
+    def stories_of_band(self, band: int) -> List[Story]:
+        return sorted((s for s in self.stories.values() if s.band == band), key=lambda s: s.id)
+
+    def story(self, story_id: str) -> Optional[Story]:
+        return self.stories.get(str(story_id))
+
     def vocab_count(self) -> int:
         return sum(len(t.words) for t in self.topics.values())
 
@@ -484,4 +533,5 @@ class Course:
             "level_count": len(self.levels),
             "vocab_count": self.vocab_count(),
             "prompt_count": self.prompt_count(),
+            "story_count": len(self.stories),
         }

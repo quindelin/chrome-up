@@ -25,8 +25,15 @@ lingualens/
     ├── vocab_a1.py … vocab_c2.py      one word bank per band
     ├── scenes.py, freeform.py         A1's scenes and prompts (later bands keep theirs in the band file)
     ├── grammar.py, readings.py        merge the band files; copy es versions, change the A1 data
-    └── summaries.py                   copy es/summaries.py unchanged
+    ├── summaries.py                   copy es/summaries.py unchanged
+    ├── deck.py, deck_<band>.py        the rest of each band's words  (EXPAND_COURSE.md)
+    └── library.py, library_<band>.py  graded stories, the hours of input (EXPAND_COURSE.md)
 ```
+
+Passing this playbook gives a course its grammar, A1–C2. It does not give it
+the vocabulary or listening volume a band needs. That is the second stage,
+[EXPAND_COURSE.md](EXPAND_COURSE.md), measured against
+[FLUENCY_TARGETS.md](FLUENCY_TARGETS.md).
 
 **Do not edit any other file.** If your language needs an engine change, stop
 and report what is needed instead of making it. Examples: right-to-left

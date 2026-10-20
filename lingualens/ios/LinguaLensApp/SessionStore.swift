@@ -169,6 +169,7 @@ final class SessionStore {
     func startLesson(_ id: Int) { send { try await $0.startLesson(id) } }
     func startReview() { send { try await $0.startReview() } }
     func startVocab(_ topic: String) { send { try await $0.startVocab(topic: topic) } }
+    func startStory(_ id: String) { send { try await $0.startStory(id) } }
     func selectCourse(_ id: String) { send { try await $0.selectCourse(id) } }
 
     private func send(_ op: @escaping (LessonClient) async throws -> Void) {

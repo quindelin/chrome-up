@@ -726,6 +726,86 @@ def t_every_new_course_passes_the_gate():
     assert not bad, bad
 
 
+def _with_fake_library(fn):
+    """Run fn(course) on Spanish with a two-topic deck and two stories."""
+    import types
+    from unittest import mock
+    from server import course as cp
+    deck = types.SimpleNamespace(DECKS={1: [
+        {"id": "a1-deck-home", "title": "Home", "title_native": "Casa",
+         "words": [("el buzón", "", "mailbox"), ("la persiana", "", "window blind")]}]})
+    q = {"q": "¿Qué abre Ana?", "q_en": "What does Ana open?", "a": "Abre la ventana.",
+         "a_en": "She opens the window.", "keywords": ["ventana"], "min_chars": 5}
+    text = ("Ana llega a casa tarde y busca la llave en su bolso negro. "
+            "No la encuentra y llama a su hermano por teléfono. "
+            "Su hermano baja, abre la puerta y los dos suben a la cocina. "
+            "Ana abre la ventana porque hace mucho calor en el piso. "
+            "Después cenan juntos y hablan del trabajo y de la familia.")
+    lines = [(t.strip() + ".", "", "line") for t in text.split(".") if t.strip()]
+    lib = types.SimpleNamespace(STORIES=[
+        {"id": "a1-001", "band": 1, "title": "La llave", "title_en": "The key",
+         "chunks": lines, "questions": [q, q]},
+        {"id": "a1-002", "band": 1, "title": "Otra", "title_en": "Another",
+         "chunks": lines, "questions": [q, q], "voices": 2}])
+    real = cp.module_for
+
+    def fake(lang, name):
+        if lang == "es" and name == "deck":
+            return deck
+        if lang == "es" and name == "library":
+            return lib
+        return real(lang, name)
+    with mock.patch.object(cp, "module_for", fake):
+        return fn(Course("es"))
+
+
+def t_library_story_plays_and_is_recorded():
+    """A story is heard blind, asked about, followed line by line, asked
+    again; finishing it records it and puts the lesson back."""
+    def run(c):
+        assert c.decks_by_band[1][0].deck and len(c.deck_words(1)) == 2
+        assert c.topic("a1-deck-home"), "deck topics must be studyable"
+        assert c.vocab_words(1) and "el buzón" not in {w.text for w in c.vocab_words(1)}, \
+            "a deck word was injected into lessons"
+        prog = {"lesson_id": 3, "completed": [], "mastery": {}, "words": {}, "stats": {}}
+        s = Session(c, load_config("config.es.yaml"), prog)
+        lesson_steps = len(s.steps)
+        assert s.start_story("a1-001") == 5
+        kinds = [st.kind for st in s.steps]
+        assert kinds[:3] == ["info", "hear", "answer"], kinds
+        assert s.steps[1].hide_text and len(s.steps[1].audio_parts) == 5
+        assert kinds.count("listen") == 5 and kinds[-1] == "answer"
+        assert s.state()["story"]["id"] == "a1-001"
+        from server.pronunciation import simulated_score
+        for _ in range(100):
+            if s.mode != "library":
+                break
+            st = s.current()
+            if st.kind in ("listen", "info", "hear"):
+                s.advance_non_speech()
+                continue
+            ok = simulated_score(st.sample_text or st.text, "good", "es")
+            ok.recognized = st.sample_text or st.text
+            assert s.submit(ok).get("advanced"), f"stuck on {st.kind} {st.key}"
+        assert prog["stories"] == ["a1-001"], prog.get("stories")
+        assert s.mode == "lesson" and len(s.steps) == lesson_steps
+        s.start_story("a1-002")
+        assert s.steps[1].audio_voices[:2] == [0, 1], "a two-voice story alternates"
+        return True
+    assert _with_fake_library(run)
+
+
+def t_fluency_report_earns_bands_in_order():
+    """The earned level is the highest band whose targets are all met, with
+    every band below it met too; the dimension labels go by course totals."""
+    from server import fluency
+    rep = fluency.report(Course("es"))
+    assert rep["grammar"] == "C2" and rep["earned"] == "pre-A1"
+    assert rep["vocabulary"] == "A1", rep["vocabulary"]   # 1,196 words
+    assert fluency.listen_target("ar", 1) > fluency.listen_target("it", 1)
+    assert fluency.gaps(rep, 1) and len(fluency.gaps(rep, 6)) == 6
+
+
 def main() -> int:
     for name, fn in sorted(globals().items()):
         if name.startswith("t_"):

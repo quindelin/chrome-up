@@ -3,6 +3,8 @@
 
     .venv/bin/python tools/validate_course.py fr          # one course
     .venv/bin/python tools/validate_course.py --all       # every course on disk
+    .venv/bin/python tools/validate_course.py fr --fluency       # + content targets, A1-C2
+    .venv/bin/python tools/validate_course.py fr --fluency B1    # + content targets up to B1
 
 Every rule here is something a real course got wrong at least once (see
 docs/COURSE_AUDIT.md, docs/SPANISH_AUDIT.md, docs/LEARNING_SCIENCE.md).
@@ -18,6 +20,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from server import course as course_pkg  # noqa: E402
+from server import fluency  # noqa: E402
 from server.config import load_config  # noqa: E402
 from server.curriculum import Course  # noqa: E402
 from server.engine import Session, inject_count  # noqa: E402
@@ -131,13 +134,66 @@ def validate(code: str, strict: bool) -> tuple:
         overlap = [w for w in got if w in lesson_words]
         if overlap:
             err(f"band {band}: bank repeats lesson vocab, e.g. {overlap[:3]}")
+    # -- deck (deck.py) and library (library.py) ---------------------------
+    bank_words = {w.text for b in c.vocab_by_band for w in c.vocab_words(b)}
+    mapping = fluency.cefr_of_bands(c)
+    deck_words = [w for b in c.decks_by_band for w in c.deck_words(b)]
+    for w in deck_words:
+        if w.text in lesson_words:
+            err(f"deck: '{w.text}' is already a lesson's vocab")
+            break
+    for w in deck_words:
+        if "+" in w.text or not w.en:
+            err(f"deck: '{w.text}' needs to be a sayable word with a meaning")
+            break
+    for band in c.decks_by_band:
+        if band not in mapping:
+            err(f"deck: band {band} has no level")
+    for st in c.stories.values():
+        where = f"story {st.id}"
+        if st.band not in mapping:
+            err(f"{where}: band {st.band} has no level")
+            continue
+        if len(st.questions) < 2:
+            err(f"{where}: needs a gist and a detail question")
+        for q in st.questions:
+            if not (q.get("q") and q.get("a") and q.get("q_en")):
+                err(f"{where}: a question needs q, q_en and a sample answer a")
+                break
+        lo, hi = fluency.STORY_WORDS[mapping[st.band]]
+        n = sum(fluency.running_words(ch.text, code) for ch in st.chunks)
+        if not lo <= n <= hi:
+            err(f"{where}: {n} running words, band wants {lo}-{hi}")
+        if any(not ch.en for ch in st.chunks):
+            err(f"{where}: a line has no English")
+        if any(ch.text.startswith("(") for ch in st.chunks):
+            err(f"{where}: a stage direction would be read aloud")
+        if any(fluency.running_words(ch.text, code) > 40 for ch in st.chunks):
+            err(f"{where}: a line is over 40 words - split it, one sentence a line")
+    if c.stories:
+        try:
+            s = Session(c, cfg, {"lesson_id": c.lesson_ids[0], "completed": [],
+                                 "mastery": {}, "words": {}, "stats": {}})
+            first = sorted(c.stories)[0]
+            if not s.start_story(first) or not s.state()["glasses"]["target"].strip():
+                err(f"story {first}: does not play")
+        except Exception as exc:  # noqa: BLE001
+            err(f"library: session fails: {type(exc).__name__}: {exc}")
     return errors, warnings
+
+
+def fluency_check(code: str, upto: int) -> tuple:
+    """The content targets (server/fluency.py), every band up to `upto`."""
+    rep = fluency.report(Course(code))
+    return fluency.gaps(rep, upto), rep
 
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("code", nargs="?", help="course folder, e.g. fr")
     ap.add_argument("--all", action="store_true", help="every course on disk")
+    ap.add_argument("--fluency", nargs="?", const="C2", default=None, metavar="BAND",
+                    help="also require the content targets up to BAND (default C2)")
     ap.add_argument("--lenient", action="store_true",
                     help="treat new-course meta fields as warnings (for zh / ja)")
     args = ap.parse_args()
@@ -157,6 +213,21 @@ def main() -> int:
         for w in warnings[:10]:
             print(f"   ! {w}")
         failed += bool(errors)
+        if args.fluency and not errors:
+            upto = fluency.CEFR.index(args.fluency.upper()) + 1
+            missing, rep = fluency_check(code, upto)
+            mark = "PASS" if not missing else "FAIL"
+            print(f"{mark} {code} content to {args.fluency.upper()}: earned {rep['earned']}"
+                  f" · vocabulary {rep['vocabulary']} · listening {rep['listening']}"
+                  f" · ~{rep['hours']} h")
+            for r in rep["bands"]:
+                print(f"   {r['code']:>6} {r['cefr']}  words {r['words']:>5}/{r['words_target']:<5}"
+                      f"  listen {r['listen_words']:>6}/{r['listen_target']:<6}"
+                      f"  in-story {r['context']:.0%}  stories {r['stories']}"
+                      f"  {'ok' if r['met'] else '--'}")
+            for g in missing:
+                print(f"   x {g}")
+            failed += bool(missing)
     return 1 if failed else 0
 
 

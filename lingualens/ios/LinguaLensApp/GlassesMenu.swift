@@ -13,14 +13,18 @@ import MWDATDisplay
 ///
 ///     Home ─┬─ Continue ─────────────▶ Lesson  (Menu · Redo · Start/Stop · Skip)
 ///           ├─ Review · N due ───────▶ Lesson
-///           ├─ Lessons ─▶ Level ─▶ Lesson list ─▶ Lesson
-///           └─ Course ──▶ Mandarin / Japanese / Spanish ─▶ Home
+///           ├─ Lessons ─▶ Level ─┬─ Lesson list ─▶ Lesson
+///           │                  ├─ Library ─▶ Story ─▶ Lesson screen
+///           │                  └─ Word deck ─▶ Topic ─▶ Lesson screen
+///           └─ Course ──▶ every ready course ─▶ Home
 @MainActor
 final class GlassesMenu {
     enum Screen: Equatable {
         case home
         case levels
         case lessons(levelIndex: Int)
+        case library(levelIndex: Int)
+        case deck(levelIndex: Int)
         case courses
         case lesson
     }
@@ -30,6 +34,8 @@ final class GlassesMenu {
     private var tree: CourseTree?
     private var treeCourse: String?
     private var loading = false
+    private var library: Library?
+    private var libraryLoading = false
 
     init(store: SessionStore) {
         self.store = store
@@ -39,7 +45,8 @@ final class GlassesMenu {
 
     func go(_ next: Screen) {
         screen = next
-        if case .lessons = next { loadTree() }
+        if case .lessons = next { loadTree(); loadLibrary() }
+        if case .library = next { loadLibrary(force: true) }
         if next == .levels { loadTree() }
         render()
     }
@@ -50,7 +57,7 @@ final class GlassesMenu {
     /// A new state snapshot: only the lesson screen follows it. A menu you
     /// are reading is not yanked away because the lesson moved on.
     func update() {
-        if let active = store?.state?.active, active != treeCourse { tree = nil }
+        if let active = store?.state?.active, active != treeCourse { tree = nil; library = nil }
         if screen == .lesson || screen == .home { render() }
     }
 
@@ -61,6 +68,8 @@ final class GlassesMenu {
         case .home: view = home(store)
         case .levels: view = levels(store)
         case .lessons(let i): view = lessons(store, levelIndex: i)
+        case .library(let i): view = stories(store, levelIndex: i)
+        case .deck(let i): view = deck(store, levelIndex: i)
         case .courses: view = courses(store)
         case .lesson: view = lesson(store)
         }
@@ -116,6 +125,16 @@ final class GlassesMenu {
         return FlexBox(direction: .column, spacing: 8, padding: EdgeInsets(all: 16)) {
             Button(label: "‹ Levels", style: .outline, onClick: act { [weak self] in self?.go(.levels) })
             Text(level?.code ?? "Lessons", style: .heading)
+            let stories = self.stories(of: level)
+            if !stories.isEmpty {
+                Button(label: "Library · \(stories.count) stories", style: .secondary,
+                       onClick: act { [weak self] in self?.go(.library(levelIndex: levelIndex)) })
+            }
+            if let deck = level?.deckTopics, !deck.isEmpty {
+                Button(label: "Word deck · \(deck.reduce(0) { $0 + ($1.count ?? 0) }) words",
+                       style: .secondary,
+                       onClick: act { [weak self] in self?.go(.deck(levelIndex: levelIndex)) })
+            }
             for lesson in all {
                 Button(label: (lesson.id == current ? "▸ " : "") + "L\(lesson.id) · \(lesson.title ?? "")",
                        style: lesson.id == current ? .primary : .secondary,
@@ -128,11 +147,62 @@ final class GlassesMenu {
         }
     }
 
+    private func level(_ i: Int) -> CourseLevel? {
+        (tree?.levels ?? []).indices.contains(i) ? tree?.levels[i] : nil
+    }
+
+    private func stories(of level: CourseLevel?) -> [StoryRef] {
+        guard let band = level?.band else { return [] }
+        return library?.bands.first { $0.band == band }?.stories ?? []
+    }
+
+    private func stories(_ store: SessionStore, levelIndex: Int) -> FlexBox {
+        let level = self.level(levelIndex)
+        let all = stories(of: level)
+        return FlexBox(direction: .column, spacing: 8, padding: EdgeInsets(all: 16)) {
+            Button(label: "‹ \(level?.code ?? "Level")", style: .outline,
+                   onClick: act { [weak self] in self?.go(.lessons(levelIndex: levelIndex)) })
+            Text("Library", style: .heading)
+            if all.isEmpty { Text(libraryLoading ? "Loading…" : "No stories yet", style: .body) }
+            for story in all {
+                Button(label: (story.done == true ? "✓ " : "") + (story.title ?? story.id),
+                       style: .secondary,
+                       onClick: act { [weak self] in
+                           self?.store?.startStory(story.id)
+                           self?.store?.play()
+                           self?.go(.lesson)
+                       })
+            }
+        }
+    }
+
+    private func deck(_ store: SessionStore, levelIndex: Int) -> FlexBox {
+        let level = self.level(levelIndex)
+        return FlexBox(direction: .column, spacing: 8, padding: EdgeInsets(all: 16)) {
+            Button(label: "‹ \(level?.code ?? "Level")", style: .outline,
+                   onClick: act { [weak self] in self?.go(.lessons(levelIndex: levelIndex)) })
+            Text("Word deck", style: .heading)
+            for topic in level?.deckTopics ?? [] {
+                Button(label: [topic.titleNative, topic.title].compactMap { $0 }.joined(separator: " · ")
+                              + " · \(topic.count ?? 0)",
+                       style: .secondary,
+                       onClick: act { [weak self] in
+                           self?.store?.startVocab(topic.id)
+                           self?.store?.play()
+                           self?.go(.lesson)
+                       })
+            }
+        }
+    }
+
     private func courses(_ store: SessionStore) -> FlexBox {
         let rows = store.state?.courses ?? []
         return FlexBox(direction: .column, spacing: 8, padding: EdgeInsets(all: 16)) {
             Button(label: "‹ Home", style: .outline, onClick: act { [weak self] in self?.go(.home) })
             Text("Course", style: .heading)
+            if let label = rows.first(where: { $0.active })?.content?.label, !label.isEmpty {
+                Text(label, style: .meta)
+            }
             for c in rows where c.ready {
                 Button(label: "\(c.native ?? c.id) · \(c.name ?? "")" + (c.active ? "  ✓" : ""),
                        style: c.active ? .primary : .secondary,
@@ -180,6 +250,19 @@ final class GlassesMenu {
             self.loading = false
             self.tree = t
             self.treeCourse = course
+            self.render()
+        }
+    }
+
+    private func loadLibrary(force: Bool = false) {
+        guard force || library == nil, !libraryLoading, let store, let client = store.client else { return }
+        libraryLoading = true
+        let course = store.state?.active ?? ""
+        Task { [weak self] in
+            let lib = try? await client.library(course)
+            guard let self else { return }
+            self.libraryLoading = false
+            self.library = lib
             self.render()
         }
     }

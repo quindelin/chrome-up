@@ -256,9 +256,11 @@ public struct CourseRow: Decodable, Equatable, Sendable, Identifiable {
     public var reviewDue: Int?
     public var speechLang: String?
     public var error: String?
+    /// What the content backs up (server/fluency.py), next to the grammar.
+    public var content: ContentLevel?
 
     enum CodingKeys: String, CodingKey {
-        case id, name, native, ready, active, lessons, vocab, error
+        case id, name, native, ready, active, lessons, vocab, error, content
         case lessonsDone = "lessons_done"
         case wordsLearned = "words_learned"
         case streakDays = "streak_days"
@@ -281,6 +283,22 @@ public struct CourseRow: Decodable, Equatable, Sendable, Identifiable {
         reviewDue = try? c.decodeIfPresent(Int.self, forKey: .reviewDue)
         speechLang = try? c.decodeIfPresent(String.self, forKey: .speechLang)
         error = try? c.decodeIfPresent(String.self, forKey: .error)
+        content = try? c.decodeIfPresent(ContentLevel.self, forKey: .content)
+    }
+}
+
+/// "grammar C2 · words A1 · listening pre-A1": the honest label for a course.
+public struct ContentLevel: Decodable, Equatable, Sendable {
+    public var grammar: String?
+    public var vocabulary: String?
+    public var listening: String?
+    public var earned: String?
+    public var stories: Int?
+
+    public var label: String {
+        [("grammar", grammar), ("words", vocabulary), ("listening", listening)]
+            .compactMap { k, v in v.map { "\(k) \($0)" } }
+            .joined(separator: " · ")
     }
 }
 
@@ -332,12 +350,39 @@ public struct CourseLevel: Decodable, Sendable, Identifiable {
     public var title: String?
     public var lessonCount: Int?
     public var units: [CourseUnit]
+    public var band: Int?
     public var vocabTopics: [VocabTopic]?
+    public var deckTopics: [VocabTopic]?
+    public var storyCount: Int?
     enum CodingKeys: String, CodingKey {
-        case id, code, title, units
+        case id, code, title, units, band
         case lessonCount = "lesson_count"
         case vocabTopics = "vocab_topics"
+        case deckTopics = "deck_topics"
+        case storyCount = "story_count"
     }
+}
+
+// MARK: - library (/api/library)
+
+public struct Library: Decodable, Sendable {
+    public var language: String?
+    public var bands: [LibraryBand]
+}
+
+public struct LibraryBand: Decodable, Sendable {
+    public var band: Int
+    public var code: String?
+    public var stories: [StoryRef]
+}
+
+public struct StoryRef: Decodable, Sendable, Identifiable {
+    public var id: String
+    public var title: String?
+    public var titleEn: String?
+    public var lines: Int?
+    public var done: Bool?
+    enum CodingKeys: String, CodingKey { case id, title, lines, done; case titleEn = "title_en" }
 }
 
 public struct CourseUnit: Decodable, Sendable, Identifiable {
