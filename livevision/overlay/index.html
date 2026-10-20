@@ -64,6 +64,20 @@
       <div class="bar"><div class="track"><div class="fill"></div></div></div>
     </div>
   </div>
+  <!-- Heart rate (Apple Watch) just above the Magicka bar: beats at the
+       measured rate; fades out when the Watch goes quiet. -->
+  <div id="heartbeat" class="unknown" aria-label="heart rate">
+    <div class="hb-row">
+      <svg class="hb-heart" viewBox="0 0 32 29" aria-hidden="true">
+        <defs><linearGradient id="hb-red" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#e0574c"/><stop offset="1" stop-color="#8e1a16"/>
+        </linearGradient></defs>
+        <path d="M16 28 C10 23 1.5 17 1.5 9.2 1.5 4.6 5 1.5 9 1.5 12.2 1.5 14.6 3.4 16 6 17.4 3.4 19.8 1.5 23 1.5 27 1.5 30.5 4.6 30.5 9.2 30.5 17 22 23 16 28Z"/>
+      </svg>
+      <span class="hb-num">--</span><span class="hb-unit">BPM</span>
+    </div>
+    <div class="hb-trace"><div class="bar"><div class="track"><canvas width="326" height="22"></canvas></div></div></div>
+  </div>
   <span id="levelnum" class="hidden">1</span>
 
   <!-- ============================ vicinity ad ========================= -->

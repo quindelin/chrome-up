@@ -144,6 +144,12 @@ overlay:
   # (Magicka) bar and the heart-rate line. false hides it.
   vicinity_ad: true
 
+# Apple Watch heart rate on the HUD, just above the Magicka bar: a heart that
+# beats at your rate plus a short ECG trace. Hidden while no reading arrives.
+heartbeat:
+  enabled: true
+  high_bpm: 150             # above this the heart and number run hotter
+
 # Head orientation for the avatar (glasses Motion quaternion, or yaw/pitch/roll)
 # sent as "head" on /ws/phone or POST /api/head. The first sample is "facing the
 # camera"; yaw drifts back to centre over recenter_s. If an axis comes out

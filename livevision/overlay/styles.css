@@ -140,6 +140,50 @@ html, body {
 .vital.charging .fill { animation: vital-charge 2.4s ease-in-out infinite; }
 @keyframes vital-charge { 50% { filter: brightness(1.35) saturate(1.2); } }
 
+/* ------------------------------------------------------------ heartbeat */
+/* Apple Watch heart rate in the 90px band just above the Magicka bar
+   (bottom 84-174px, same left edge and width). Bare text + heart, and a
+   trace in the bars' metal frame. Fades like the vitals when stale. */
+#heartbeat {
+  position: absolute;
+  left: 150px;
+  bottom: 84px;
+  width: 352px;
+  height: 90px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  opacity: 1;
+  transition: opacity 700ms ease;
+}
+#heartbeat.unknown { opacity: 0; }
+#heartbeat .hb-row { display: flex; align-items: center; gap: 10px; padding-left: 13px; line-height: 1; }
+#heartbeat .hb-heart {
+  width: 32px;
+  height: 29px;
+  overflow: visible;
+  filter: drop-shadow(0 1px 3px #000);
+}
+#heartbeat .hb-heart path { fill: url(#hb-red); stroke: var(--frame-hi); stroke-width: 1.2; }
+#heartbeat .hb-num { font-size: 34px; letter-spacing: 0.02em; min-width: 52px; text-align: right; }
+#heartbeat .hb-unit { font-size: 16px; letter-spacing: 0.14em; color: var(--gold-dim); align-self: flex-end; padding-bottom: 4px; }
+#heartbeat .hb-trace { position: relative; height: 28px; }
+#heartbeat .bar {
+  position: absolute;
+  inset: 0;
+  padding: 3px 13px;
+  clip-path: polygon(0 50%, 12px 0, calc(100% - 12px) 0, 100% 50%, calc(100% - 12px) 100%, 12px 100%);
+  background: linear-gradient(180deg, var(--frame-hi), #707070 45%, var(--frame-lo) 55%, #8a8a8a);
+  filter: drop-shadow(0 1px 3px #000);
+}
+#heartbeat .track { height: 100%; background: rgba(0, 0, 0, 0.78); }
+#heartbeat canvas { display: block; width: 326px; height: 22px; }
+/* racing (> heartbeat.high_bpm): hotter heart and number, still white-ish */
+#heartbeat.high .hb-heart path { stroke: #ffb3a8; }
+#heartbeat.high .hb-heart { filter: drop-shadow(0 0 5px rgba(255, 70, 50, 0.75)) drop-shadow(0 1px 3px #000); }
+#heartbeat.high .hb-num { color: #ffd9d3; }
+
 /* ------------------------------------------------- skill list (opt-in) */
 #left-stack { display: none; }
 body.show-skills #left-stack {

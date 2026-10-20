@@ -1228,6 +1228,26 @@ def t_phone_route():
     assert nav.tick().get("source") != "apple"
 
 
+def t_heartbeat_config():
+    """The HUD heartbeat's on/off flag reaches the overlay via /api/config
+    (on by default, off when config.yaml says so)."""
+    import asyncio
+    import json as _json
+    from types import SimpleNamespace
+    import server.main as hud
+    from server.config import load_config as load_hud_config
+    cfg = load_hud_config(ROOT / "config.yaml")
+    assert cfg["heartbeat"]["enabled"] is True
+    old = hud.RT
+    try:
+        for given, want in (({}, True), ({"enabled": False}, False)):
+            hud.RT = SimpleNamespace(cfg={**cfg, "heartbeat": given},
+                                     vtube=SimpleNamespace(status=lambda: {}))
+            out = _json.loads(asyncio.run(hud.api_config()).body)["heartbeat"]
+            assert out["enabled"] is want and out["high_bpm"] == 150, out
+    finally:
+        hud.RT = old
+
 def main() -> int:
     print("autoclip smoke test\n")
     for name, fn in [
@@ -1248,6 +1268,7 @@ def main() -> int:
         ("dedupe across windows", t_dedupe_across_windows),
         ("head pose", t_head_pose),
         ("body tracking", t_body_tracking),
+        ("hud heartbeat config", t_heartbeat_config),
         ("apple maps phone route", t_phone_route),
         ("retention keeps disk bounded", t_retention_keeps_disk_bounded),
         ("captions one file per clip", t_captions_one_file_per_clip),

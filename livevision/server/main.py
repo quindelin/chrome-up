@@ -417,6 +417,10 @@ async def api_config():
         "overlay": {
             "vicinity_ad": cfg.get("overlay", {}).get("vicinity_ad", True),
         },
+        "heartbeat": {
+            "enabled": bool(cfg.get("heartbeat", {}).get("enabled", True)),
+            "high_bpm": cfg.get("heartbeat", {}).get("high_bpm", 150),
+        },
     })
 
 

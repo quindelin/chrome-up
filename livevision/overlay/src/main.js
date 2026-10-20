@@ -8,6 +8,7 @@ import { resolve as resolveTheme } from "./themes.js";
 import { tryLoadLive2D, drawLive2D } from "./live2d.js";
 import { PrivacyBadge } from "./privacy.js";
 import { VicinityFeed } from "./vicinity.js";
+import { Heartbeat } from "./heartbeat.js";
 import { loadSfx } from "./sfx.js";
 
 const cfg = await fetchConfig();
@@ -46,6 +47,7 @@ const menu = new Menu(document.getElementById("menu"));
 const privacy = new PrivacyBadge(document.getElementById("privacy"));
 privacy.start();
 new VicinityFeed(document.getElementById("vicinity")).start();
+const heartbeat = new Heartbeat(document.getElementById("heartbeat"), cfg.heartbeat || {});
 const statusEl = document.getElementById("status");
 const objectiveEl = document.getElementById("objective");
 const thuumName = document.getElementById("thuum-name");
@@ -67,6 +69,7 @@ net.on((payload) => {
   payload.__markers = cfg.markers || [];
   hud.update(payload);
   hud.handleEvents(payload.events);
+  heartbeat.update(payload.body);
   avatar3d?.react(payload.events);
 });
 net.connect();
