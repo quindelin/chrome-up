@@ -1155,7 +1155,8 @@ def t_head_pose():
         h = math.radians(deg) / 2
         return (math.cos(h),) + tuple(math.sin(h) if a == axis else 0.0 for a in "xyz")
 
-    hp = HeadPose({"recenter_s": 0})
+    still = {"recenter_s": 0, "pitch_level_s": 0, "roll_level_s": 0}
+    hp = HeadPose(still)
     base = q("x", 15)                        # already tilted when data starts = "ahead"
     assert hp.ingest({"q": list(base)})
     for axis, name in (("y", "yaw"), ("x", "pitch"), ("z", "roll")):
@@ -1166,9 +1167,28 @@ def t_head_pose():
     assert hp.snapshot()["fresh"] is True
     assert hp.ingest({"yaw": 5, "pitch": -2, "roll": 1}) and hp.snapshot()["yaw"] == 5
     assert not hp.ingest({"nothing": 1})
-    flip = HeadPose({"recenter_s": 0, "invert": {"yaw": True}})
+    flip = HeadPose({**still, "invert": {"yaw": True}})
     flip.ingest({"q": [1, 0, 0, 0]}); flip.ingest({"q": list(q("y", 20))})
     assert abs(flip.snapshot()["yaw"] + 20) < 0.5
+
+    # data started while looking up 30 deg (reference) and you then look ahead:
+    # pitch reads -30 at first, then levels out instead of staring down for good
+    import server.headpose as hpmod
+    clock = [1000.0]
+    real = hpmod.time.time
+    hpmod.time.time = lambda: clock[0]
+    try:
+        lv = HeadPose({"recenter_s": 0, "pitch_level_s": 30})
+        lv.ingest({"q": list(q("x", 30))})
+        clock[0] += 0.1; lv.ingest({"q": [1, 0, 0, 0]})
+        assert abs(lv.snapshot()["pitch"] + 30) < 1, lv.snapshot()
+        for _ in range(1200):                # 2 min at 10 Hz
+            clock[0] += 0.1; lv.ingest({"q": [1, 0, 0, 0]})
+        assert abs(lv.snapshot()["pitch"]) < 1.5, lv.snapshot()
+        clock[0] += 0.1; lv.ingest({"q": list(q("x", -20))})   # a real nod still shows
+        assert abs(abs(lv.snapshot()["pitch"]) - 20) < 2, lv.snapshot()
+    finally:
+        hpmod.time.time = real
 
 
 def t_body_tracking():
@@ -1180,8 +1200,10 @@ def t_body_tracking():
     assert b.snapshot()["posture"] == "unknown"                     # nothing yet
     b.ingest({"gravity": [0.0, -1.0, 0.05]}); assert b.snapshot()["posture"] == "standing"
     b.ingest({"gravity": [0.0, -0.1, -0.99]}); assert b.snapshot()["posture"] == "sitting"
-    b.ingest({"gravity": [0.0, -0.75, -0.66]})                       # ~41 deg: in the gap
+    b.ingest({"gravity": [0.0, -0.39, -0.92]})                       # ~67 deg: in the gap
     assert b.snapshot()["posture"] == "sitting", "hysteresis should hold the last answer"
+    b.ingest({"gravity": [0.0, -0.69, -0.72]})                       # ~46 deg: measured standing
+    assert b.snapshot()["posture"] == "standing", "a pocket-tilted phone standing up"
     b.ingest({"posture": "standing"}); assert b.snapshot()["posture"] == "standing"
     assert b.ingest({"hands": {"right": {"x": 0.2, "y": -0.3, "z": 0.4}}})
     snap = b.snapshot()["hands"]

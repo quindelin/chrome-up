@@ -157,6 +157,8 @@ heartbeat:
 head:
   stale_s: 1.5
   recenter_s: 20
+  pitch_level_s: 30         # pitch / roll ease back to level (0 = never)
+  roll_level_s: 15
 
 # VTube Studio Plugin API — the practical way to use a real anime model.
 # Turn it on in VTube Studio: Settings -> Plugins -> "Start API Server".

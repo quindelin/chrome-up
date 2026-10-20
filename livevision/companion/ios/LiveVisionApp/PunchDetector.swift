@@ -25,8 +25,8 @@ struct PunchDetector {
         let peak: Double          // g
     }
 
-    var threshold = 2.5           // g, peak a punch must reach
-    var rearm = 1.2               // g, fall below this before the next one
+    var threshold = 1.8           // g, peak a punch must reach (2.5 missed air punches)
+    var rearm = 0.9               // g, fall below this before the next one
     var refractory = 0.18         // s after a punch
     var maxRun = 0.08             // s, report a long spike this far in
     var full = 8.0                // g that counts as strength 1

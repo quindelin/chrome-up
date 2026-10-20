@@ -57,9 +57,11 @@ class Body:
         self.stale_s = float(cfg.get("stale_s", 2.0))
         self.hand_smooth = float(cfg.get("hand_smooth", 0.45))     # 0..1, higher = snappier
         # phone-in-pocket thigh angle from vertical: below sit_lo standing, above
-        # sit_hi sitting, in between keep the last answer (hysteresis)
-        self.sit_lo = float(cfg.get("sit_below_deg", 40))
-        self.sit_hi = float(cfg.get("sit_above_deg", 60))
+        # sit_hi sitting, in between keep the last answer (hysteresis). Measured
+        # on stream: a front-pocket phone reads ~42-49 deg standing (the pocket
+        # tilts it) and ~84 sitting
+        self.sit_lo = float(cfg.get("sit_below_deg", 62))
+        self.sit_hi = float(cfg.get("sit_above_deg", 72))
         self._lock = threading.Lock()
         self._posture, self._posture_src, self._posture_ts = "standing", "none", 0.0
         self._thigh_deg: Optional[float] = None
@@ -67,7 +69,8 @@ class Body:
         # wrist orientation: relative to the first sample, like the head (the
         # watch's and the band's frames differ; "arm relaxed at your side" is
         # the reference when data starts)
-        self._wrists = {s: HeadPose({"recenter_s": 0, "stale_s": self.stale_s}) for s in SIDES}
+        self._wrists = {s: HeadPose({"recenter_s": 0, "pitch_level_s": 0, "roll_level_s": 0,
+                                     "stale_s": self.stale_s}) for s in SIDES}
         self._hr, self._hr_ts = None, 0.0
         self.guard_s = float(cfg.get("punch_guard_s", 2.5))       # guard stays up this long
         self._punches: deque = deque(maxlen=16)
@@ -130,6 +133,8 @@ class Body:
         self._punch_id += 1
         self._punches.append({"id": self._punch_id, "side": p["side"], "kind": kind,
                               "strength": strength, "source": str(p.get("source") or source), "ts": now})
+        print(f"[body] punch #{self._punch_id} {p['side']} {kind} {strength:.2f} ({p.get('source') or source})",
+              flush=True)
         return True
 
     def punching(self) -> bool:

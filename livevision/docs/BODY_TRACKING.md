@@ -48,8 +48,12 @@ hands after 0.6 s (out of the camera's view), the rest after 2 s.
   "straight ahead" for the head and "arm relaxed" for a wrist, so the frames of
   the glasses, the watch and the band never need to agree.
 - **Posture**: send raw `gravity` and the server decides, with hysteresis
-  (standing below 40° from vertical, sitting above 60°); or send `posture`
-  yourself.
+  (standing below 62° from vertical, sitting above 72°: a front-pocket phone
+  measured ~42–49° standing and ~84° sitting); or send `posture` yourself.
+- **Head level**: yaw drifts back to centre over `head.recenter_s` (20 s),
+  pitch and roll more slowly (`pitch_level_s` 30 s, `roll_level_s` 15 s), so a
+  reference taken while looking down doesn't leave the avatar staring at the
+  floor.
 
 ## Punches
 
@@ -62,10 +66,10 @@ targets): linear acceleration with gravity removed, in g.
 
 | | value |
 |---|---|
-| peak | \|a\| > **2.5 g**; the strongest sample of the run is the punch, reported when \|a\| drops back (or 80 ms in) |
-| refractory | **180 ms**, and \|a\| must fall below 1.2 g first: the stop at full extension is a second spike of the same punch |
+| peak | \|a\| > **1.8 g** (2.5 g missed most air punches); the strongest sample of the run is the punch, reported when \|a\| drops back (or 80 ms in) |
+| refractory | **180 ms**, and \|a\| must fall below 0.9 g first: the stop at full extension is a second spike of the same punch |
 | kind | **uppercut** if > 55 % of the peak is upward (against gravity); **straight** if ≥ 60 % is along the forearm (Watch x axis); else **hook** (also when the wrist swings > 7 rad/s about vertical) |
-| strength | 0.3 at 2.5 g → 1.0 at 8 g, never below 0.2 |
+| strength | 0.3 at 1.8 g → 1.0 at 8 g, never below 0.2 |
 
 - **Watch**: `CMDeviceMotion` at 100 Hz while Start is on (`userAcceleration`
   already excludes gravity). Each punch goes to the phone at once over

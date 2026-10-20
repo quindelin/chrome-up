@@ -15,7 +15,10 @@ the camera"; everything after is the rotation since then, decomposed as yaw
 about the device's up axis, pitch about its side axis, roll about its forward
 axis (config `axes`, if a device's frame comes out swapped or mirrored).
 Yaw then drifts back to centre with a slow time constant, so after you turn
-a corner the avatar is not left staring sideways.
+a corner the avatar is not left staring sideways. Pitch and roll level out the
+same way, more slowly: if the first sample came while you were looking down
+(at the phone, putting the glasses on), the avatar does not stare at the floor
+for the rest of the stream.
 """
 from __future__ import annotations
 
@@ -72,6 +75,9 @@ class HeadPose:
         cfg = cfg or {}
         self.stale_s = float(cfg.get("stale_s", 1.5))
         self.recenter_s = float(cfg.get("recenter_s", 20.0))    # yaw drift-back time constant
+        # pitch / roll drift-back: slower, so a real look down still shows
+        self.level_s = {"pitch": float(cfg.get("pitch_level_s", 30.0)),
+                        "roll": float(cfg.get("roll_level_s", 15.0))}
         # which decomposed angle feeds which avatar axis, and its sign
         #   axes:   {yaw: pitch, ...}  feed avatar yaw from the decomposed pitch
         #   invert: {roll: true}       mirror one axis
@@ -81,7 +87,7 @@ class HeadPose:
                     for k in ("yaw", "pitch", "roll")}
         self._lock = threading.Lock()
         self._ref: Optional[Quat] = None
-        self._yaw_center = 0.0
+        self._center = {"yaw": 0.0, "pitch": 0.0, "roll": 0.0}
         self._pose = {"yaw": 0.0, "pitch": 0.0, "roll": 0.0}
         self._ts = 0.0
         self._source = "none"
@@ -94,12 +100,13 @@ class HeadPose:
         now = time.time()
         with self._lock:
             if data.get("recenter"):
-                self._ref, self._yaw_center = None, 0.0
+                self._ref = None
+                self._center = dict.fromkeys(self._center, 0.0)
             q = self._quat(data)
             if q is not None:
                 if self._ref is None or now - self._ts > 10 * self.stale_s:
                     self._ref = q                   # (re)starting: this is "straight ahead"
-                    self._yaw_center = 0.0
+                    self._center = dict.fromkeys(self._center, 0.0)
                 rel = _qmul(_qconj(self._ref), q)
                 raw = dict(zip(("yaw", "pitch", "roll"), euler_yxz(rel)))
             elif any(k in data for k in ("yaw", "pitch", "roll")):
@@ -112,12 +119,13 @@ class HeadPose:
             pose = {}
             for out_axis, (in_axis, sign) in self.map.items():
                 pose[out_axis] = sign * raw.get(in_axis, 0.0)
-            # slow re-centre of yaw: the avatar faces the camera on average
+            # slow re-centre: the avatar faces the camera, level, on average
             dt = max(0.0, min(1.0, now - self._ts)) if self._ts else 0.0
-            if self.recenter_s > 0 and dt:
-                k = 1.0 - math.exp(-dt / self.recenter_s)
-                self._yaw_center += _wrap(pose["yaw"] - self._yaw_center) * k
-            pose["yaw"] = _wrap(pose["yaw"] - self._yaw_center)
+            for axis, tau in (("yaw", self.recenter_s), *self.level_s.items()):
+                if tau > 0 and dt:
+                    k = 1.0 - math.exp(-dt / tau)
+                    self._center[axis] += _wrap(pose[axis] - self._center[axis]) * k
+                pose[axis] = _wrap(pose[axis] - self._center[axis])
             self._pose = {k: round(v, 2) for k, v in pose.items()}
             self._ts = now
             self._source = src
