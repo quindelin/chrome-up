@@ -11,6 +11,10 @@
  *   motion -> full body: walk / run cycle paced by your step cadence, a
  *             boxing guard, and the head follows yours when orientation
  *             arrives (payload.head: glasses Motion quaternion via the server)
+ *   body   -> payload.body (server/body.py): sits when the phone in your
+ *             pocket says your thigh is horizontal, reaches its hands to
+ *             where the glasses camera sees yours (two-bone arm IK), and
+ *             turns its wrists with the Apple Watch / Neural Band
  *
  * Layout: config `avatar.layout` full (default: head to toe, sized for the
  * side bar beside the portrait glasses feed) | bust (shoulders up).
@@ -85,6 +89,7 @@ export async function tryLoadAvatar3D(canvas, cfg) {
   scene.add(vrm.scene);
 
   const rig = new Rig(vrm, camera, renderer, scene, { ...av, layout });
+  rig.addSeat(THREE);
   console.log("[hudstream] 3D avatar loaded:", vrm.meta?.name || vrm.meta?.title || file);
   return rig;
 }
@@ -113,11 +118,19 @@ class Rig {
     this.phase = 0;
     this.headW = 0;                        // how much the real head drives ours
     this.headPose = { yaw: 0, pitch: 0, roll: 0 };
-    this.debug = null;                     // {activity, cadence, head} to test without sensors
+    this.debug = null;                     // {activity, cadence, head, body} to test without sensors
+    this.sit = 0;                          // 0 standing .. 1 sitting
+    this.handW = { left: 0, right: 0 };    // how much a tracked hand drives each arm
+    this.handTarget = { left: null, right: null };
+    this.wristW = { left: 0, right: 0 };
+    this.wristPose = { left: { yaw: 0, pitch: 0, roll: 0 }, right: { yaw: 0, pitch: 0, roll: 0 } };
+    this._v = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
+    this._q = [new THREE.Quaternion(), new THREE.Quaternion(), new THREE.Quaternion()];
 
     const h = vrm.humanoid;
     this.bone = (name) => h.getNormalizedBoneNode(name);
     this._restPose();
+    this._measure();
     this._frame();
   }
 
@@ -130,6 +143,28 @@ class Rig {
       leftHand: [0, 0, 0.1], rightHand: [0, 0, -0.1],
     };
     for (const name of Object.keys(this.rest)) this._pose(name, 0, 0, 0);
+  }
+
+  /** lengths taken from the model itself, so any VRM sits and reaches right */
+  _measure() {
+    this.vrm.scene.updateMatrixWorld(true);
+    const at = (n) => { const b = this.bone(n); return b ? b.getWorldPosition(new THREE.Vector3()) : null; };
+    const hip = at("hips"), knee = at("leftLowerLeg"), ankle = at("leftFoot");
+    this.legs = hip && knee && ankle ? {
+      hipY: hip.y, shin: knee.distanceTo(ankle), ankleY: ankle.y, thigh: hip.distanceTo(knee),
+    } : null;
+  }
+
+  /** a plain seat that fades in when you sit, so the avatar isn't sitting on air */
+  addSeat(T) {
+    if (!this.legs) return;
+    const top = this.legs.shin + this.legs.ankleY;          // seat height = knee height
+    const geo = new T.BoxGeometry(0.46, top, 0.42);
+    const mat = new T.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.9, transparent: true, opacity: 0 });
+    this.seat = new T.Mesh(geo, mat);
+    this.seat.position.set(0, top / 2, -this.legs.thigh * 0.45);
+    this.seat.visible = false;
+    this.scene.add(this.seat);
   }
 
   /** rest pose + offset */
@@ -188,27 +223,119 @@ class Rig {
     this.mood = { name, until: this.t + seconds };
   }
 
+  /** Tracked hands pull the arms to them (two-bone IK); wrists turn the hands.
+   *  Mirror (default): your right hand drives the avatar's left, on screen-right,
+   *  like a webcam; head-relative +x (your right) maps to world +x. */
+  _arms(dt, bodyIn) {
+    const head = this.bone("head");
+    if (!head) return;
+    const flip = this.mirror ? 1 : -1;
+    const ease = Math.min(1, dt * 6);
+    for (const side of ["left", "right"]) {
+      const theirs = this.mirror ? (side === "left" ? "right" : "left") : side;
+      const h = bodyIn?.hands?.[theirs];
+      const fresh = !!(h && h.fresh);
+      this.handW[side] += ((fresh ? 1 : 0) - this.handW[side]) * ease;
+      if (fresh) {
+        head.getWorldPosition(this._v[0]);
+        const t = new THREE.Vector3(this._v[0].x + flip * h.x, this._v[0].y + h.y, this._v[0].z + h.z);
+        this.handTarget[side] = this.handTarget[side] ? this.handTarget[side].lerp(t, ease) : t;
+      }
+      if (this.handW[side] > 0.01 && this.handTarget[side]) this._ikArm(side, this.handTarget[side], this.handW[side]);
+
+      const w = bodyIn?.wrists?.[theirs];
+      const wf = !!(w && w.fresh);
+      this.wristW[side] += ((wf ? 1 : 0) - this.wristW[side]) * ease;
+      if (wf) for (const k of ["yaw", "pitch", "roll"]) {
+        this.wristPose[side][k] += ((Number(w[k]) || 0) - this.wristPose[side][k]) * ease;
+      }
+      // rest + offset every frame (nothing else resets the hand bones, so
+      // adding to the current rotation would spin the hand)
+      const r = THREE.MathUtils.degToRad, k = this.wristW[side], wp = this.wristPose[side];
+      const clamp = (v, m) => Math.max(-m, Math.min(m, v));
+      this._pose(side + "Hand", r(clamp(wp.pitch, 70)) * k,
+                 r(clamp(wp.yaw, 60)) * k * flip, r(clamp(wp.roll, 80)) * k * flip);
+    }
+  }
+
+  /** Analytic two-bone IK: upper arm + forearm reach `target` (world), elbow
+   *  bent toward a pole that points down, back and out, the way elbows go.
+   *  Works on whatever rest orientation the model's bones have: each bone is
+   *  turned by the world-space rotation that points it at the next joint. */
+  _ikArm(side, target, weight) {
+    const up = this.bone(side + "UpperArm"), lo = this.bone(side + "LowerArm"), hand = this.bone(side + "Hand");
+    if (!up || !lo || !hand) return;
+    this.vrm.scene.updateMatrixWorld(true);
+    const S = up.getWorldPosition(new THREE.Vector3());
+    const E = lo.getWorldPosition(new THREE.Vector3());
+    const H = hand.getWorldPosition(new THREE.Vector3());
+    const L1 = S.distanceTo(E), L2 = E.distanceTo(H);
+    const d = target.clone().sub(S);
+    const dist = Math.min(Math.max(d.length(), Math.abs(L1 - L2) + 0.01), (L1 + L2) * 0.999);
+    const dir = d.normalize();
+    const out = S.x >= 0 ? 1 : -1;                           // this arm's side of the body
+    const pole = new THREE.Vector3(0.35 * out, -1, -0.45);
+    const perp = pole.sub(dir.clone().multiplyScalar(pole.dot(dir))).normalize();
+    const a = (L1 * L1 - L2 * L2 + dist * dist) / (2 * dist);
+    const hgt = Math.sqrt(Math.max(0, L1 * L1 - a * a));
+    const elbow = S.clone().add(dir.clone().multiplyScalar(a)).add(perp.multiplyScalar(hgt));
+    const goal = S.clone().add(dir.clone().multiplyScalar(dist));
+    this._aim(up, lo, elbow, weight);
+    this.vrm.scene.updateMatrixWorld(true);
+    this._aim(lo, hand, goal, weight);
+  }
+
+  /** turn `bone` so its child moves toward `targetWorld`, blended by weight */
+  _aim(bone, child, targetWorld, weight) {
+    const p = bone.getWorldPosition(new THREE.Vector3());
+    const cur = child.getWorldPosition(new THREE.Vector3()).sub(p).normalize();
+    const want = targetWorld.clone().sub(p).normalize();
+    const delta = new THREE.Quaternion().setFromUnitVectors(cur, want);
+    const world = bone.getWorldQuaternion(new THREE.Quaternion());
+    const parent = bone.parent.getWorldQuaternion(new THREE.Quaternion());
+    const local = parent.invert().multiply(delta.multiply(world));
+    bone.quaternion.slerp(local, weight);
+  }
+
+  /** debug.body shorthand: {posture, hands: {right: {x,y,z}}, wrists: {left: {yaw,..}}} */
+  _debugBody(b) {
+    const hands = {}, wrists = {};
+    for (const s of ["left", "right"]) {
+      if (b.hands?.[s]) hands[s] = { ...b.hands[s], fresh: true };
+      if (b.wrists?.[s]) wrists[s] = { ...b.wrists[s], fresh: true };
+    }
+    return { posture: b.posture || "standing", hands, wrists };
+  }
+
   /** one leg forward while the other is back; the knee folds on the way through */
   _legs(g, ph, pc) {
     const swing = (0.42 + 0.25 * Math.max(0, (g - 0.55) / 0.45)) * g;
     const set = (name, x) => { const bn = this.bone(name); if (bn) bn.rotation.set(x, 0, 0); };
-    set("leftUpperLeg", -ph * swing);
-    set("rightUpperLeg", ph * swing);
+    // sitting: thighs forward to horizontal, knees fold the shins back down
+    // (measured: +x on an upper leg swings it forward, -x on a lower leg folds it)
+    const sit = this.sit * 1.5;
+    set("leftUpperLeg", -ph * swing + sit);
+    set("rightUpperLeg", ph * swing + sit);
     // measured on the rig: +x on the lower leg kicks the foot forward
     // (hyperextension); a real knee folds the foot back, so negative
-    set("leftLowerLeg", -Math.max(0, -pc) * 1.1 * g);
-    set("rightLowerLeg", -Math.max(0, pc) * 1.1 * g);
+    set("leftLowerLeg", -Math.max(0, -pc) * 1.1 * g - sit);
+    set("rightLowerLeg", -Math.max(0, pc) * 1.1 * g - sit);
     set("leftFoot", ph * 0.2 * g);
     set("rightFoot", -ph * 0.2 * g);
   }
 
-  update(dt, audio, vision, skills = {}, headIn = null) {
+  update(dt, audio, vision, skills = {}, headIn = null, bodyIn = null) {
     this.t += dt;
-    if (this.debug) {           // window.__avatar3d.debug = {activity, cadence, head}
+    if (this.debug) {           // window.__avatar3d.debug = {activity, cadence, head, body}
       vision = { ...(vision || {}), activity: this.debug.activity ?? vision?.activity,
                  cadence: this.debug.cadence ?? vision?.cadence };
       if (this.debug.head) headIn = { fresh: true, ...this.debug.head };
+      if (this.debug.body) bodyIn = this._debugBody(this.debug.body);
     }
+    // sitting wins over walking: the phone knows your thigh is horizontal
+    const sitting = bodyIn?.posture === "sitting";
+    this.sit += ((sitting ? 1 : 0) - this.sit) * Math.min(1, dt * 3);
+    if (sitting) vision = { ...(vision || {}), activity: "idle" };
     const em = this.vrm.expressionManager;
     const level = audio?.level ?? 0;
     this.level += (level - this.level) * Math.min(1, dt * 10);
@@ -305,6 +432,28 @@ class Rig {
     if (hips) hips.rotation.y = -ph * 0.08 * g;
     this.vrm.scene.position.y = Math.abs(Math.sin(this.t * 4.5)) * talk * 0.006
       + Math.abs(ph) * (0.012 + 0.03 * run) * g;
+    if (this.legs) {
+      // hips come down until the shins stand on the floor: hip height becomes
+      // knee height (shin + ankle) once the thighs are horizontal
+      const drop = Math.max(0, this.legs.hipY - (this.legs.shin + this.legs.ankleY));
+      this.vrm.scene.position.y -= drop * this.sit;
+      if (this.sit > 0.01) {
+        // the thighs never sit perfectly level, so measure where the feet
+        // landed and lift the body until they're back on the floor
+        this.vrm.scene.updateMatrixWorld(true);
+        const lf = this.bone("leftFoot"), rf = this.bone("rightFoot");
+        if (lf && rf) {
+          const y = Math.min(lf.getWorldPosition(this._v[1]).y, rf.getWorldPosition(this._v[2]).y);
+          this.vrm.scene.position.y += (this.legs.ankleY - y) * this.sit;
+        }
+      }
+      if (spine) spine.rotation.x -= 0.06 * this.sit;          // lean back a touch
+    }
+    if (this.seat) {
+      this.seat.material.opacity = Math.min(1, this.sit * 1.4);
+      this.seat.visible = this.sit > 0.03;
+    }
+    this._arms(dt, bodyIn);
 
     // ---- eyes wander a little, as people's do
     this.nextLook -= dt;

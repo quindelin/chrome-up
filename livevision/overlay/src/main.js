@@ -110,7 +110,7 @@ function frame(now) {
       viseme,
       bands: a.bands || [],
     };
-    if (avatar3d) avatar3d.update(dt, audioForDraw, latest.vision, latest.skills, latest.head);
+    if (avatar3d) avatar3d.update(dt, audioForDraw, latest.vision, latest.skills, latest.head, latest.body);
     else ring.draw(dt, audioForDraw);
     if (avatar3d) { /* the 3D rig draws itself */ }
     else if (live2d) drawLive2D(live2d, audioForDraw);

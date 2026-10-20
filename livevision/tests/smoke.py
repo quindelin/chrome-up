@@ -1170,6 +1170,30 @@ def t_head_pose():
     assert abs(flip.snapshot()["yaw"] + 20) < 0.5
 
 
+def t_body_tracking():
+    """Posture from the phone in a front pocket (thigh angle, with hysteresis),
+    hands from the glasses camera going stale on their own, heart rate range."""
+    import time as _t
+    from server.body import Body
+    b = Body({"hand_stale_s": 0.2})
+    assert b.snapshot()["posture"] == "unknown"                     # nothing yet
+    b.ingest({"gravity": [0.0, -1.0, 0.05]}); assert b.snapshot()["posture"] == "standing"
+    b.ingest({"gravity": [0.0, -0.1, -0.99]}); assert b.snapshot()["posture"] == "sitting"
+    b.ingest({"gravity": [0.0, -0.75, -0.66]})                       # ~41 deg: in the gap
+    assert b.snapshot()["posture"] == "sitting", "hysteresis should hold the last answer"
+    b.ingest({"posture": "standing"}); assert b.snapshot()["posture"] == "standing"
+    assert b.ingest({"hands": {"right": {"x": 0.2, "y": -0.3, "z": 0.4}}})
+    snap = b.snapshot()["hands"]
+    assert snap["right"]["fresh"] and snap["right"]["z"] == 0.4 and not snap["left"]["fresh"]
+    _t.sleep(0.25)
+    assert not b.snapshot()["hands"]["right"]["fresh"], "a hand out of view must go stale"
+    assert not b.ingest({"hands": {"right": {"x": "?"}}})
+    b.ingest({"heart_rate": 400}); assert b.snapshot()["heart_rate"] is None
+    b.ingest({"heart_rate": 92}); assert b.snapshot()["heart_rate"] == 92
+    b.ingest({"wrists": {"left": {"q": [1, 0, 0, 0], "source": "watch"}}})
+    assert b.snapshot()["wrists"]["left"]["source"] == "watch"
+
+
 def main() -> int:
     print("autoclip smoke test\n")
     for name, fn in [
@@ -1189,6 +1213,7 @@ def main() -> int:
         ("privacy dispatcher routing", t_privacy_dispatcher),
         ("dedupe across windows", t_dedupe_across_windows),
         ("head pose", t_head_pose),
+        ("body tracking", t_body_tracking),
         ("retention keeps disk bounded", t_retention_keeps_disk_bounded),
         ("captions one file per clip", t_captions_one_file_per_clip),
         ("voice fires once + rumble", t_voice_once_and_rumble),

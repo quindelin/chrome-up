@@ -26,6 +26,7 @@ from .focus import FocusRecognizer
 from .gestures import GestureBus
 from .imu import IMUHub
 from .headpose import HeadPose
+from .body import Body
 from .navigation import Navigation, parse_coords
 from .progress import load as progress_load, save as progress_save
 from .sensors import HeadingHub
@@ -57,6 +58,7 @@ class Runtime:
         self.focus = FocusRecognizer(cfg.get("focus", {}))
         self.imu = IMUHub(cfg.get("imu", {}))
         self.head = HeadPose(cfg.get("head", {}))
+        self.body = Body(cfg.get("body", {}))
         self.vtube = VTubeStudio(cfg.get("vtube_studio", {}))
         self.vtube.start()
         self._skill_prev = {k: False for k in SKILL_NAMES}
@@ -178,6 +180,9 @@ class Runtime:
         # head orientation (glasses Motion quaternion, or yaw/pitch/roll)
         if isinstance(data.get("head"), dict):
             self.head.ingest(data["head"], source="phone-ws")
+        # body: posture, hands, wrists (watch / Neural Band), heart rate
+        if isinstance(data.get("body"), dict):
+            self.body.ingest(data["body"], source="phone-ws")
 
         # IMU sample (devicemotion) — single or batch
         imu = data.get("imu")
@@ -238,6 +243,7 @@ class Runtime:
             },
             "imu": w.imu,
             "head": self.head.snapshot(),
+            "body": self.body.snapshot(),
             "focus": RT.focus_result(),
             "heading": {
                 "deg": w.heading.deg,
@@ -640,6 +646,14 @@ async def api_head(request: Request):
     assert RT is not None
     ok = RT.head.ingest(await request.json(), source="http")
     return JSONResponse({"ok": ok, "head": RT.head.snapshot()})
+
+
+@app.post("/api/body")
+async def api_body(request: Request):
+    """Body tracking for the avatar (see server/body.py for the fields)."""
+    assert RT is not None
+    ok = RT.body.ingest(await request.json(), source="http")
+    return JSONResponse({"ok": ok, "body": RT.body.snapshot()})
 
 
 # ------------------------------------------------------------------ IMU
