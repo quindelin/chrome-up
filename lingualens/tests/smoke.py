@@ -352,6 +352,36 @@ def t_es_matching_is_word_level():
     assert not content_chars("¿De dónde eres?", "es") & content_chars("Me gusta el café.", "es")
 
 
+def t_es_digits_in_dictation_still_match():
+    """Azure writes "son doce euros" as "Son 12 €" - a right answer must still pass.
+
+    Before the fix every price, time and date line failed the word check
+    ("Not all of the words came through") however well it was said.
+    """
+    import re
+    from server import drills
+    from server.pronunciation import _ES_UNITS, coverage_of
+    assert coverage_of("A las diez, andén tres.", "A las 10, andén 3.") == 1.0
+    assert coverage_of("Normalmente me acuesto a las once y media.", "Normalmente me acuesto a las 11:30.") == 1.0
+    assert coverage_of("Serán unos treinta mil euros.", "Serán unos 30.000 €.") == 1.0
+    assert coverage_of("Tercer piso, gracias.", "3er piso, gracias.") == 1.0
+    assert coverage_of("Son doce euros.", "Son 13 euros.") < 1.0          # a wrong number still counts
+    # dictate every learner line and drill the way Azure would: number words as digits
+    digits = {w: str(i) for i, w in enumerate(_ES_UNITS)}
+    digits.update({"treinta": "30", "cuarenta": "40", "cincuenta": "50", "noventa": "90", "cien": "100"})
+    word = re.compile(r"\b(" + "|".join(sorted(digits, key=len, reverse=True)) + r")\b")
+    c, cfg = Course("es"), load_config("config.es.yaml")
+    bad = []
+    for lid in c.lesson_ids:
+        lines = [t.text for t in c.lessons[lid].dialogue if t.speaker == "you"]
+        lines += [p.text for p in drills.generate(c.lessons[lid], cfg, "es")]
+        for text in lines:
+            heard = word.sub(lambda m: digits[m.group(1)], text)
+            if heard != text and coverage_of(text, heard) < 1.0:
+                bad.append((lid, text, heard))
+    assert not bad, bad[:5]
+
+
 def t_es_never_scored_by_iflytek():
     """ISE has no Spanish: Chinese keys in the env must not route Spanish to it."""
     import os

@@ -88,6 +88,85 @@ def _spaced(text: str) -> bool:
     return bool(letters) and " " in text.strip() and all(ord(ch) < 0x0370 for ch in letters)
 
 
+_ES_UNITS = ("cero uno dos tres cuatro cinco seis siete ocho nueve diez once doce trece "
+             "catorce quince dieciséis diecisiete dieciocho diecinueve veinte veintiuno "
+             "veintidós veintitrés veinticuatro veinticinco veintiséis veintisiete "
+             "veintiocho veintinueve").split()
+_ES_TENS = {3: "treinta", 4: "cuarenta", 5: "cincuenta", 6: "sesenta", 7: "setenta",
+            8: "ochenta", 9: "noventa"}
+_ES_HUNDREDS = {2: "doscientos", 3: "trescientos", 4: "cuatrocientos", 5: "quinientos",
+                6: "seiscientos", 7: "setecientos", 8: "ochocientos", 9: "novecientos"}
+_ES_ORDINALS = {1: "primero", 2: "segundo", 3: "tercero", 4: "cuarto", 5: "quinto",
+                6: "sexto", 7: "séptimo", 8: "octavo", 9: "noveno", 10: "décimo"}
+
+
+def _es_number(n: int) -> str:
+    """Spanish words for 0 <= n < 10**9, the way a learner says it."""
+    if n < 30:
+        return _ES_UNITS[n]
+    if n < 100:
+        tens, unit = divmod(n, 10)
+        return _ES_TENS[tens] + (f" y {_ES_UNITS[unit]}" if unit else "")
+    if n < 1000:
+        hund, rest = divmod(n, 100)
+        head = ("cien" if not rest else "ciento") if hund == 1 else _ES_HUNDREDS[hund]
+        return head + (f" {_es_number(rest)}" if rest else "")
+    if n < 10 ** 6:
+        thou, rest = divmod(n, 1000)
+        head = "mil" if thou == 1 else f"{_es_number(thou)} mil"
+        return head + (f" {_es_number(rest)}" if rest else "")
+    mill, rest = divmod(n, 10 ** 6)
+    head = "un millón" if mill == 1 else f"{_es_number(mill)} millones"
+    return head + (f" {_es_number(rest)}" if rest else "")
+
+
+_ES_NUMERAL = re.compile(
+    r"(\d{1,3}(?:\.\d{3})+|\d+)"        # 14 · 30.000 (Spanish thousands point)
+    r"(?::(\d{2}))?"                    # 10:30
+    r"(?:,(\d+))?"                      # 3,5
+    r"(\.?º|\.?ª|er\b)?"                # 3.º · 1.ª · 3er
+)
+
+
+def _es_spell_numerals(text: str) -> str:
+    """Write dictation's digits back as the words the learner actually said.
+
+    Azure (and phone dictation) apply inverse text normalisation: "son doce
+    euros" comes back as "Son 12 €". The word check below only counts
+    letters, so without this every price, time and date line fails on the
+    number the learner said correctly.
+    """
+    def one(m: "re.Match") -> str:
+        whole, minutes, decimals, ordinal = m.groups()
+        n = int(whole.replace(".", ""))
+        if ordinal and 1 <= n <= 10:
+            return _ES_ORDINALS[n]
+        if n >= 10 ** 9:
+            return m.group(0)
+        out = _es_number(n)
+        if minutes is not None:
+            mm = int(minutes)
+            out += {0: "", 15: " y cuarto", 30: " y media"}.get(mm, f" y {_es_number(mm)}")
+        if decimals:
+            out += " coma " + _es_number(int(decimals)) if len(decimals) < 10 else ""
+        return f" {out} "
+
+    text = text.replace("%", " por ciento ").replace("€", " euros ").replace("$", " dólares ")
+    return _ES_NUMERAL.sub(one, text)
+
+
+# Forms that differ only in agreement - un / una / uno, doscientos / doscientas,
+# primer / primera - count as the same word. Gender is the scorer's business
+# (Azure grades the audio); this check only asks whether each word came through.
+_ES_SAME = {"un": "uno", "una": "uno", "veintiun": "veintiuno", "veintiuna": "veintiuno",
+            "primer": "primero", "primera": "primero", "tercer": "tercero", "tercera": "tercero"}
+
+
+def _es_word_key(word: str) -> str:
+    word = _ES_SAME.get(word, word)
+    return word[:-6] + "ientos" if word.endswith("ientas") else word
+
+
 def coverage_of(reference: str, recognized: str) -> float:
     """Fraction of reference characters that actually made it into the audio.
 
@@ -95,10 +174,12 @@ def coverage_of(reference: str, recognized: str) -> float:
     sentences share most of their letters, so letter coverage passes almost
     anything. Accents are folded (ñ is kept): dictation that writes "si" for
     "sí" is the transcriber's spelling, not the learner's pronunciation.
+    Digits are spelled out first, so "a las 10" counts as "a las diez".
     """
     if _spaced(reference or ""):
-        ref_w = _LATIN_WORD.findall(_fold(reference))
-        rec_w = _LATIN_WORD.findall(_fold(recognized or ""))
+        ref_w = [_es_word_key(w) for w in _LATIN_WORD.findall(_fold(_es_spell_numerals(reference)))]
+        rec_w = [_es_word_key(w) for w in
+                 _LATIN_WORD.findall(_fold(_es_spell_numerals(recognized or "")))]
         if not ref_w:
             return 1.0
         pool = list(rec_w)
