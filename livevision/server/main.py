@@ -317,10 +317,9 @@ class Runtime:
                 # when the head-worn camera sees motion (boxing / lifting from
                 # the camera still count: the pocket can't see your arms)
                 from_camera = False
-                if imu_act != "idle":
+                # the pocket feels footfalls, not arms: its "boxing" is noise
+                if imu_act not in ("idle", "boxing"):
                     activity, cadence = imu_act, imu_info.get("cadence", 0.0) or 0.0
-                elif cam_act in ("boxing", "lifting"):
-                    activity, cadence = cam_act, vision.cadence
                 else:
                     activity, cadence = "idle", 0.0
             else:
@@ -331,9 +330,6 @@ class Runtime:
             activity = self.gait.update(now, activity, from_camera=from_camera,
                                         sitting=body_snap.get("posture") == "sitting",
                                         head=self.head.snapshot())
-            # real punches (Watch / Neural Band) mean boxing: guard up, Combat XP
-            if activity in ("idle", "walking") and self.body.punching():
-                activity = "boxing"
             running = activity == "running"
             moving = activity in ("walking", "running", "boxing", "lifting")
             self.world.vision = replace(vision, attributes=counts, focus=focus_info["kind"],

@@ -62,6 +62,30 @@ hands after 0.6 s (out of the camera's view), the rest after 2 s.
 - **Mapping**: `avatar.mirror: false` (default) maps the avatar like your body:
   Watch (left wrist) → its left hand, Neural Band (right) → its right.
 
+## Arms (where they point)
+
+`server/arms.py` turns each wrist's absolute orientation into the direction
+the arm points, and the avatar reaches along it with two-bone IK: hand
+overhead, T-pose, reaching forward, hanging. The glasses camera's hand
+position still wins while your hand is in view.
+
+- Gravity makes up/down exact. The Watch and phone send their gravity with
+  the attitude, which settles which way Apple's quaternion rotates.
+- **Calibrate arms** (companion app, body tracking): arms hanging (finds each
+  sensor's forearm axis: required once for the Neural Band, whose axes aren't
+  documented), then a T-pose (which way is "out"). Saved in
+  `data/arms_calibration.json` on the HUD.
+- The phone in your pocket turns with your hips; its yaw since the T-pose is
+  taken off the arms, so turning your whole body doesn't swing them.
+- Before a T-pose the arm stays in the body's side plane (overhead / out /
+  down are right, forward isn't). The Neural Band's orientation is the phone's
+  own gyro + gravity estimate, so its yaw drifts: recalibrate if that arm
+  wanders.
+- Punch mode is gone: punches don't raise the guard, and the head camera's or
+  pocket phone's "boxing" label is ignored (`activity.camera_arm_labels`). A
+  tracked arm shows a punch by itself; the canned punch only plays on an
+  untracked arm.
+
 ## Punches
 
 The avatar throws a punch on the matching arm (mirrored like the hands) each

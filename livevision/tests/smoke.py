@@ -1217,8 +1217,95 @@ def t_locomotion_gate():
     g3 = LocomotionGate({"hold_s": 0.5})
     g3.update(0.0, "running", from_camera=False, sitting=True)
     assert g3.update(0.6, "running", from_camera=False, sitting=True) == "running"
-    # boxing needs no hold
-    assert LocomotionGate().update(0.0, "boxing", from_camera=True) == "boxing"
+    # the head camera's boxing / lifting is dropped (it can't see your arms);
+    # opted back in, boxing needs no hold
+    assert LocomotionGate().update(0.0, "boxing", from_camera=True) == "idle"
+    assert LocomotionGate({"camera_arm_labels": True}).update(0.0, "boxing", from_camera=True) == "boxing"
+
+
+def t_arms():
+    """Wrist orientation -> where the arm points: gravity makes up/down exact,
+    the arms-down hold finds the forearm axis, the T-pose sets outward, and a
+    pelvis turn doesn't swing the arms."""
+    import math, tempfile as _tf
+    from server.arms import Arms, rotate, conj
+
+    def q_axis(axis, deg):
+        h = math.radians(deg) / 2
+        n = math.sqrt(sum(c * c for c in axis))
+        return (math.cos(h),) + tuple(math.sin(h) * c / n for c in axis)
+
+    def qmul(a, b):
+        aw, ax, ay, az = a; bw, bx, by, bz = b
+        return (aw*bw - ax*bx - ay*by - az*bz, aw*bx + ax*bw + ay*bz - az*by,
+                aw*by - ax*bz + ay*bw + az*bx, aw*bz + ax*by - ay*bx + az*bw)
+
+    def q_pointing(axis_dev, world_dir):
+        """device->world rotation taking device axis_dev onto world_dir"""
+        a = axis_dev; b = world_dir
+        cx, cy, cz = a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]
+        d = sum(x*y for x, y in zip(a, b))
+        if d < -0.9999:
+            return q_axis((0, 0, 1) if abs(a[2]) < 0.9 else (1, 0, 0), 180)
+        w = 1 + d; n = math.sqrt(w*w + cx*cx + cy*cy + cz*cz)
+        return (w/n, cx/n, cy/n, cz/n)
+
+    def grav(q):            # device-frame gravity for a device->world q
+        return list(rotate(conj(q), (0, 0, -9.8)))
+
+    with _tf.TemporaryDirectory() as td:
+        arms = Arms({"calibration_path": f"{td}/cal.json"})
+        # world: +x = body's left at calibration, +y = back... (arbitrary yaw);
+        # the Watch's forearm axis is +x
+        out_left = (1.0, 0.0, 0.0)
+        down = q_pointing((1, 0, 0), (0, 0, -1))
+        assert arms.ingest_wrist("left", down, "watch", grav(down))
+        snap = arms.snapshot()["left"]
+        assert snap["fresh"] and snap["elev"] < -85, snap          # hanging, uncalibrated
+        up = q_pointing((1, 0, 0), (0, 0, 1))
+        arms.ingest_wrist("left", up, "watch", grav(up))
+        assert arms.snapshot()["left"]["dir"][1] > 0.95                 # hand overhead
+        # a world->device sender is detected from its gravity and flipped
+        arms2 = Arms({"calibration_path": f"{td}/cal2.json"})
+        assert arms2.ingest_wrist("left", conj(up), "watch", grav(up))
+        assert arms2.snapshot()["left"]["dir"][1] > 0.95
+
+        # calibrate: down, then T-pose (left forearm along world +x = outward)
+        arms.ingest_wrist("left", down, "watch", grav(down)); arms.calibrate("down")
+        tp = q_pointing((1, 0, 0), out_left)
+        arms.ingest_wrist("left", tp, "watch", grav(tp))
+        tilt = q_axis((1, 0, 0), 70)                     # a pocket phone is never flat:
+        arms.ingest_pelvis(tilt, grav(tilt))              # its gravity settles the convention
+        arms.ingest_pelvis(q_axis((0, 0, 1), 0), [0, 0, -9.8])
+        assert arms.calibrate("tpose")["ok"]
+        d = arms.snapshot()["left"]["dir"]
+        assert d[0] < -0.95 and arms.snapshot()["left"]["calibrated"], d    # out to the left
+        # reach forward: from outward-left, forward is clockwise from above
+        fwd = q_pointing((1, 0, 0), (0, -1, 0))
+        arms.ingest_wrist("left", fwd, "watch", grav(fwd))
+        d = arms.snapshot()["left"]["dir"]
+        assert d[2] > 0.95, d
+        # turn the whole body 90 deg left (CCW): pelvis and arm both turn,
+        # the arm still reads forward
+        turn = q_axis((0, 0, 1), 90)
+        arms.ingest_pelvis(turn, [0, 0, -9.8])
+        fwd2 = qmul(turn, fwd)
+        arms.ingest_wrist("left", fwd2, "watch", grav(fwd2))
+        d = arms.snapshot()["left"]["dir"]
+        assert d[2] > 0.95, d
+        # the Neural Band: unknown axis until an arms-down hold
+        band_axis = (0.0, 1.0, 0.0)
+        bdown = q_pointing(band_axis, (0, 0, -1))
+        arms.ingest_wrist("right", bdown, "neural_band")
+        assert arms.snapshot()["right"].get("needs") == "calibration"
+        arms.calibrate("down")
+        bup = q_pointing(band_axis, (0, 0, 1))
+        arms.ingest_wrist("right", bup, "neural_band")
+        assert arms.snapshot()["right"]["dir"][1] > 0.95
+        # calibration survives a restart (that second arms-down hold redid the
+        # left arm too: a new axis waits for a new T-pose)
+        again = Arms({"calibration_path": f"{td}/cal.json"})._cal
+        assert again["right"]["axis"] and again["left"]["out_yaw"] is None
 
 
 def t_body_tracking():
@@ -1843,6 +1930,7 @@ def main() -> int:
         ("dedupe across windows", t_dedupe_across_windows),
         ("head pose", t_head_pose),
         ("locomotion gate", t_locomotion_gate),
+        ("arm directions", t_arms),
         ("body tracking", t_body_tracking),
         ("hud heartbeat config", t_heartbeat_config),
         ("body punches", t_body_punches),

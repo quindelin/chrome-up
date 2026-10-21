@@ -182,7 +182,9 @@ final class BodyTracker {
             // without it, estimate one from the gyro and gravity
             bandSamples += 1
             bandPunches(sample)
-            if let q = fused ?? bandAttitude.update(sample) { band = (q, Date()) }
+            // our own estimate first: its frame is known (z up, device ->
+            // world), which the arm direction needs; DAT's frame isn't documented
+            if let q = bandAttitude.update(sample) ?? fused { band = (q, Date()) }
         case .unknown: break
         }
     }
@@ -233,7 +235,9 @@ final class BodyTracker {
             wrists[Settings.bandWrist] = ["q": b.q, "source": "neural_band"]
         }
         if watchOn, let watch, watch.fresh(), let q = watch.wrist {
-            wrists[watch.side] = ["q": q, "source": "watch"]
+            var w: [String: Any] = ["q": q, "source": "watch"]
+            if let g = watch.gravity { w["g"] = g }
+            wrists[watch.side] = w
         }
         if !wrists.isEmpty { body["wrists"] = wrists }
         if watchOn, let watch, watch.fresh(within: 10), let hr = watch.heartRate { body["heart_rate"] = hr }

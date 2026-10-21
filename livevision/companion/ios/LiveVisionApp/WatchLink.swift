@@ -20,6 +20,7 @@ final class WatchLink: NSObject, WCSessionDelegate {
     private(set) var reachable = false
     private(set) var heartRate: Double?
     private(set) var wrist: [Double]?            // [w, x, y, z]
+    private(set) var gravity: [Double]?          // the Watch's gravity, its own frame
     private(set) var side: String = Settings.watchWrist
     private(set) var lastMessage: Date?
     private(set) var received = 0
@@ -63,6 +64,7 @@ final class WatchLink: NSObject, WCSessionDelegate {
 
     nonisolated func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
         let q = (message["wrist"] as? [Double]).flatMap { $0.count == 4 ? $0 : nil }
+        let g = (message["g"] as? [Double]).flatMap { $0.count == 3 ? $0 : nil }
         let hr = message["hr"] as? Double
         let side = message["side"] as? String
         // [String: Any] isn't Sendable: pull out the plain values here
@@ -78,6 +80,7 @@ final class WatchLink: NSObject, WCSessionDelegate {
                 self.onPunch?(["side": s, "kind": kind, "strength": strength, "source": "watch"])
             }
             if let q { self.wrist = q }
+            if let g { self.gravity = g }
             if let hr, hr > 0 { self.heartRate = hr }
             if let side, side == "left" || side == "right" { self.side = side; Settings.watchWrist = side }
             self.lastMessage = Date()

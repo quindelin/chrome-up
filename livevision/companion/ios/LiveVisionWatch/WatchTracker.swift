@@ -34,6 +34,9 @@ final class WatchTracker: NSObject {
     @ObservationIgnored private var builder: HKLiveWorkoutBuilder?
     @ObservationIgnored private let motion = CMMotionManager()
     @ObservationIgnored private var attitude: [Double]?        // [w, x, y, z]
+    /// gravity in the Watch's frame, sent with the attitude: the HUD tells from
+    /// it which way the quaternion rotates and where "down" is (server/arms.py)
+    @ObservationIgnored private var gravity: [Double]?
     // Watch x runs along the forearm (crown toward the hand) on either wrist
     @ObservationIgnored private var detector = PunchDetector(forearm: SIMD3(1, 0, 0))
     @ObservationIgnored private var loop: Task<Void, Never>?
@@ -100,7 +103,12 @@ final class WatchTracker: NSObject {
         // 100 Hz: a jab's spike lasts ~30-50 ms; attitude still goes out at ~10 Hz
         motion.deviceMotionUpdateInterval = 1.0 / 100
         detector = PunchDetector(forearm: SIMD3(1, 0, 0))
-        motion.startDeviceMotionUpdates(to: .main) { [weak self] m, _ in
+        // z vertical, yaw corrected by the magnetometer: the arm direction
+        // on the avatar drifts less between calibrations
+        let frame: CMAttitudeReferenceFrame =
+            CMMotionManager.availableAttitudeReferenceFrames().contains(.xArbitraryCorrectedZVertical)
+            ? .xArbitraryCorrectedZVertical : .xArbitraryZVertical
+        motion.startDeviceMotionUpdates(using: frame, to: .main) { [weak self] m, _ in
             guard let m else { return }
             MainActor.assumeIsolated { self?.motionSample(m) }
         }
@@ -109,6 +117,7 @@ final class WatchTracker: NSObject {
     private func motionSample(_ m: CMDeviceMotion) {
         let q = m.attitude.quaternion
         attitude = [q.w, q.x, q.y, q.z]
+        gravity = [m.gravity.x, m.gravity.y, m.gravity.z]
         let a = m.userAcceleration, g = m.gravity, r = m.rotationRate
         guard let p = detector.push(linear: SIMD3(a.x, a.y, a.z), gravity: SIMD3(g.x, g.y, g.z),
                                     rotation: SIMD3(r.x, r.y, r.z), at: m.timestamp) else { return }
@@ -127,6 +136,7 @@ final class WatchTracker: NSObject {
         phoneReachable = true
         var msg: [String: Any] = ["side": side]
         if let attitude { msg["wrist"] = attitude }
+        if let gravity { msg["g"] = gravity }
         if let heartRate { msg["hr"] = heartRate }
         s.sendMessage(msg, replyHandler: nil) { err in
             Task { @MainActor in self.error = err.localizedDescription }

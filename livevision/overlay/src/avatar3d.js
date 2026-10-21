@@ -131,6 +131,8 @@ class Rig {
     this.sit = 0;                          // 0 standing .. 1 sitting
     this.handW = { left: 0, right: 0 };    // how much a tracked hand drives each arm
     this.handTarget = { left: null, right: null };
+    this.armW = { left: 0, right: 0 };     // how much a wrist-tracked arm direction drives it
+    this.armDir = { left: null, right: null };
     this.wristW = { left: 0, right: 0 };
     this.wristPose = { left: { yaw: 0, pitch: 0, roll: 0 }, right: { yaw: 0, pitch: 0, roll: 0 } };
     this._v = [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()];
@@ -255,9 +257,28 @@ class Rig {
       }
       if (this.handW[side] > 0.01 && this.handTarget[side]) this._ikArm(side, this.handTarget[side], this.handW[side]);
 
+      // the wrist sensors say where the arm points (server/arms.py, body
+      // frame: x = your right, y = up, z = forward): reach along it, unless
+      // the camera sees the hand itself (that's a real position)
+      const arm = bodyIn?.arms?.[theirs];
+      const af = !!(arm && arm.fresh && Array.isArray(arm.dir));
+      this.armW[side] += ((af && !fresh ? 1 : 0) - this.armW[side]) * ease;
+      if (af) {
+        const d = new THREE.Vector3(flip * arm.dir[0], arm.dir[1], arm.dir[2]).normalize();
+        this.armDir[side] = this.armDir[side] ? this.armDir[side].lerp(d, Math.min(1, dt * 12)).normalize() : d;
+      }
+      if (this.armW[side] > 0.01 && this.armDir[side]) {
+        this.vrm.scene.updateMatrixWorld(true);
+        const S = this.bone(side + "UpperArm").getWorldPosition(new THREE.Vector3());
+        const E = this.bone(side + "LowerArm").getWorldPosition(new THREE.Vector3());
+        const Hh = this.bone(side + "Hand").getWorldPosition(new THREE.Vector3());
+        const reach = (S.distanceTo(E) + E.distanceTo(Hh)) * 0.93;   // a soft elbow
+        this._ikArm(side, S.clone().add(this.armDir[side].clone().multiplyScalar(reach)), this.armW[side]);
+      }
+
       // a punch wins over the camera's hand for its ~0.3 s
       const pe = this.punchE[side];
-      if (pe > 0.001 && this.punch[side]) {
+      if (pe > 0.001 && this.punch[side] && this.armW[side] < 0.5) {
         this.vrm.scene.updateMatrixWorld(true);
         const H0 = this.bone(side + "Hand").getWorldPosition(new THREE.Vector3());
         const { target, pole } = this._punchTarget(side, H0, pe);
@@ -406,7 +427,9 @@ class Rig {
       if (b.hands?.[s]) hands[s] = { ...b.hands[s], fresh: true };
       if (b.wrists?.[s]) wrists[s] = { ...b.wrists[s], fresh: true };
     }
-    return { posture: b.posture || "standing", hands, wrists, punches: b.punches, punching: b.punching };
+    const arms = {};
+    for (const s of ["left", "right"]) if (b.arms?.[s]) arms[s] = { ...b.arms[s], fresh: true };
+    return { posture: b.posture || "standing", hands, wrists, arms, punches: b.punches, punching: b.punching };
   }
 
   /** one leg forward while the other is back; the knee folds on the way through */
@@ -488,7 +511,8 @@ class Rig {
     // ---- your head drives ours when orientation is arriving, else idle motion
     // ---- punches: envelopes first, the torso twists into them below
     this._takePunches(bodyIn);
-    for (const s of ["left", "right"]) this.punchE[s] = this._punchEnvelope(s);
+    // a tracked arm shows the punch itself; the canned one is for untracked arms
+    for (const s of ["left", "right"]) this.punchE[s] = this.armW[s] > 0.5 ? 0 : this._punchEnvelope(s);
     const hp = headIn && headIn.fresh ? headIn : null;
     this.headW += ((hp ? 1 : 0) - this.headW) * Math.min(1, dt * 4);
     if (hp) {
@@ -513,8 +537,9 @@ class Rig {
     const act = vision?.activity || (running ? "running" : vision?.moving ? "walking" : "idle");
     const gaitTarget = act === "running" ? 1 : act === "walking" ? 0.55 : 0;
     this.gait += (gaitTarget - this.gait) * Math.min(1, dt * 3);
-    // guard up while boxing: the IMU's label, or real punches still coming
-    const boxing = act === "boxing" || !!bodyIn?.punching || !!(this.punch.left || this.punch.right);
+    // guard pose only on an explicit "boxing" label: punches alone used to
+    // raise it, and the avatar sat in its guard whenever a wrist twitched
+    const boxing = act === "boxing";
     this.box += ((boxing ? 1 : 0) - this.box) * Math.min(1, dt * 4);
     const cad = Number(vision?.cadence) > 0.5 ? Number(vision.cadence) : act === "running" ? 2.8 : 1.8;
     this.phase += dt * Math.PI * cad * (this.gait > 0.02 ? 1 : 0);   // 2 steps = 1 cycle

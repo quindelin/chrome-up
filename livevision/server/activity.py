@@ -28,6 +28,10 @@ class LocomotionGate:
         self.release_s = float(cfg.get("release_s", 1.0))
         self.head_turn_dps = float(cfg.get("head_turn_dps", 45.0))
         self.head_quiet_s = float(cfg.get("head_quiet_s", 0.8))   # after a turn
+        # boxing / lifting from the head-worn camera: off. It can't see your
+        # arms, and the label put the avatar in its guard pose for no reason;
+        # the wrists now drive the arms directly (server/arms.py)
+        self.camera_arm_labels = bool(cfg.get("camera_arm_labels", False))
         self._shown = "idle"
         self._cand, self._since = "idle", 0.0
         self._prev_head: Optional[Dict[str, float]] = None
@@ -54,6 +58,8 @@ class LocomotionGate:
                sitting: bool = False, head: Optional[dict] = None) -> str:
         turning = self._head(now, head)
         raw = activity or "idle"
+        if from_camera and raw in ("boxing", "lifting") and not self.camera_arm_labels:
+            raw = "idle"
         if raw in LOCOMOTION and from_camera and (sitting or turning):
             raw = "idle"
         if raw not in LOCOMOTION and self._shown not in LOCOMOTION:

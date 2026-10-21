@@ -7,6 +7,8 @@ struct BodyTrackingSection: View {
     @Environment(WatchLink.self) private var watch
     @State private var bandWrist = Settings.bandWrist
     @State private var hfov = Settings.cameraHFOV
+    /// arm calibration: nil, or what to do right now
+    @State private var calStep: String?
 
     var body: some View {
         @Bindable var b = body_
@@ -37,6 +39,12 @@ struct BodyTrackingSection: View {
             }
             .onChange(of: bandWrist) { Settings.bandWrist = bandWrist }
             VStack(alignment: .leading) {
+                Button(calStep ?? "Calibrate arms") { Task { await calibrateArms() } }
+                    .disabled(calStep != nil)
+                Text("Hold each pose until the next prompt: arms hanging at your sides, then a T-pose. Do it once per session with the Watch and band on (again if the arms drift).")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            VStack(alignment: .leading) {
                 LabeledContent("Camera field of view", value: "\(Int(hfov))°")
                 Slider(value: $hfov, in: 40...100, step: 1)
                     .onChange(of: hfov) { Settings.cameraHFOV = hfov }
@@ -46,6 +54,23 @@ struct BodyTrackingSection: View {
         } footer: {
             Text("Head and band motion need the glasses connected (DAT beta, Developer Mode); hands need the camera streaming. If the avatar's hand sits closer or further than yours, adjust the field of view.")
         }
+    }
+
+    /// Two holds the HUD measures (server/arms.py): arms down finds each
+    /// sensor's forearm axis, the T-pose says which way is "out".
+    private func calibrateArms() async {
+        let haptic = UINotificationFeedbackGenerator()
+        for (pose, phase) in [("Arms down at your sides", "down"), ("T-pose: arms straight out", "tpose")] {
+            for n in stride(from: 3, through: 1, by: -1) {
+                calStep = "\(pose) · \(n)"
+                try? await Task.sleep(for: .seconds(1))
+            }
+            sensors.sendJSON(["body": ["calibrate": phase]])
+            haptic.notificationOccurred(.success)
+        }
+        calStep = "Calibrated"
+        try? await Task.sleep(for: .seconds(1.5))
+        calStep = nil
     }
 
     private var motionText: String {

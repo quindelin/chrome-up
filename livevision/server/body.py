@@ -42,6 +42,7 @@ import time
 from collections import deque
 from typing import Dict, List, Optional
 
+from .arms import Arms
 from .headpose import HeadPose
 
 SIDES = ("left", "right")
@@ -74,6 +75,7 @@ class Body:
         self._wrists = {s: HeadPose({"recenter_s": lvl, "pitch_level_s": lvl, "roll_level_s": lvl,
                                      "stale_s": self.stale_s}) for s in SIDES}
         self._hr, self._hr_ts = None, 0.0
+        self.arms = Arms(cfg.get("arms") or {})
         self.guard_s = float(cfg.get("punch_guard_s", 2.5))       # guard stays up this long
         self._punches: deque = deque(maxlen=16)
         self._punch_id = 0
@@ -117,7 +119,16 @@ class Body:
 
         for side, w in (data.get("wrists") or {}).items():      # HeadPose locks itself
             if side in SIDES and isinstance(w, dict):
-                used = self._wrists[side].ingest(w, source=str(w.get("source") or source)) or used
+                src = str(w.get("source") or source)
+                used = self._wrists[side].ingest(w, source=src) or used
+                # absolute orientation -> where the arm points (server/arms.py)
+                used = self.arms.ingest_wrist(side, w.get("q"), src, w.get("g")) or used
+        pelvis = data.get("pelvis")
+        if isinstance(pelvis, dict):
+            used = self.arms.ingest_pelvis(pelvis.get("q"), data.get("gravity")) or used
+        if data.get("calibrate") in ("down", "tpose"):
+            self.arms.calibrate(data["calibrate"])
+            used = True
         return used
 
     def _punch(self, p, now: float, source: str) -> bool:
@@ -189,4 +200,5 @@ class Body:
                 "punching": bool(self._punches) and now - self._punches[-1]["ts"] < self.guard_s,
             }
         out["wrists"] = {s: self._wrists[s].snapshot() for s in SIDES}
+        out["arms"] = self.arms.snapshot()
         return out

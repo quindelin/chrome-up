@@ -85,12 +85,20 @@ final class SensorBridge: NSObject, CLLocationManagerDelegate {
         gpsOn ? location_.startUpdatingLocation() : location_.stopUpdatingLocation()
         if motionOn || postureOn, motion.isDeviceMotionAvailable, !motion.isDeviceMotionActive {
             motion.deviceMotionUpdateInterval = 1.0 / 25          // the page capped at ~25 Hz
-            motion.startDeviceMotionUpdates(to: .main) { [weak self] m, _ in
+            // z vertical (magnetometer-corrected yaw): the phone in your pocket
+            // turns with your hips, so its yaw tells the avatar's arms when
+            // your whole body turned (server/arms.py)
+            let frame: CMAttitudeReferenceFrame =
+                CMMotionManager.availableAttitudeReferenceFrames().contains(.xArbitraryCorrectedZVertical)
+                ? .xArbitraryCorrectedZVertical : .xArbitraryZVertical
+            motion.startDeviceMotionUpdates(using: frame, to: .main) { [weak self] m, _ in
                 guard let self, let m else { return }
                 self.motionTick += 1
                 // ~8 Hz is plenty for sitting down / standing up
                 if self.postureOn, self.motionTick % 3 == 0 {
-                    self.send(["body": ["gravity": [m.gravity.x, m.gravity.y, m.gravity.z]]])
+                    let q = m.attitude.quaternion
+                    self.send(["body": ["gravity": [m.gravity.x, m.gravity.y, m.gravity.z],
+                                        "pelvis": ["q": [q.w, q.x, q.y, q.z]]]])
                 }
                 guard self.motionOn else { return }
                 // the page sent accelerationIncludingGravity (m/s²) and rotationRate (deg/s)
