@@ -119,6 +119,13 @@ final class GlassesStreamer {
             return
         }
         if Settings.mockGlasses { enableMock() }
+        // the VM moved (new IP after a restart): send the stream there
+        tasks.append(Task { [weak self] in
+            for await _ in NotificationCenter.default.notifications(named: Settings.hostChanged) {
+                guard let self, let host = Settings.ingestHost else { continue }
+                await self.up.retarget(host: host)
+            }
+        })
         tasks.append(Task { [weak self] in
             for await state in Wearables.shared.registrationStateStream() {
                 self?.registrationChanged(state)

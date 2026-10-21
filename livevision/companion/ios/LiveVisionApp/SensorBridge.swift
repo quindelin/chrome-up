@@ -51,6 +51,17 @@ final class SensorBridge: NSObject, CLLocationManagerDelegate {
 
     override init() {
         super.init()
+        // the VM moved (new IP after a restart): reconnect now, not after the
+        // dead socket times out
+        Task { [weak self] in
+            for await _ in NotificationCenter.default.notifications(named: Settings.hostChanged) {
+                guard let self, self.running else { continue }
+                self.socket?.cancel(with: .goingAway, reason: nil)
+                self.socket = nil
+                self.reconnect?.cancel()
+                self.connect()
+            }
+        }
         location_.delegate = self
         location_.headingFilter = 1                   // degrees
         location_.desiredAccuracy = kCLLocationAccuracyBest

@@ -16,6 +16,9 @@ enum Settings {
         return v.hasPrefix("$(") ? "" : v.trimmingCharacters(in: .whitespaces)
     }
 
+    /// Posted when the app follows the VM to a new address (StackStore).
+    static let hostChanged = Notification.Name("LiveVisionHostChanged")
+
     /// Host only, e.g. 136-80-148-90.sslip.io (a pasted https:// URL is tolerated).
     static var host: String {
         get { defaults.string(forKey: "host") ?? info("LiveVisionHost") }

@@ -91,6 +91,13 @@ actor Uplink {
         supervisor = Task { await supervise() }
     }
 
+    /// The VM came back on a new address: the supervisor's next reconnect
+    /// publishes there (the old address has nothing listening any more).
+    func retarget(host: String) {
+        guard config != nil, config?.host != host else { return }
+        config?.host = host
+    }
+
     func stop() async {
         supervisor?.cancel()
         supervisor = nil

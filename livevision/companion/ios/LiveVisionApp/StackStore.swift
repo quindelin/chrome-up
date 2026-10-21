@@ -108,8 +108,24 @@ final class StackStore {
         guard let c = VMClient.fromSettings() else { return }
         if let state = try? await c.status() {
             vm = state
+            follow(state)
             if vmAction == "stop", state.isStopped { vmAction = nil; stack = nil }
         }
+    }
+
+    /// The VM gets a new external IP on every start (unless `gcp.sh static-ip`),
+    /// and the build only knew the old one: every call then went to a dead
+    /// address until a rebuild. Follow the running VM's IP instead. Only an
+    /// sslip.io host follows: a real domain you typed in stays.
+    private func follow(_ state: VMClient.State) {
+        guard state.isRunning, let ip = state.ip, !ip.isEmpty else { return }
+        let host = ip.replacingOccurrences(of: ".", with: "-") + ".sslip.io"
+        let current = Settings.bareHost ?? ""
+        guard current != host, current.isEmpty || current.hasSuffix(".sslip.io") else { return }
+        Settings.host = host
+        log.notice("VM is at \(ip) now: host \(host)")
+        NotificationCenter.default.post(name: Settings.hostChanged, object: host)
+        Task { await refresh() }
     }
 
     func startVM() async { await vmCall("start") { try await $0.start() } }
@@ -118,7 +134,11 @@ final class StackStore {
     private func vmCall(_ action: String, _ call: (VMClient) async throws -> VMClient.State) async {
         guard let c = VMClient.fromSettings() else { return }
         vmAction = action
-        do { vm = try await call(c) } catch {
+        do {
+            let state = try await call(c)
+            vm = state
+            follow(state)
+        } catch {
             vmAction = nil
             actionError = error.localizedDescription
         }
