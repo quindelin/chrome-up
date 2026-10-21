@@ -494,7 +494,7 @@ body.show-skills #left-stack {
 #vicinity-ad {
   position: absolute;
   left: 150px;               /* lines up with the Magicka bar */
-  bottom: 184px;             /* card spans y 698-896 */
+  bottom: 441px;             /* card spans y 441-639: the middle of the left band */
   display: flex;
   align-items: center;
   gap: 20px;
