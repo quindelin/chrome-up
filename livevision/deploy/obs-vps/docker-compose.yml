@@ -31,7 +31,21 @@ services:
     restart: unless-stopped
     network_mode: host
     shm_size: 1gb                    # Chromium (browser source) needs it
-    env_file: .env
+    # only what OBS reads, not the whole .env: compose recreates a container
+    # when its environment changes, and a new title or clip-posting token
+    # restarting OBS cut the stream (compose fills these in from .env)
+    environment:
+      STREAM_KEY: ${STREAM_KEY:-}
+      SRT_PASSPHRASE: ${SRT_PASSPHRASE:-}
+      OBS_WS_PASSWORD: ${OBS_WS_PASSWORD:-}
+      OUT_SERVER: ${OUT_SERVER:-}
+      OUT_KEY: ${OUT_KEY:-}
+      OBS_AUTOSTREAM: ${OBS_AUTOSTREAM:-}
+      LINGUALENS_URL: ${LINGUALENS_URL:-}
+      OUT_WIDTH: ${OUT_WIDTH:-}
+      OUT_HEIGHT: ${OUT_HEIGHT:-}
+      OUT_FPS: ${OUT_FPS:-}
+      OUT_KBPS: ${OUT_KBPS:-}
     volumes:
       - obs-config:/home/obs/.config/obs-studio
 
@@ -53,7 +67,10 @@ services:
     image: caddy:2.8
     restart: unless-stopped
     network_mode: host
-    env_file: .env
+    environment:                     # the Caddyfile's three, as for OBS
+      DOMAIN: ${DOMAIN:-}
+      AUTOCLIP_USER: ${AUTOCLIP_USER:-}
+      AUTOCLIP_PASS_HASH: ${AUTOCLIP_PASS_HASH:-}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data

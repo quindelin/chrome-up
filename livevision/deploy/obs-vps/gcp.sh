@@ -12,7 +12,8 @@
 #   ./gcp.sh static-ip keep this boot's IP for good (the companion app's host)
 #   ./gcp.sh companion write the LiveVision iOS app's Secrets.xcconfig from the VM
 #                      (host, approval login, glasses stream key + SRT passphrase)
-#   ./gcp.sh env K [V] set K=V in the VM's .env and apply it (no V: prompts, hidden)
+#   ./gcp.sh env K [V] set K=V in the VM's .env and apply it (no V: prompts, hidden;
+#                      several names: asks for each, applies once)
 #   ./gcp.sh control-deploy  deploy the start/stop/status function LiveVision uses
 #   ./gcp.sh destroy   delete VM, IP and firewall rule
 #
@@ -90,13 +91,16 @@ upload() {
 }
 
 wait_setup() {
+  # one connection that waits on the VM (polling every 20 s over a fresh SSH
+  # each time added minutes, and a sleeping laptop kept it looping); if the
+  # connection drops, reconnect and keep waiting - setup runs under nohup
   echo "setup running on the VM (log: ~/setup.log)..."
-  for _ in $(seq 1 60); do
-    sleep 20
-    state="$(ssh_ "pgrep -f '[d]eploy/obs-vps/setup.sh' >/dev/null && echo running || echo done" 2>/dev/null || true)"
-    [ "${state##*$'\n'}" = "done" ] && break
+  for _ in $(seq 1 40); do
+    ssh_ "while pgrep -f '[d]eploy/obs-vps/setup.sh' >/dev/null; do sleep 2; done; tail -n 8 ~/setup.log" \
+      2>/dev/null && return 0
+    sleep 5
   done
-  ssh_ "tail -n 8 ~/setup.log"
+  echo "lost the VM while waiting; setup keeps running there (./gcp.sh ssh tail ~/setup.log)" >&2
 }
 
 case "${1:-help}" in
@@ -203,21 +207,33 @@ TXT"
     echo "now ./gcp.sh companion (VM running) to put it in the app's Secrets.xcconfig"
     ;;
   env)
-    # e.g. ./gcp.sh env TWITCH_STREAM_KEY   (asks for the value; never in argv
-    # or shell history), ./gcp.sh env AUTOCLIP_LIVE_STREAMS 1
-    K="${2:-}"
-    [[ "$K" =~ ^[A-Z_][A-Z0-9_]*$ ]] || { echo "usage: ./gcp.sh env NAME [value]" >&2; exit 1; }
-    if [ $# -ge 3 ]; then V="$3"; else read -rsp "$K: " V; echo; fi
-    # the value goes over stdin, not the remote command line
-    printf '%s' "$V" | ssh_ "cd $REMOTE/deploy/obs-vps && python3 -c '
+    # ./gcp.sh env TWITCH_STREAM_KEY          asks for the value (hidden; never
+    #                                         in argv or shell history)
+    # ./gcp.sh env KICK_CLIENT_ID KICK_CLIENT_SECRET KICK_REFRESH_TOKEN
+    #                                         asks for each, applies once
+    # ./gcp.sh env AUTOCLIP_PUBLISH live      sets one value as given
+    shift
+    KEYS=("$@"); VALS=()
+    if [ $# -eq 2 ] && ! [[ "$2" =~ ^[A-Z_][A-Z0-9_]*$ ]]; then KEYS=("$1"); VALS=("$2"); fi
+    [ ${#KEYS[@]} -gt 0 ] || { echo "usage: ./gcp.sh env NAME [value] | NAME NAME ..." >&2; exit 1; }
+    for K in "${KEYS[@]}"; do
+      [[ "$K" =~ ^[A-Z_][A-Z0-9_]*$ ]] || { echo "not a variable name: $K" >&2; exit 1; }
+    done
+    if [ ${#VALS[@]} -eq 0 ]; then
+      for K in "${KEYS[@]}"; do read -rsp "$K: " V; echo; VALS+=("$V"); done
+    fi
+    # names and values go over stdin (NUL-separated), not the remote command
+    # line; setup runs under nohup so a dropped connection doesn't stop it
+    { for i in "${!KEYS[@]}"; do printf '%s\0%s\0' "${KEYS[$i]}" "${VALS[$i]}"; done; } | ssh_ "cd $REMOTE/deploy/obs-vps && python3 -c '
 import sys
-k, v = sys.argv[1], sys.stdin.read()
+parts = sys.stdin.buffer.read().decode().split(chr(0))[:-1]
+new = dict(zip(parts[0::2], parts[1::2]))
 lines = open(\".env\").read().splitlines()
-out = [l for l in lines if not l.startswith(k + \"=\")]
-out.append(k + \"=\" + v)
+out = [l for l in lines if l.split(\"=\", 1)[0] not in new]
+out += [k + \"=\" + v for k, v in new.items()]
 open(\".env\", \"w\").write(\"\\n\".join(out) + \"\\n\")
-' $K && (nohup bash ~/$REMOTE/deploy/obs-vps/setup.sh > ~/setup.log 2>&1 < /dev/null &)"
-    echo "$K set on the VM; applying..."
+' && (nohup bash ~/$REMOTE/deploy/obs-vps/setup.sh > ~/setup.log 2>&1 < /dev/null &)"
+    echo "${KEYS[*]} set on the VM; applying..."
     wait_setup
     ;;
   ssh)     shift; ssh_ "$@" ;;
