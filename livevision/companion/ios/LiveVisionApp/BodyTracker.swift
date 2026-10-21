@@ -50,6 +50,7 @@ final class BodyTracker {
     @ObservationIgnored private var band: (q: [Double], at: Date)?
     @ObservationIgnored private var bandPunch = PunchDetector()   // band axes unknown: no forearm
     @ObservationIgnored private var bandGravity: SIMD3<Double>?    // slow average of the raw accelerometer, m/s^2
+    @ObservationIgnored private var bandAttitude = GyroAttitude()  // when the band sends no fused orientation
     @ObservationIgnored private static let defaults = UserDefaults.standard
 
     init() {
@@ -170,11 +171,18 @@ final class BodyTracker {
     }
 
     private func handle(_ sample: MotionSample) {
-        guard let o = sample.orientation else { return }
-        let q = [Double(o.w), Double(o.x), Double(o.y), Double(o.z)]
+        let fused = sample.orientation.map { [Double($0.w), Double($0.x), Double($0.y), Double($0.z)] }
         switch sample.source {
-        case .glasses: head = (q, Date()); headSamples += 1
-        case .neuralBand: band = (q, Date()); bandSamples += 1; bandPunches(sample)
+        case .glasses:
+            guard let q = fused else { return }
+            head = (q, Date()); headSamples += 1
+        case .neuralBand:
+            // DAT: "not every device produces" a fused orientation. Dropping
+            // samples without one dropped the whole band, punches included;
+            // without it, estimate one from the gyro and gravity
+            bandSamples += 1
+            bandPunches(sample)
+            if let q = fused ?? bandAttitude.update(sample) { band = (q, Date()) }
         case .unknown: break
         }
     }
@@ -232,5 +240,43 @@ final class BodyTracker {
         guard !body.isEmpty else { return }
         sensors.sendJSON(["body": body])
         sent += 1
+    }
+}
+
+/// Orientation from a gyro and an accelerometer (a complementary filter):
+/// integrate the rotation rate, and pull the tilt slowly toward gravity so it
+/// doesn't drift. Yaw drifts freely, which the server's wrist levelling
+/// (body.wrist_level_s) absorbs. Returns [w, x, y, z] like DAT's orientation.
+struct GyroAttitude {
+    private var q = simd_quatd(ix: 0, iy: 0, iz: 0, r: 1)
+    private var lastNs: Int64?
+    var gain = 0.02            // per sample, toward gravity
+
+    mutating func update(_ s: MotionSample) -> [Double]? {
+        guard let g = s.gyroscope else { return nil }
+        let t = s.timestampNs
+        defer { lastNs = t }
+        guard let last = lastNs, t > last else { return nil }
+        let dt = min(0.1, Double(t - last) / 1e9)
+        let w = SIMD3<Double>(Double(g.x), Double(g.y), Double(g.z))
+        let angle = simd_length(w) * dt
+        if angle > 1e-9 { q = simd_normalize(q * simd_quatd(angle: angle, axis: w / simd_length(w))) }
+        if let a = s.accelerometer {
+            // at rest the accelerometer reads +1 g up; rotate that into the
+            // world frame and nudge it onto world up (+z)
+            let up = SIMD3<Double>(Double(a.x), Double(a.y), Double(a.z))
+            let n = simd_length(up)
+            if abs(n - 9.81) < 3 {                    // only while not swinging
+                let world = q.act(up / n)
+                let target = SIMD3<Double>(0, 0, 1)
+                let axis = simd_cross(world, target)
+                let sinErr = simd_length(axis)
+                if sinErr > 1e-6 {
+                    let err = asin(min(1, sinErr))
+                    q = simd_normalize(simd_quatd(angle: err * gain, axis: axis / sinErr) * q)
+                }
+            }
+        }
+        return [q.real, q.imag.x, q.imag.y, q.imag.z]
     }
 }
