@@ -95,12 +95,14 @@ live_streams:
       url: "rtmp://live.twitch.tv/app"
       key: "${TWITCH_STREAM_KEY}"
       enabled: false
+    # Kick and X show your own Stream URL (Kick's is usually rtmps://…):
+    # put it in KICK_URL / X_URL if it differs from these defaults
     - name: kick
-      url: "rtmp://ingest.kick.com/app"
+      url: "${KICK_URL:-rtmp://ingest.kick.com/app}"
       key: "${KICK_STREAM_KEY}"
       enabled: false
     - name: x
-      url: "rtmp://ingest.pscp.tv:80/x/"
+      url: "${X_URL:-rtmp://ingest.pscp.tv:80/x/}"
       key: "${X_STREAM_KEY}"
       enabled: false
     # Rumble: Live Stream setup shows a Stream URL + Stream Key per account,
