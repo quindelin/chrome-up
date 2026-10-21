@@ -76,6 +76,29 @@ class Objective:
     maneuver: str = ""       # left | right | straight | uturn | arrive | "" (apple only)
 
 
+# statuses that say nothing about where you are (others can carry a place
+# name or an address from a geocode error)
+_SAFE_STATUS = {"idle", "route", "manual route", "no route", "arrived",
+                "waiting for GPS", "no destination"}
+
+
+def stream_safe(state: Dict[str, Any]) -> Dict[str, Any]:
+    """The navigation state as the stream may show it: the compass marker's
+    direction and the distance to the next turn, nothing that names a place.
+    Street names, the step text, the destination and the trip's distance /
+    ETA would let viewers work out where you are (and where you're going).
+    The glasses lens gets the full route from the phone, not from here."""
+    out = {k: state[k] for k in ("active", "arrived", "source", "statusOnly") if k in state}
+    obj = state.get("objective")
+    if isinstance(obj, dict):
+        out["objective"] = {k: obj.get(k) for k in ("bearing", "distance", "icon", "mode", "maneuver")}
+        out["objective"].update(name="", step="")
+    status = state.get("status")
+    if status in _SAFE_STATUS:
+        out["status"] = status
+    return out
+
+
 class Navigation:
     def __init__(self, cfg: dict):
         self.cfg = cfg or {}

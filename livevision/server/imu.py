@@ -64,6 +64,12 @@ class IMUHub:
         self.boxing_gyro = float(th.get("boxing_gyro", 0.6))
         self.walking_cadence = (float(th.get("walking_cadence_lo", 1.5)),
                                  float(th.get("walking_cadence_hi", 2.6)))
+        # |a| variance ((m/s^2)^2) and step rate for the gait: standing still
+        # is ~0.01, a walk with the phone in a pocket ~1-6, a run well over 15
+        self.walk_var = float(th.get("walk_amag_var", 0.5))
+        self.run_var = float(th.get("run_amag_var", 15.0))
+        self.walk_cadence = (float(th.get("walk_steps_lo", 1.2)), float(th.get("walk_steps_hi", 2.8)))
+        self.run_cadence_lo = float(th.get("run_steps_lo", 2.3))
 
         self._buf: Deque[IMUSample] = deque(maxlen=self.max_samples)
         self._last_seen = 0.0
@@ -116,6 +122,16 @@ class IMUHub:
         cutoff = time.time() - self.window
         return [s for s in self._buf if s.t >= cutoff]
 
+    @staticmethod
+    def _smooth(vals: List[float], n: int) -> List[float]:
+        out, acc = [], 0.0
+        for i, v in enumerate(vals):
+            acc += v
+            if i >= n:
+                acc -= vals[i - n]
+            out.append(acc / min(i + 1, n))
+        return out
+
     def _calc_cadence(self, series: List[Tuple[float, float]]) -> float:
         """Zero-crossing rate (Hz) on a (t, value) series."""
         if len(series) < 6:
@@ -153,23 +169,21 @@ class IMUHub:
         # pick the cadence channel that has more energy
         cadence = cadence_z if az_var > amag_var else cadence_a
 
+        # Gait from |a| (orientation-free: a phone upright in a front pocket
+        # bounces along its y axis, so the old z-only test read every walk as
+        # idle). Steps are the zero crossings of a lightly smoothed |a|, which
+        # keeps sensor noise from passing for a fast cadence.
+        smooth = self._smooth(amag, 5)
+        step_hz = self._calc_cadence(list(zip([s.t for s in window], smooth)))
         activity = "idle"
-        # Running: high vertical accel variance + footfall cadence
-        if (az_var >= self.running_z_var
-                and self.running_cadence[0] <= cadence <= self.running_cadence[1]):
+        if amag_var >= self.run_var and step_hz >= self.run_cadence_lo:
             activity = "running"
-        # Lifting: low cadence, vertical bursts (reps)
-        elif (self.lifting_cadence[0] <= cadence <= self.lifting_cadence[1]
-              and az_var >= self.lifting_z_var and gyro_mean < self.boxing_gyro):
-            activity = "lifting"
-        # Boxing / shadowboxing: arm rotation without much vertical motion
-        elif (self.boxing_cadence[0] <= cadence <= self.boxing_cadence[1]
-              and gyro_mean >= self.boxing_gyro and az_var < self.running_z_var):
-            activity = "boxing"
-        # Walking: low-energy cadence
-        elif (self.walking_cadence[0] <= cadence <= self.walking_cadence[1]
-              and az_var > 0.4 and lin_mean < 1.5):
+        elif amag_var >= self.walk_var and self.walk_cadence[0] <= step_hz <= self.walk_cadence[1]:
             activity = "walking"
+        cadence = step_hz
+        if activity != self._activity:
+            print(f"[imu] {activity}: steps {step_hz:.2f}/s, |a| var {amag_var:.2f}, "
+                  f"z var {az_var:.2f}", flush=True)
 
         if not fresh:
             # we have old data but no fresh samples — let the camera take over

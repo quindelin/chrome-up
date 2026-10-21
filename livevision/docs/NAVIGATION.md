@@ -13,9 +13,17 @@ wss://<host>/ws/phone  {"route": {...}}   ~1/s moving, every 4 s standing still
    ▼
 server/navigation.py  set_phone_route() → tick() → nav_state (source "apple")
    ▼
-overlay  compass quest marker = next maneuver · "Turn left onto Market St 120 m"
-                                                 "FERRY BUILDING 1.4 KM · 18 MIN"
+overlay  compass quest marker = next maneuver, its distance (120 m) - nothing else
 ```
+
+**Privacy:** the stream HUD shows only the marker's direction and the
+distance to the next turn. Step text, street and destination names and the
+trip's distance / ETA never reach the overlay or the public status API
+(`stream_safe()`), so viewers can't read where you are or where you're
+going. The glasses lens, fed by the phone, keeps every detail.
+`navigation.stream_details: true` puts the text back on stream. Location
+discovery toasts ("Discovered: <place>") are off by default for the same
+reason (`discovery.enabled`).
 
 ## Picking a destination
 

@@ -28,7 +28,7 @@ from .imu import IMUHub
 from .headpose import HeadPose
 from .body import Body
 from .activity import LocomotionGate
-from .navigation import Navigation, parse_coords
+from .navigation import Navigation, parse_coords, stream_safe
 from .progress import load as progress_load, save as progress_save
 from .sensors import HeadingHub
 from .shouts import Shouts
@@ -51,6 +51,7 @@ class Runtime:
         self.heading = HeadingHub(cfg.get("heading", {}))
         self.engine = SkillEngine(cfg.get("skills", {}))
         self.nav = Navigation(cfg.get("navigation", {}))
+        self.nav_details = bool((cfg.get("navigation") or {}).get("stream_details", False))
         self.gestures = GestureBus(cfg.get("gestures", {}))
         self.attributes = AttributeClassifier(cfg.get("attributes", {}), optin_attributes)
         self.desktop = DesktopActivity(cfg.get("desktop", {}))
@@ -271,7 +272,10 @@ class Runtime:
             "skills": self.engine.to_dict(),
             "player_level": self.engine.player_level,
             "level_progress": round(self.engine.level_progress(), 3),
-            "nav": self.nav_state,
+            # what the stream shows (and anyone with the overlay URL can read):
+            # no street names, steps or destination. navigation.stream_details
+            # puts them back
+            "nav": self.nav_state if self.nav_details else stream_safe(self.nav_state),
             "ui": self.gestures.ui(),
             "attributes": self.attributes.snapshot(),
             "desktop": {
@@ -454,7 +458,7 @@ async def api_status():
             "magicka": round(RT.world.vitals.magicka, 1),
             "stamina": round(RT.world.vitals.stamina, 1),
         },
-        "nav": RT.nav_state,
+        "nav": RT.nav_state if RT.nav_details else stream_safe(RT.nav_state),   # public, like the stream
         "ui": RT.gestures.ui(),
         "attributes": RT.attributes.snapshot(),
         "desktop": {"app": RT.world.desktop.app, "kind": RT.world.desktop.kind,
@@ -577,7 +581,7 @@ async def api_destination(request: Request):
         return JSONResponse({"ok": False, "error": "no coordinates in link"})
     ok = RT.nav.set_destination(body.get("lat"), body.get("lon"),
                                 body.get("query"), body.get("name"))
-    return JSONResponse({"ok": bool(ok), "nav": RT.nav.tick()})
+    return JSONResponse({"ok": bool(ok), "nav": _nav_public(RT.nav.tick())})
 
 
 @app.post("/api/route")
@@ -592,9 +596,9 @@ async def api_route(request: Request):
     body = await request.json()
     if isinstance(body.get("route"), dict):
         ok = RT.nav.set_phone_route(body["route"])
-        return JSONResponse({"ok": ok, "nav": RT.nav.tick()})
+        return JSONResponse({"ok": ok, "nav": _nav_public(RT.nav.tick())})
     RT.nav.set_route(body.get("destination"), body.get("steps"))
-    return JSONResponse({"ok": True, "nav": RT.nav.tick()})
+    return JSONResponse({"ok": True, "nav": _nav_public(RT.nav.tick())})
 
 
 # ------------------------------------------------------------------ gestures
@@ -677,6 +681,11 @@ async def api_head(request: Request):
     assert RT is not None
     ok = RT.head.ingest(await request.json(), source="http")
     return JSONResponse({"ok": ok, "head": RT.head.snapshot()})
+
+
+def _nav_public(state):
+    """These answers go through the same public host as the overlay."""
+    return state if RT.nav_details else stream_safe(state)
 
 
 @app.post("/api/body")

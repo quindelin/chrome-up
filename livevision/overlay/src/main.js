@@ -111,7 +111,11 @@ function frame(now) {
     const nav = latest.nav || {};
     const obj = nav.active ? nav.objective : null;
     compass.setObjective(obj);
-    if (obj) {
+    // the server leaves the step and place names out of the stream (privacy,
+    // navigation.stream_details): then the marker on the compass is all there is
+    if (obj && !obj.step && !obj.name) {
+      objectiveEl.classList.add("hidden");
+    } else if (obj) {
       // Apple Maps (phone): the marker is the next maneuver, so the line says
       // what to do there; the trip to the destination goes underneath
       const dest = nav.source === "apple" ? nav.destination : null;

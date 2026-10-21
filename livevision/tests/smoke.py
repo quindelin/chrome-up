@@ -1191,6 +1191,54 @@ def t_head_pose():
         hpmod.time.time = real
 
 
+def t_nav_stream_safe():
+    """The stream's copy of the route keeps the compass marker and nothing
+    that names a place."""
+    from server.navigation import stream_safe
+    full = {"active": True, "source": "apple", "status": "geocode failed (12 Elm St)",
+            "objective": {"name": "Ferry Building", "bearing": 81.0, "distance": 120.0,
+                          "step": "Turn left onto Market St", "icon": "left", "mode": "apple",
+                          "maneuver": "left"},
+            "destination": {"name": "Ferry Building", "distance": 1400, "eta": 1080},
+            "route_distance": 1400, "route_duration": 1080}
+    safe = stream_safe(full)
+    text = str(safe)
+    for leak in ("Ferry", "Market", "Elm", "1400", "1080"):
+        assert leak not in text, (leak, safe)
+    assert safe["objective"]["bearing"] == 81.0 and safe["objective"]["distance"] == 120.0
+    assert safe["active"] and "destination" not in safe and "status" not in safe
+    assert stream_safe({"active": False, "status": "waiting for GPS"})["status"] == "waiting for GPS"
+
+
+def t_imu_gait():
+    """Pocket phone: standing still is idle, a walk's ~1.9 steps/s bounce is
+    walking, a hard ~2.8/s run is running, upright (gravity on y) or flat (z)."""
+    import math, random, time as _t
+    from server.imu import IMUHub
+
+    def feed(hz, amp, axis="y", secs=4.0):
+        hub = IMUHub({"window_s": 4.0, "stale_s": 2.0})
+        now = _t.time()
+        rnd = random.Random(1)
+        n = int(secs * 25)
+        for i in range(n):
+            t = now - secs + i / 25
+            bounce = amp * math.sin(2 * math.pi * hz * (i / 25)) + rnd.gauss(0, 0.15)
+            # gravity and the (vertical) bounce on whichever axis is up
+            a = {"ax": rnd.gauss(0, 0.1), "ay": rnd.gauss(0, 0.1), "az": rnd.gauss(0, 0.1)}
+            a["a" + axis] += 9.81 + bounce
+            hub.ingest({"t": t * 1000, **a, "gx": 0, "gy": 0, "gz": 0})
+        return hub.compute()
+
+    assert feed(0, 0)["activity"] == "idle"
+    w = feed(1.9, 2.0)
+    assert w["activity"] == "walking" and 1.6 < w["cadence"] < 2.2, w
+    assert feed(1.9, 2.0, axis="z")["activity"] == "walking"
+    r = feed(2.8, 7.0)
+    assert r["activity"] == "running", r
+    assert feed(1.9, 0.3)["activity"] == "idle"          # fidgeting, not a gait
+
+
 def t_locomotion_gate():
     """Walking / running from the head-worn camera: not while sitting, not
     while the head turns, and only after it has held for hold_s."""
@@ -1929,6 +1977,8 @@ def main() -> int:
         ("privacy dispatcher routing", t_privacy_dispatcher),
         ("dedupe across windows", t_dedupe_across_windows),
         ("head pose", t_head_pose),
+        ("nav on stream: no place names", t_nav_stream_safe),
+        ("imu gait (pocket phone)", t_imu_gait),
         ("locomotion gate", t_locomotion_gate),
         ("arm directions", t_arms),
         ("body tracking", t_body_tracking),

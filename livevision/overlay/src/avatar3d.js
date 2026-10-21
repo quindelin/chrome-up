@@ -150,8 +150,8 @@ class Rig {
    *  motion is added on top of these */
   _restPose() {
     this.rest = {
-      leftUpperArm: [0.1, 0, 1.2], rightUpperArm: [0.1, 0, -1.2],
-      leftLowerArm: [0, 0.3, 0.1], rightLowerArm: [0, -0.3, -0.1],
+      leftUpperArm: [0.12, 0, 1.22], rightUpperArm: [0.12, 0, -1.22],
+      leftLowerArm: [0, 0.42, 0.1], rightLowerArm: [0, -0.42, -0.1],
       leftHand: [0, 0, 0.1], rightHand: [0, 0, -0.1],
     };
     for (const name of Object.keys(this.rest)) this._pose(name, 0, 0, 0);
@@ -435,18 +435,21 @@ class Rig {
   /** one leg forward while the other is back; the knee folds on the way through */
   _legs(g, ph, pc) {
     const swing = (0.42 + 0.25 * Math.max(0, (g - 0.55) / 0.45)) * g;
-    const set = (name, x) => { const bn = this.bone(name); if (bn) bn.rotation.set(x, 0, 0); };
+    const set = (name, x, z = 0, y = 0) => { const bn = this.bone(name); if (bn) bn.rotation.set(x, y, z); };
+    // stance: legs a little apart (measured: -z swings the left leg out, +z the right),
+    // feet turned out a touch and kept flat; narrower while striding
+    const wide = 0.075 * (1 - 0.6 * g);
     // sitting: thighs forward to horizontal, knees fold the shins back down
     // (measured: +x on an upper leg swings it forward, -x on a lower leg folds it)
     const sit = this.sit * 1.5;
-    set("leftUpperLeg", -ph * swing + sit);
-    set("rightUpperLeg", ph * swing + sit);
+    set("leftUpperLeg", -ph * swing + sit, -wide);
+    set("rightUpperLeg", ph * swing + sit, wide);
     // measured on the rig: +x on the lower leg kicks the foot forward
     // (hyperextension); a real knee folds the foot back, so negative
     set("leftLowerLeg", -Math.max(0, -pc) * 1.1 * g - sit);
     set("rightLowerLeg", -Math.max(0, pc) * 1.1 * g - sit);
-    set("leftFoot", ph * 0.2 * g);
-    set("rightFoot", -ph * 0.2 * g);
+    set("leftFoot", ph * 0.2 * g, wide, 0.12);
+    set("rightFoot", -ph * 0.2 * g, -wide, -0.12);
   }
 
   update(dt, audio, vision, skills = {}, headIn = null, bodyIn = null) {
@@ -524,13 +527,21 @@ class Rig {
     const rad = THREE.MathUtils.degToRad;
     const w = this.headW, flip = this.mirror ? -1 : 1;
     const yaw = rad(this.headPose.yaw) * flip, pitch = rad(this.headPose.pitch), roll = rad(this.headPose.roll) * flip;
-    if (neck) neck.rotation.y = Math.sin(this.t * 0.45) * 0.06 * (1 - w) + yaw * 0.4 * w;
+    // a real head turn is carried down the spine: neck + head take most of
+    // it, the chest and spine the rest (head-only turns looked like a bobble
+    // on a statue). Shares add up to 1, so the face still points where yours does
+    this.bodyYaw = yaw * w;
+    if (chest) {
+      chest.rotation.y = this.bodyYaw * 0.18;
+      chest.rotation.x += pitch * 0.12 * w;                     // look down: shoulders round a touch
+    }
+    if (neck) neck.rotation.y = Math.sin(this.t * 0.45) * 0.06 * (1 - w) + yaw * 0.3 * w;
     if (head) {
       // nod on loud syllables, small tilt that wanders while you talk
       const idleX = -talk * 0.12 + Math.sin(this.t * 6.5) * talk * 0.05 + Math.sin(this.t * 0.9) * 0.02;
       head.rotation.x = idleX * (1 - w) + (pitch + idleX * 0.3) * w;
       head.rotation.z = (Math.sin(this.t * 0.55) * 0.04 + Math.sin(this.t * 2.1) * talk * 0.05) * (1 - w) + roll * w;
-      head.rotation.y = Math.sin(this.t * 0.33) * 0.05 * (1 - w) + yaw * 0.6 * w;
+      head.rotation.y = Math.sin(this.t * 0.33) * 0.05 * (1 - w) + yaw * 0.4 * w;
     }
 
     // ---- locomotion: gait paced by your real step cadence
@@ -566,13 +577,20 @@ class Rig {
       const sh = this.bone(s + "Shoulder"), r0 = this.restShoulder[s];
       if (sh && r0) sh.rotation.set(r0.x, r0.y - out * 0.22 * pe * (p ? 0.6 + 0.4 * p.strength : 0), r0.z);
     }
-    this._fists(b);
+    this._fists(0.28 + 0.72 * b);                               // relaxed curl at rest, a fist on guard
     if (spine) {
-      spine.rotation.y = ph * 0.1 * g + twist;
+      spine.rotation.y = ph * 0.1 * g + twist + (this.bodyYaw || 0) * 0.12;
       spine.rotation.x += 0.14 * run + 0.08 * b;                // lean in to run or fight
     }
     const hips = this.bone("hips");
-    if (hips) hips.rotation.y = -ph * 0.08 * g;
+    if (hips) {
+      hips.rotation.y = -ph * 0.08 * g;
+      // standing still: a slow weight shift side to side, the spine leaning
+      // back against it, so the idle body isn't frozen
+      const still = (1 - g) * (1 - this.sit);
+      hips.rotation.z = Math.sin(this.t * 0.42) * 0.025 * still;
+      if (spine) spine.rotation.z -= Math.sin(this.t * 0.42) * 0.02 * still;
+    }
     this.vrm.scene.position.y = Math.abs(Math.sin(this.t * 4.5)) * talk * 0.006
       + Math.abs(ph) * (0.012 + 0.03 * run) * g;
     if (this.legs) {
