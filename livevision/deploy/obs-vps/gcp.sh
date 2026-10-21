@@ -202,7 +202,7 @@ TXT"
       --member "serviceAccount:$SA" --role roles/iam.serviceAccountUser >/dev/null
     "${G[@]}" run deploy "$NAME-control" --source control --function control \
       --base-image python312 --region "$REGION" --allow-unauthenticated \
-      --service-account "$SA" --max-instances 1 --memory 256Mi \
+      --service-account "$SA" --max-instances 1 --memory 512Mi \
       --set-env-vars "PROJECT=$PROJECT,ZONE=$ZONE,NAME=$NAME,CONTROL_TOKEN=$(cat .control-token)"
     echo "now ./gcp.sh companion (VM running) to put it in the app's Secrets.xcconfig"
     ;;
