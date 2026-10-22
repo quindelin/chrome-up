@@ -137,7 +137,7 @@ and it composes one screen (each send replaces the whole view):
 
 | on the lens | shows |
 |---|---|
-| directions only | compass strip (cardinals turning with the phone's heading, gold quest marker on the next maneuver, its distance), the instruction, "Ferry Building · 1.4 km · 18 min" |
+| directions only | compass strip (cardinals turning with where you look, the gold quest marker on the **destination**, a small silver waypoint on the **next turn** with its distance), the instruction, "Ferry Building · 1.4 km · 18 min" |
 | teleprompter only | the script page, as before |
 | both | one line "120 m · Turn left onto Market St" with a turn icon, above the script page |
 
@@ -150,6 +150,10 @@ and it composes one screen (each send replaces the whole view):
 - The screen is re-sent every 12 s (the lens dims after 20 s without a send).
 - Swipes on the Neural Band still turn script pages; the directions need no
   input.
-- The heading is the phone's compass. With the phone in a pocket it follows
-  your hips, not your head; the HUD's compass on the stream uses the same
-  heading.
+- The heading follows your head: the glasses' yaw (instant, but no north)
+  plus an offset that settles on the phone's compass over ~20 s
+  (`HeadingFusion` in `RouteNavigator.swift`). Which way the glasses' yaw
+  turns is learned from whole-body turns, where both move together. Without
+  the glasses' motion it falls back to the phone's compass (your hips). The
+  stream HUD's compass still uses the phone's heading, and shows only the
+  next-turn marker (no destination: privacy, see above).

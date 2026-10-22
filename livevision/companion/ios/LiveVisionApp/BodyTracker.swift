@@ -51,6 +51,9 @@ final class BodyTracker {
     @ObservationIgnored private var bandPunch = PunchDetector()   // band axes unknown: no forearm
     @ObservationIgnored private var bandGravity: SIMD3<Double>?    // slow average of the raw accelerometer, m/s^2
     @ObservationIgnored private var bandAttitude = GyroAttitude()  // when the band sends no fused orientation
+    /// The glasses' orientation [w, x, y, z], ~10 Hz: the lens compass turns
+    /// with your head (RouteNavigator.headTurned)
+    @ObservationIgnored var onHead: (@MainActor ([Double]) -> Void)?
     @ObservationIgnored private static let defaults = UserDefaults.standard
 
     init() {
@@ -223,6 +226,7 @@ final class BodyTracker {
     private func tick() {
         guard let sensors else { return }
         let now = Date()
+        if let h = head, now.timeIntervalSince(h.at) < 0.3 { onHead?(h.q) }
         if headOn, let h = head, now.timeIntervalSince(h.at) < 0.3 {
             sensors.sendJSON(["head": ["q": h.q, "source": "glasses"]])
         }

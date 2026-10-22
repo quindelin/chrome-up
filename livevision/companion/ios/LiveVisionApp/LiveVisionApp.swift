@@ -34,6 +34,7 @@ struct LiveVisionApp: App {
                 glasses.configure()
                 navigator.start(sensors: sensors, glasses: glasses)
                 bodyTracker.start(glasses: glasses, sensors: sensors, watch: watch)
+                bodyTracker.onHead = { [navigator] q in navigator.headTurned(q) }
             }
             // the lens (prompter + directions, LensRouter) rides on the glasses
             // session: re-attach after reconnects

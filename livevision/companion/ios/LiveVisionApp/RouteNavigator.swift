@@ -40,6 +40,7 @@ final class RouteNavigator {
         var lon: Double
         var stepDistance: Double      // metres along the route to it
         var bearing: Double           // from here to it, degrees true
+        var destBearing: Double       // from here to the destination, degrees true
         var nextInstruction: String?  // the one after
         var remaining: Double         // metres left of the trip
         var eta: TimeInterval
@@ -52,8 +53,11 @@ final class RouteNavigator {
     private(set) var status: String?
     private(set) var arrived = false
     private(set) var hasRoute = false
-    /// Phone compass, degrees true: the lens compass turns with it.
+    /// Where you're looking, degrees true: the lens compass turns with it.
+    /// The phone's compass (north, but it sits in your pocket and follows
+    /// your hips) fused with the glasses' head turns (HeadingFusion).
     private(set) var heading: Double?
+    @ObservationIgnored private var fusion = HeadingFusion()
 
     var transport: Transport {
         didSet {
@@ -332,6 +336,18 @@ final class RouteNavigator {
     // MARK: - following
 
     private func headingChanged(_ deg: Double) {
+        fusion.phone(deg)
+        updateHeading()
+    }
+
+    /// The glasses' orientation from BodyTracker (~10 Hz).
+    func headTurned(_ q: [Double]) {
+        fusion.glasses(q)
+        updateHeading()
+    }
+
+    private func updateHeading() {
+        guard let deg = fusion.heading else { return }
         heading = deg
         guard destination != nil, LensRouter.shared.clients.contains(.nav) else { return }
         // the lens compass only needs a new picture when it would visibly move
@@ -376,6 +392,7 @@ final class RouteNavigator {
             lat: at.latitude, lon: at.longitude,
             stepDistance: max(0, turn.along - along),
             bearing: Self.bearing(here, at),
+            destBearing: Self.bearing(here, destination),
             nextInstruction: next,
             remaining: remaining,
             eta: total > 0 ? route.expectedTravelTime * remaining / total : 0,
@@ -600,4 +617,72 @@ private extension MKPolyline {
         getCoordinates(&c, range: NSRange(location: 0, length: pointCount))
         return c
     }
+}
+
+/// Heading where your head points: the glasses turn instantly but only know
+/// relative yaw (DAT has no compass), the phone knows north but sits in your
+/// pocket and turns with your hips. The glasses' yaw plus an offset that
+/// slowly settles on the phone's heading gives both: a head turn shows at
+/// once, and on average the strip agrees with the compass (looking sideways
+/// for a long time drifts back over ~20 s). Which way the glasses' yaw turns
+/// is learned from whole-body turns, where both move together.
+struct HeadingFusion {
+    private var phoneDeg: Double?
+    private var phoneAt = Date.distantPast
+    private var glassesYaw: Double?
+    private var glassesAt = Date.distantPast
+    private var ref: [Double]?
+    private var offset: Double?
+    private var corr = 0.0                 // > 0: glasses yaw grows clockwise
+    private var lastPhone: Double?
+    private var lastYawAtPhone: Double?
+    static let settle = 20.0               // seconds for the offset to follow the phone
+
+    var heading: Double? {
+        let now = Date()
+        guard let p = phoneDeg, now.timeIntervalSince(phoneAt) < 30 else { return nil }
+        guard let y = glassesYaw, let offset, now.timeIntervalSince(glassesAt) < 1.5 else { return p }
+        return Self.wrap(sign * y + offset)
+    }
+
+    private var sign: Double { corr > 0 ? 1 : -1 }   // default: yaw grows to the left
+
+    mutating func phone(_ deg: Double) {
+        let now = Date()
+        // learn the glasses' direction from turns both of them saw
+        if let lp = lastPhone, let ly = lastYawAtPhone, let y = glassesYaw {
+            let dp = RouteNavigator.delta(lp, deg), dy = RouteNavigator.delta(ly, y)
+            if abs(dp) > 4, abs(dy) > 4 { corr = max(-200, min(200, corr + dp * dy / 100)) }
+        }
+        lastPhone = deg
+        lastYawAtPhone = glassesYaw
+        let dt = min(5, now.timeIntervalSince(phoneAt))
+        phoneDeg = deg
+        phoneAt = now
+        guard let y = glassesYaw else { return }
+        let target = Self.wrap(deg - sign * y)
+        if let o = offset {
+            offset = Self.wrap(o + RouteNavigator.delta(o, target) * min(1, dt / Self.settle))
+        } else {
+            offset = target
+        }
+    }
+
+    mutating func glasses(_ q: [Double]) {
+        guard q.count == 4 else { return }
+        if ref == nil || Date().timeIntervalSince(glassesAt) > 10 { ref = q; offset = nil }
+        guard let r = ref else { return }
+        // relative rotation conj(ref) * q, then yaw about the glasses' up axis
+        let (aw, ax, ay, az) = (r[0], -r[1], -r[2], -r[3])
+        let (bw, bx, by, bz) = (q[0], q[1], q[2], q[3])
+        let w = aw * bw - ax * bx - ay * by - az * bz
+        let x = aw * bx + ax * bw + ay * bz - az * by
+        let y = aw * by - ax * bz + ay * bw + az * bx
+        let z = aw * bz + ax * by - ay * bx + az * bw
+        glassesYaw = atan2(2 * (x * z + w * y), 1 - 2 * (x * x + y * y)) * 180 / .pi
+        glassesAt = Date()
+        if offset == nil, let p = phoneDeg { offset = Self.wrap(p - sign * glassesYaw!) }
+    }
+
+    static func wrap(_ d: Double) -> Double { (d.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360) }
 }

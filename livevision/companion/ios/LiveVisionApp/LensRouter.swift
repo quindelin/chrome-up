@@ -13,8 +13,8 @@ import UIKit
 /// ask for the lens here and the router composes one screen from whoever
 /// wants it (every send replaces the whole view):
 ///   - prompter only: the script page, as before
-///   - directions only: compass strip with the quest marker on the next
-///     maneuver, the instruction, and the trip
+///   - directions only: compass strip with the quest marker on the destination
+///     and a waypoint on the next maneuver, the instruction, and the trip
 ///   - both: a one-line "next turn" strip above the script page
 ///
 /// Sends are coalesced to one in flight and at most every 0.4 s (Bluetooth
@@ -308,9 +308,9 @@ enum NavLens {
     }
 }
 
-/// The HUD's compass band, small, for the lens: cardinals turning with the
-/// phone's heading and the gold quest marker on the next maneuver with its
-/// distance. Black is transparent on the additive display, so it's line art
+/// The HUD's compass band, small, for the lens: cardinals turning with where
+/// you look, the gold quest marker on the destination and a silver waypoint
+/// on the next turn with its distance. Black is transparent on the additive display, so it's line art
 /// on black, ~600x130 at 1x (a few KB as PNG).
 @MainActor
 enum CompassStrip {
@@ -362,18 +362,29 @@ enum CompassStrip {
             g.addLine(to: CGPoint(x: w / 2, y: top - 3))
             g.closePath(); g.fillPath()
 
-            // quest marker on the next maneuver; parked at the edge when behind you
-            let rel = RouteNavigator.delta(heading, p.bearing)
-            let clamped = max(-span / 2 + 8, min(span / 2 - 8, rel))
-            let x = w / 2 + clamped * ppd
-            let gold = UIColor(red: 0.95, green: 0.84, blue: 0.55, alpha: 1)
-            g.setFillColor(gold.cgColor)
-            g.move(to: CGPoint(x: x - 12, y: mid - 16))
-            g.addLine(to: CGPoint(x: x, y: mid - 9))
-            g.addLine(to: CGPoint(x: x + 12, y: mid - 16))
-            g.addLine(to: CGPoint(x: x, y: mid + 14))
-            g.closePath(); g.fillPath()
-            draw(NavLens.distance(p.stepDistance), at: CGPoint(x: x, y: top + bandH + 22), size: 26, color: .white)
+            // markers are parked at the edge when behind you
+            func xFor(_ bearing: Double) -> Double {
+                let rel = RouteNavigator.delta(heading, bearing)
+                return w / 2 + max(-span / 2 + 8, min(span / 2 - 8, rel)) * ppd
+            }
+            func diamond(_ x: Double, _ r: Double, _ color: UIColor) {
+                g.setFillColor(color.cgColor)
+                g.move(to: CGPoint(x: x - r, y: mid - r * 1.33))
+                g.addLine(to: CGPoint(x: x, y: mid - r * 0.75))
+                g.addLine(to: CGPoint(x: x + r, y: mid - r * 1.33))
+                g.addLine(to: CGPoint(x: x, y: mid + r * 1.17))
+                g.closePath(); g.fillPath()
+            }
+            // the next turn: a small silver waypoint, its distance under the band
+            let wx = xFor(p.bearing)
+            if p.maneuver != .arrive {
+                diamond(wx, 8, UIColor(white: 0.82, alpha: 1))
+                draw(NavLens.distance(p.stepDistance), at: CGPoint(x: wx, y: top + bandH + 22), size: 24,
+                     color: UIColor(white: 0.85, alpha: 1))
+            }
+            // the destination: the gold quest marker (no label, as in Skyrim;
+            // the trip line under the strip says how far and how long)
+            diamond(xFor(p.destBearing), 12, UIColor(red: 0.95, green: 0.84, blue: 0.55, alpha: 1))
         }
     }
 
