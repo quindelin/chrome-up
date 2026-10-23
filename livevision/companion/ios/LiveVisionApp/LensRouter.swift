@@ -27,7 +27,7 @@ import UIKit
 final class LensRouter {
     static let shared = LensRouter()
 
-    enum Client: Hashable { case prompter, nav }
+    enum Client: Hashable { case prompter, nav, notice }
 
     enum State: Equatable {
         case off
@@ -44,6 +44,9 @@ final class LensRouter {
 
     @ObservationIgnored weak var prompter: Teleprompter?
     @ObservationIgnored weak var navigator: RouteNavigator?
+    /// A one-line ask shown on top of whatever else is on the lens
+    /// ("Calibrate arms in the LiveVision app"), from BodyTracker
+    var notice: String? { didSet { if notice != oldValue { refresh() } } }
 
     @ObservationIgnored private var display: Display?
     @ObservationIgnored private var inputs: Inputs?
@@ -215,16 +218,38 @@ final class LensRouter {
 
     private func compose() -> FlexBox {
         let nav = clients.contains(.nav) ? navigator : nil
+        let notice = clients.contains(.notice) ? notice : nil
         if clients.contains(.prompter), let prompter {
             return FlexBox(direction: .column, spacing: 10, padding: EdgeInsets(all: 12)) {
+                if let notice { Self.noticeRow(notice) }
                 if let nav { NavLens.strip(nav) }
                 prompter.lensBody()
             }
             .onTap { [weak self] in Task { @MainActor in self?.prompter?.next() } }
         }
-        if let nav { return NavLens.full(nav) }
+        if let nav {
+            guard let notice else { return NavLens.full(nav) }
+            return FlexBox(direction: .column, spacing: 8, padding: EdgeInsets(all: 12)) {
+                Self.noticeRow(notice)
+                NavLens.strip(nav)
+            }
+        }
+        if let notice {
+            return FlexBox(direction: .column, spacing: 10, crossAlignment: .center, padding: EdgeInsets(all: 16)) {
+                Icon(name: .iCircle)
+                Text(notice, style: .heading)
+                Text("Control tab · Body tracking · Calibrate arms", style: .meta, color: .secondary)
+            }
+        }
         return FlexBox(direction: .column, padding: EdgeInsets(all: 12)) {
             Text("LiveVision", style: .meta, color: .secondary)
+        }
+    }
+
+    private static func noticeRow(_ text: String) -> FlexBox {
+        FlexBox(direction: .row, spacing: 8, crossAlignment: .center) {
+            Icon(name: .iCircle)
+            Text(text, style: .meta)
         }
     }
 }

@@ -26,7 +26,10 @@ final class BodyTracker {
 
     // what the user turned on (Control tab)
     var headOn = true { didSet { save(); refresh() } }
-    var handsOn = true { didSet { save(); refresh() } }
+    /// Hand positions from the glasses camera: off and no longer offered. It
+    /// saw the hands now and then, at low confidence, and the avatar's arm
+    /// jumped; the wrist sensors drive the arms now (server/arms.py)
+    var handsOn = false { didSet { save(); refresh() } }
     var watchOn = true { didSet { save(); refresh() } }
 
     private(set) var motion: MotionLink = .off
@@ -38,6 +41,9 @@ final class BodyTracker {
     private(set) var sent = 0
 
     @ObservationIgnored private weak var glasses: GlassesStreamer?
+    @ObservationIgnored private var calibrationLoop: Task<Void, Never>?
+    /// What the lens should ask for: nil when the arms are fine
+    private(set) var armPrompt: String?
     @ObservationIgnored private weak var sensors: SensorBridge?
     @ObservationIgnored private var watch: WatchLink?
     @ObservationIgnored private var cap: Motion?
@@ -59,7 +65,6 @@ final class BodyTracker {
     init() {
         let d = Self.defaults
         if d.object(forKey: "body.headOn") != nil { headOn = d.bool(forKey: "body.headOn") }
-        if d.object(forKey: "body.handsOn") != nil { handsOn = d.bool(forKey: "body.handsOn") }
         if d.object(forKey: "body.watchOn") != nil { watchOn = d.bool(forKey: "body.watchOn") }
         handTracker.onHands = { [weak self] found in self?.handsFound(found) }
     }
@@ -78,6 +83,13 @@ final class BodyTracker {
         watch.activate()
         watch.onPunch = { [weak self] p in self?.sendPunch(p) }
         refresh()
+        calibrationLoop?.cancel()
+        calibrationLoop = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(5))
+                await self?.checkCalibration()
+            }
+        }
         sendLoop?.cancel()
         sendLoop = Task { [weak self] in
             while !Task.isCancelled {
@@ -91,6 +103,30 @@ final class BodyTracker {
     func sessionChanged(_ glasses: GlassesStreamer) {
         self.glasses = glasses
         refresh()
+    }
+
+    /// Every 5 s: does the HUD have a wrist sending without a calibration?
+    /// Then the lens asks for one (or for a Watch app update, when the Watch
+    /// sends no gravity), until it's done.
+    private func checkCalibration() async {
+        guard let glasses else { return }
+        var prompt: String?
+        if let arms = (try? await HUDClient.fromSettings().status())?.arms {
+            if arms.values.contains(where: { $0.needs == "gravity" }) {
+                prompt = "Update the LiveVision Watch app to track your arm"
+            } else if arms.values.contains(where: { $0.needs == "calibration" || ($0.fresh == true && $0.calibrated == false) }) {
+                prompt = "Calibrate arms in the LiveVision app"
+            }
+        }
+        guard prompt != armPrompt else { return }
+        armPrompt = prompt
+        let lens = LensRouter.shared
+        lens.notice = prompt
+        if prompt != nil, glasses.link == .connected {
+            lens.want(.notice, on: glasses)
+        } else if prompt == nil {
+            lens.release(.notice)
+        }
     }
 
     private func refresh() {

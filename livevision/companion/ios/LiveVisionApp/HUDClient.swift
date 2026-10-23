@@ -71,6 +71,14 @@ struct HUDClient {
         var playerLevel: Int?
         var nav: Nav?
         var phones: Int?
+        var arms: [String: Arm]?
+    }
+    /// One arm's wrist sensor on the HUD (server/arms.py)
+    struct Arm: Decodable {
+        var fresh: Bool?
+        var calibrated: Bool?
+        var needs: String?       // "calibration" (Neural Band axis) | "gravity" (old Watch build)
+        var source: String?
     }
     struct Skill: Decodable {
         var name: String?

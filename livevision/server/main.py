@@ -451,6 +451,10 @@ async def api_status():
         "uptime": round(time.time() - RT.world.started, 1),
         "clients": len(RT.clients),
         "phones": len(RT.phone_clients),
+        # per arm: is a wrist sending, and is it calibrated? (the app puts a
+        # "calibrate arms" prompt on the lens from this)
+        "arms": {side: {k: a.get(k) for k in ("fresh", "calibrated", "needs", "source")}
+                 for side, a in RT.body.arms.snapshot().items()},
         "skills": RT.engine.to_dict(),
         "player_level": RT.engine.player_level,
         "vitals": {

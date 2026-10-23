@@ -129,8 +129,6 @@ class Rig {
     this.headPose = { yaw: 0, pitch: 0, roll: 0 };
     this.debug = null;                     // {activity, cadence, head, body} to test without sensors
     this.sit = 0;                          // 0 standing .. 1 sitting
-    this.handW = { left: 0, right: 0 };    // how much a tracked hand drives each arm
-    this.handTarget = { left: null, right: null };
     this.armW = { left: 0, right: 0 };     // how much a wrist-tracked arm direction drives it
     this.armDir = { left: null, right: null };
     this.wristW = { left: 0, right: 0 };
@@ -237,33 +235,20 @@ class Rig {
     this.mood = { name, until: this.t + seconds };
   }
 
-  /** Tracked hands pull the arms to them (two-bone IK); wrists turn the hands.
-   *  Mirror (default): your right hand drives the avatar's left, on screen-right,
-   *  like a webcam; head-relative +x (your right) maps to world +x. */
+  /** The wrist sensors aim the arms (_forearmPose) and twist the hands.
+   *  avatar.mirror false (default): your left wrist drives its left arm;
+   *  true mirrors it like a webcam. */
   _arms(dt, bodyIn) {
-    const head = this.bone("head");
-    if (!head) return;
+    // (the glasses camera's hand positions are ignored: it saw the hands only
+    // now and then, at low confidence, and the arm jumped between it and rest)
     const flip = this.mirror ? 1 : -1;
     const ease = Math.min(1, dt * 6);
     for (const side of ["left", "right"]) {
       const theirs = this.mirror ? (side === "left" ? "right" : "left") : side;
-      const h = bodyIn?.hands?.[theirs];
       const arm = bodyIn?.arms?.[theirs];
       const af = !!(arm && arm.fresh && Array.isArray(arm.dir));
-      // a wrist sensor wins: the camera only sees the hand now and then, at
-      // low confidence, and switching between the two made the arm jump
-      const fresh = !!(h && h.fresh) && !af;
-      this.handW[side] += ((fresh ? 1 : 0) - this.handW[side]) * ease;
-      if (fresh) {
-        head.getWorldPosition(this._v[0]);
-        const t = new THREE.Vector3(this._v[0].x + flip * h.x, this._v[0].y + h.y, this._v[0].z + h.z);
-        this.handTarget[side] = this.handTarget[side] ? this.handTarget[side].lerp(t, ease) : t;
-      }
-      if (this.handW[side] > 0.01 && this.handTarget[side]) this._ikArm(side, this.handTarget[side], this.handW[side]);
-
       // the wrist sensors say where the arm points (server/arms.py, body
-      // frame: x = your right, y = up, z = forward): reach along it, unless
-      // the camera sees the hand itself (that's a real position)
+      // frame: x = your right, y = up, z = forward)
       this.armW[side] += ((af ? 1 : 0) - this.armW[side]) * ease;
       if (af) {
         const d = new THREE.Vector3(flip * arm.dir[0], arm.dir[1], arm.dir[2]).normalize();
@@ -271,7 +256,7 @@ class Rig {
       }
       if (this.armW[side] > 0.01 && this.armDir[side]) this._forearmPose(side, this.armDir[side], this.armW[side]);
 
-      // a punch wins over the camera's hand for its ~0.3 s
+      // a punch on an untracked arm, for its ~0.3 s
       const pe = this.punchE[side];
       if (pe > 0.001 && this.punch[side] && this.armW[side] < 0.5) {
         this.vrm.scene.updateMatrixWorld(true);

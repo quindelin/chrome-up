@@ -6,7 +6,6 @@ struct BodyTrackingSection: View {
     @Environment(SensorBridge.self) private var sensors
     @Environment(WatchLink.self) private var watch
     @State private var bandWrist = Settings.bandWrist
-    @State private var hfov = Settings.cameraHFOV
     /// arm calibration: nil, or what to do right now
     @State private var calStep: String?
 
@@ -19,12 +18,6 @@ struct BodyTrackingSection: View {
                 VStack(alignment: .leading) {
                     Text("Head + Neural Band (glasses motion)")
                     Text(motionText).font(.caption).foregroundStyle(motionColor)
-                }
-            }
-            Toggle(isOn: $b.handsOn) {
-                VStack(alignment: .leading) {
-                    Text("Hands (glasses camera)")
-                    Text(handsText).font(.caption).foregroundStyle(.secondary)
                 }
             }
             Toggle(isOn: $b.watchOn) {
@@ -41,18 +34,16 @@ struct BodyTrackingSection: View {
             VStack(alignment: .leading) {
                 Button(calStep ?? "Calibrate arms") { Task { await calibrateArms() } }
                     .disabled(calStep != nil)
+                if let ask = body_.armPrompt, calStep == nil {
+                    Text(ask).font(.caption).foregroundStyle(.orange)
+                }
                 Text("Hold each pose until the next prompt: arms hanging at your sides, then a T-pose. Do it once per session with the Watch and band on (again if the arms drift).")
                     .font(.caption).foregroundStyle(.secondary)
-            }
-            VStack(alignment: .leading) {
-                LabeledContent("Camera field of view", value: "\(Int(hfov))°")
-                Slider(value: $hfov, in: 40...100, step: 1)
-                    .onChange(of: hfov) { Settings.cameraHFOV = hfov }
             }
         } header: {
             Text("Body tracking → avatar")
         } footer: {
-            Text("Head and band motion need the glasses connected (DAT beta, Developer Mode); hands need the camera streaming. If the avatar's hand sits closer or further than yours, adjust the field of view.")
+            Text("Head and band motion need the glasses connected (DAT beta, Developer Mode). The arms follow the Watch and the Neural Band once calibrated; the lens reminds you when they aren't.")
         }
     }
 
@@ -89,14 +80,6 @@ struct BodyTrackingSection: View {
         case .failed: return .orange
         default: return .secondary
         }
-    }
-
-    private var handsText: String {
-        guard body_.handsOn else { return "off" }
-        if let seen = body_.handsSeenAt, Date().timeIntervalSince(seen) < 1 {
-            return "seeing " + body_.hands.keys.sorted().joined(separator: " + ")
-        }
-        return "none in view (needs the camera streaming)"
     }
 
     private var watchText: String {
