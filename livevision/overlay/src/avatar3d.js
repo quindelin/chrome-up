@@ -248,7 +248,11 @@ class Rig {
     for (const side of ["left", "right"]) {
       const theirs = this.mirror ? (side === "left" ? "right" : "left") : side;
       const h = bodyIn?.hands?.[theirs];
-      const fresh = !!(h && h.fresh);
+      const arm = bodyIn?.arms?.[theirs];
+      const af = !!(arm && arm.fresh && Array.isArray(arm.dir));
+      // a wrist sensor wins: the camera only sees the hand now and then, at
+      // low confidence, and switching between the two made the arm jump
+      const fresh = !!(h && h.fresh) && !af;
       this.handW[side] += ((fresh ? 1 : 0) - this.handW[side]) * ease;
       if (fresh) {
         head.getWorldPosition(this._v[0]);
@@ -260,21 +264,12 @@ class Rig {
       // the wrist sensors say where the arm points (server/arms.py, body
       // frame: x = your right, y = up, z = forward): reach along it, unless
       // the camera sees the hand itself (that's a real position)
-      const arm = bodyIn?.arms?.[theirs];
-      const af = !!(arm && arm.fresh && Array.isArray(arm.dir));
-      this.armW[side] += ((af && !fresh ? 1 : 0) - this.armW[side]) * ease;
+      this.armW[side] += ((af ? 1 : 0) - this.armW[side]) * ease;
       if (af) {
         const d = new THREE.Vector3(flip * arm.dir[0], arm.dir[1], arm.dir[2]).normalize();
-        this.armDir[side] = this.armDir[side] ? this.armDir[side].lerp(d, Math.min(1, dt * 12)).normalize() : d;
+        this.armDir[side] = this.armDir[side] ? this.armDir[side].lerp(d, Math.min(1, dt * 8)).normalize() : d;
       }
-      if (this.armW[side] > 0.01 && this.armDir[side]) {
-        this.vrm.scene.updateMatrixWorld(true);
-        const S = this.bone(side + "UpperArm").getWorldPosition(new THREE.Vector3());
-        const E = this.bone(side + "LowerArm").getWorldPosition(new THREE.Vector3());
-        const Hh = this.bone(side + "Hand").getWorldPosition(new THREE.Vector3());
-        const reach = (S.distanceTo(E) + E.distanceTo(Hh)) * 0.93;   // a soft elbow
-        this._ikArm(side, S.clone().add(this.armDir[side].clone().multiplyScalar(reach)), this.armW[side]);
-      }
+      if (this.armW[side] > 0.01 && this.armDir[side]) this._forearmPose(side, this.armDir[side], this.armW[side]);
 
       // a punch wins over the camera's hand for its ~0.3 s
       const pe = this.punchE[side];
@@ -379,6 +374,34 @@ class Rig {
         if (b) b.rotation.set(0, 0, sg * a * k);
       }
     }
+  }
+
+  /** The wrist sensor knows the forearm's direction, not the upper arm's.
+   *  Guess the upper arm the way people hold them: hanging (a touch forward
+   *  and out) while the forearm is low or in front of you, so a forearm
+   *  raised to chest height bends at the elbow instead of reaching like a
+   *  zombie; following the forearm as it rises overhead or swings out to the
+   *  side (T-pose). Then elbow = shoulder + upper arm, hand = elbow + forearm. */
+  _forearmPose(side, d, weight) {
+    const up = this.bone(side + "UpperArm"), lo = this.bone(side + "LowerArm"), hand = this.bone(side + "Hand");
+    if (!up || !lo || !hand) return;
+    this.vrm.scene.updateMatrixWorld(true);
+    const S = up.getWorldPosition(new THREE.Vector3());
+    const E0 = lo.getWorldPosition(new THREE.Vector3());
+    const H0 = hand.getWorldPosition(new THREE.Vector3());
+    const L1 = S.distanceTo(E0), L2 = E0.distanceTo(H0);
+    const out = S.x >= 0 ? 1 : -1;                           // this arm's side of the body
+    const smooth = (v, a, b) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
+    const raised = smooth(d.y, 0.25, 0.85);                  // forearm from ~15 deg up to ~60 deg up
+    const sideways = smooth(d.x * out, 0.55, 0.9);           // forearm pointing out to this side
+    const k = Math.max(raised, sideways);
+    const hang = new THREE.Vector3(0.18 * out, -1, 0.12).normalize();
+    const upper = hang.clone().lerp(d, k).normalize();
+    const elbow = S.clone().add(upper.multiplyScalar(L1));
+    const goal = elbow.clone().add(d.clone().multiplyScalar(L2));
+    this._aim(up, lo, elbow, weight);
+    this.vrm.scene.updateMatrixWorld(true);
+    this._aim(lo, hand, goal, weight);
   }
 
   /** Analytic two-bone IK: upper arm + forearm reach `target` (world), elbow

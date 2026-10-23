@@ -1302,7 +1302,7 @@ def t_arms():
         return list(rotate(conj(q), (0, 0, -9.8)))
 
     with _tf.TemporaryDirectory() as td:
-        arms = Arms({"calibration_path": f"{td}/cal.json"})
+        arms = Arms({"calibration_path": f"{td}/cal.json", "smooth": False})
         # world: +x = body's left at calibration, +y = back... (arbitrary yaw);
         # the Watch's forearm axis is +x
         out_left = (1.0, 0.0, 0.0)
@@ -1314,7 +1314,7 @@ def t_arms():
         arms.ingest_wrist("left", up, "watch", grav(up))
         assert arms.snapshot()["left"]["dir"][1] > 0.95                 # hand overhead
         # a world->device sender is detected from its gravity and flipped
-        arms2 = Arms({"calibration_path": f"{td}/cal2.json"})
+        arms2 = Arms({"calibration_path": f"{td}/cal2.json", "smooth": False})
         assert arms2.ingest_wrist("left", conj(up), "watch", grav(up))
         assert arms2.snapshot()["left"]["dir"][1] > 0.95
 
@@ -1354,6 +1354,22 @@ def t_arms():
         # left arm too: a new axis waits for a new T-pose)
         again = Arms({"calibration_path": f"{td}/cal.json"})._cal
         assert again["right"]["axis"] and again["left"]["out_yaw"] is None
+
+
+def t_arm_filter():
+    """The 1-euro filter: a still arm's sensor noise shrinks a lot, a real
+    swing still gets through within a few samples."""
+    import random
+    from server.arms import OneEuro
+    f, rnd = OneEuro(), random.Random(3)
+    out = []
+    for i in range(60):                                   # 6 s at 10 Hz, arm still
+        out.append(f((rnd.gauss(0, 0.05), -1.0, rnd.gauss(0, 0.05)), i * 0.1))
+    raw_sd, fil_sd = 0.05, (sum(o[0] ** 2 for o in out[20:]) / 40) ** 0.5
+    assert fil_sd < raw_sd * 0.6, (fil_sd, raw_sd)
+    for i in range(60, 66):                               # swing the arm up
+        v = f((0.0, 1.0, 0.0), i * 0.1)
+    assert v[1] > 0.8, v
 
 
 def t_body_tracking():
@@ -1981,6 +1997,7 @@ def main() -> int:
         ("imu gait (pocket phone)", t_imu_gait),
         ("locomotion gate", t_locomotion_gate),
         ("arm directions", t_arms),
+        ("arm smoothing (1-euro)", t_arm_filter),
         ("body tracking", t_body_tracking),
         ("hud heartbeat config", t_heartbeat_config),
         ("body punches", t_body_punches),

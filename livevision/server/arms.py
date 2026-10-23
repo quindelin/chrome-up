@@ -82,10 +82,47 @@ def _quat(v) -> Optional[Quat]:
     return None
 
 
+class OneEuro:
+    """The 1€ filter (Casiez et al.) on a 3-vector: heavy smoothing while the
+    arm is still (sensor noise is what you see then), almost none while it
+    moves fast (lag is what you'd see then)."""
+
+    def __init__(self, min_cutoff: float = 1.0, beta: float = 0.6, d_cutoff: float = 1.0):
+        self.min_cutoff, self.beta, self.d_cutoff = min_cutoff, beta, d_cutoff
+        self.x: Optional[Vec] = None
+        self.dx: Vec = (0.0, 0.0, 0.0)
+        self.t = 0.0
+
+    @staticmethod
+    def _alpha(cutoff: float, dt: float) -> float:
+        tau = 1.0 / (2 * math.pi * cutoff)
+        return 1.0 / (1.0 + tau / dt)
+
+    def __call__(self, v: Vec, t: float) -> Vec:
+        if self.x is None or t - self.t > 2.0:
+            self.x, self.dx, self.t = v, (0.0, 0.0, 0.0), t
+            return v
+        dt = max(1e-3, t - self.t)
+        self.t = t
+        raw_dx = tuple((a - b) / dt for a, b in zip(v, self.x))
+        ad = self._alpha(self.d_cutoff, dt)
+        self.dx = tuple(ad * r + (1 - ad) * d for r, d in zip(raw_dx, self.dx))
+        speed = math.sqrt(sum(c * c for c in self.dx))
+        a = self._alpha(self.min_cutoff + self.beta * speed, dt)
+        self.x = tuple(a * n + (1 - a) * o for n, o in zip(v, self.x))
+        return self.x
+
+
 class Arms:
     def __init__(self, cfg: Optional[dict] = None):
         cfg = cfg or {}
-        self.stale_s = float(cfg.get("stale_s", 1.0))
+        # Watch messages relayed by the phone stall for a second now and then:
+        # hold the last direction that long rather than dropping the arm to
+        # rest and back (that read as dead, then twitchy)
+        self.stale_s = float(cfg.get("stale_s", 2.5))
+        self.smooth = bool(cfg.get("smooth", True))
+        self._filters = {s: OneEuro(float(cfg.get("min_cutoff_hz", 1.0)), float(cfg.get("beta", 0.6)))
+                         for s in SIDES}
         self.path = Path(cfg.get("calibration_path", "data/arms_calibration.json"))
         self._lock = threading.Lock()
         self._q: Dict[str, Tuple[Quat, str, float]] = {}            # side -> (q, source, ts)
@@ -97,6 +134,8 @@ class Arms:
         # False if world -> device (Apple doesn't say which CMAttitude is):
         # decided from a gravity reading sent alongside
         self._dev_to_world: Dict[str, bool] = {"neural_band": True}
+        self._waiting: Dict[str, float] = {}             # source -> when we last said so
+        self._blocked: Dict[str, Tuple[str, float]] = {}  # side -> (source, ts): no gravity yet
         self._load()
 
     def _orient(self, q: Quat, source: str, gravity) -> Optional[Quat]:
@@ -117,6 +156,13 @@ class Arms:
                 self._dev_to_world[source] = as_is < flipped
         conv = self._dev_to_world.get(source)
         if conv is None:
+            # say so once a minute: an old Watch build sends no gravity, and
+            # the arm then never moves (it looked like "not sensitive")
+            now = time.time()
+            if now - self._waiting.get(source, 0) > 60:
+                self._waiting[source] = now
+                print(f"[arms] {source}: no gravity reading yet{'' if g is None else ' that settles it'}; "
+                      f"arm waits (an old Watch build doesn't send one)", flush=True)
             return None                                  # not until we know
         return q if conv else conj(q)
 
@@ -129,7 +175,9 @@ class Arms:
         with self._lock:
             qq = self._orient(qq, source, gravity)
             if qq is None:
+                self._blocked[side] = (source, now)
                 return False
+            self._blocked.pop(side, None)
             self._q[side] = (qq, source, now)
             self._recent[side].append((now, qq))
         return True
@@ -196,7 +244,9 @@ class Arms:
             for side in SIDES:
                 cur = self._q.get(side)
                 if not cur or now - cur[2] > self.stale_s:
-                    out[side] = {"fresh": False}
+                    blk = self._blocked.get(side)
+                    out[side] = ({"fresh": False, "needs": "gravity", "source": blk[0]}
+                                 if blk and now - blk[1] < self.stale_s else {"fresh": False})
                     continue
                 q, source, _ = cur
                 cal = self._cal.get(side) if (self._cal.get(side) or {}).get("source") == source else None
@@ -225,9 +275,13 @@ class Arms:
                     x, z = -math.cos(r) * horiz, -math.sin(r) * horiz
                 else:
                     x, z = math.cos(r) * horiz, math.sin(r) * horiz
-                out[side] = {"dir": [round(x, 3), round(math.sin(elev), 3), round(z, 3)],
-                             "elev": round(math.degrees(elev), 1), "calibrated": calibrated,
-                             "source": source, "fresh": True}
+                raw = (x, math.sin(elev), z)
+                d = (norm(self._filters[side](raw, now)) or raw) if self.smooth else raw
+                hz = sum(1 for t, _ in self._recent[side] if now - t < 3.0) / 3.0
+                out[side] = {"dir": [round(c, 3) for c in d],
+                             "elev": round(math.degrees(math.asin(max(-1.0, min(1.0, d[1])))), 1),
+                             "calibrated": calibrated, "source": source, "hz": round(hz, 1),
+                             "fresh": True}
         return out
 
     # ------------------------------------------------------------------ disk
