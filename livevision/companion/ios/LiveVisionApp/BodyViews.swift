@@ -69,7 +69,11 @@ struct BodyTrackingSection: View {
         case .off: return "off"
         case .waiting: return "waiting for the glasses"
         case .starting: return "starting…"
-        case .streaming: return "live · head \(body_.headSamples)" + (body_.bandSamples > 0 ? " · band \(body_.bandSamples)" : " · no band data")
+        case .streaming:
+            var s = "live · head \(body_.headSamples)" + (body_.bandSamples > 0 ? " · band \(body_.bandSamples)" : " · no band data")
+            if body_.unknownSamples > 0 { s += " · unknown \(body_.unknownSamples)" }
+            if let input = LensRouter.shared.lastInput { s += " · last input: \(input)" }
+            return s
         case .failed(let why): return why
         }
     }

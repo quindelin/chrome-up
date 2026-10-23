@@ -35,6 +35,10 @@ final class BodyTracker {
     private(set) var motion: MotionLink = .off
     private(set) var headSamples = 0
     private(set) var bandSamples = 0
+    /// Motion samples DAT couldn't attribute (source .unknown): if the band's
+    /// arrive like this, they show up here instead of as band samples
+    private(set) var unknownSamples = 0
+    @ObservationIgnored private var sourcesLogged: Set<String> = []
     private(set) var punches = 0
     private(set) var hands: [String: HandTracker.Hand] = [:]
     private(set) var handsSeenAt: Date?
@@ -211,6 +215,12 @@ final class BodyTracker {
 
     private func handle(_ sample: MotionSample) {
         let fused = sample.orientation.map { [Double($0.w), Double($0.x), Double($0.y), Double($0.z)] }
+        // once per source: what DAT actually delivers (Settings › Diagnostics log)
+        let name = "\(sample.source)"
+        if !sourcesLogged.contains(name) {
+            sourcesLogged.insert(name)
+            log.notice("motion: first \(name) sample: accel \(sample.accelerometer != nil) gyro \(sample.gyroscope != nil) mag \(sample.magnetometer != nil) orientation \(sample.orientation != nil)")
+        }
         switch sample.source {
         case .glasses:
             guard let q = fused else { return }
@@ -224,7 +234,8 @@ final class BodyTracker {
             // our own estimate first: its frame is known (z up, device ->
             // world), which the arm direction needs; DAT's frame isn't documented
             if let q = bandAttitude.update(sample) ?? fused { band = (q, Date()) }
-        case .unknown: break
+        case .unknown:
+            unknownSamples += 1
         }
     }
 
