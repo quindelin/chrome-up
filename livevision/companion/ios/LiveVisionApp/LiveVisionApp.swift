@@ -41,6 +41,7 @@ struct LiveVisionApp: App {
             .onChange(of: glasses.link) {
                 prompter.sessionChanged(glasses)
                 bodyTracker.sessionChanged(glasses)        // DAT Motion rides the same session
+                InputHub.shared.sessionChanged(glasses)    // band gestures: lens + avatar
             }
             // livevision://navigate?to=<maps link or place> (Shortcuts, links);
             // TikTok's Share Kit answer (ClipShare); anything else is the

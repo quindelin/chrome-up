@@ -49,6 +49,8 @@ SIDES = ("left", "right")
 PUNCH_KINDS = ("straight", "hook", "uppercut")
 PUNCH_SHOW_S = 1.5        # how long a punch stays in the payload (overlays dedupe by id)
 PUNCH_SAME_S = 0.15       # Watch + band on one wrist both see the same punch
+GESTURES = ("wave", "fist_pump", "point")   # Neural Band pinch / back / swipe -> avatar
+GESTURE_SHOW_S = 3.0
 
 
 class Body:
@@ -79,6 +81,8 @@ class Body:
         self.guard_s = float(cfg.get("punch_guard_s", 2.5))       # guard stays up this long
         self._punches: deque = deque(maxlen=16)
         self._punch_id = 0
+        self._gestures: deque = deque(maxlen=8)
+        self._gesture_id = 0
 
     # ------------------------------------------------------------------ input
     def ingest(self, data: dict, source: str = "phone") -> bool:
@@ -111,6 +115,14 @@ class Body:
             punches = data.get("punches") if isinstance(data.get("punches"), list) else [data.get("punch")]
             for p in punches:
                 used = self._punch(p, now, source) or used
+
+            g = data.get("gesture")
+            if isinstance(g, dict) and g.get("kind") in GESTURES:
+                self._gesture_id += 1
+                side = g.get("side") if g.get("side") in SIDES else "right"
+                self._gestures.append({"id": self._gesture_id, "kind": g["kind"], "side": side, "ts": now})
+                print(f"[body] gesture #{self._gesture_id} {g['kind']} ({side})", flush=True)
+                used = True
 
             hr = data.get("heart_rate")
             if isinstance(hr, (int, float)) and 25 <= hr <= 250:
@@ -198,6 +210,10 @@ class Body:
                              "age": round(now - p["ts"], 3)}
                             for p in self._punches if now - p["ts"] < PUNCH_SHOW_S],
                 "punching": bool(self._punches) and now - self._punches[-1]["ts"] < self.guard_s,
+                # band gestures for the avatar, each id once (like punches)
+                "gestures": [{"id": g["id"], "kind": g["kind"], "side": g["side"],
+                              "age": round(now - g["ts"], 3)}
+                             for g in self._gestures if now - g["ts"] < GESTURE_SHOW_S],
             }
         out["wrists"] = {s: self._wrists[s].snapshot() for s in SIDES}
         out["arms"] = self.arms.snapshot()

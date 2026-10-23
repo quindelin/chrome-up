@@ -86,6 +86,24 @@ position still wins while your hand is in view.
   tracked arm shows a punch by itself; the canned punch only plays on an
   untracked arm.
 
+## Neural Band gestures
+
+The glasses don't stream the band's motion (DAT Motion delivers only
+`source: glasses` samples; the Control tab counts samples per source), so
+the band drives the avatar with its gestures instead (`InputHub`, shared
+with the lens):
+
+| band | avatar (the band's arm) |
+|---|---|
+| pinch (select) | wave |
+| back | fist pump |
+| swipe left / right | point |
+
+Sent as `body.gesture {kind, side}`, out as `body.gestures` with ids (each
+plays once), only on an arm with no wrist tracking. Not while the
+teleprompter is on the lens: its swipes turn pages. An untracked arm also
+idles with a slow sway and elbow give instead of hanging still.
+
 ## Punches
 
 The avatar throws a punch on the matching arm (mirrored like the hands) each

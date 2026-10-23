@@ -40,7 +40,7 @@ final class LensRouter {
     private(set) var state: State = .off
     private(set) var clients: Set<Client> = []
     /// The last input the glasses reported, for the status line.
-    private(set) var lastInput: String?
+    var lastInput: String? { InputHub.shared.lastInput }
 
     @ObservationIgnored weak var prompter: Teleprompter?
     @ObservationIgnored weak var navigator: RouteNavigator?
@@ -49,10 +49,9 @@ final class LensRouter {
     var notice: String? { didSet { if notice != oldValue { refresh() } } }
 
     @ObservationIgnored private var display: Display?
-    @ObservationIgnored private var inputs: Inputs?
     @ObservationIgnored private weak var attachedTo: DeviceSession?
     @ObservationIgnored private var tokens = ListenerTokenBag()
-    @ObservationIgnored private var inputTask: Task<Void, Never>?
+    @ObservationIgnored private var inputListener: UUID?
     @ObservationIgnored private var keepAwake: Task<Void, Never>?
     @ObservationIgnored private var flushTask: Task<Void, Never>?
     @ObservationIgnored private var sending = false
@@ -115,29 +114,19 @@ final class LensRouter {
         d.start()
         if d.state == .started { displayChanged(.started) }
 
-        // Neural Band / temple swipes. Experimental in DAT: without it the
-        // lens tap, the phone and auto-scroll still work.
-        do {
-            if let i = try session.addInputs() {
-                inputs = i
-                inputTask = Task { [weak self] in
-                    for await event in i.events { self?.handle(event) }
-                }
-            }
-        } catch {
-            log.notice("inputs unavailable: \(String(describing: error))")
-        }
+        // Neural Band / temple swipes come from InputHub (one Inputs per
+        // session, shared with the avatar's gestures)
+        inputListener = InputHub.shared.listen { [weak self] event in self?.handle(event) }
     }
 
     private func detach() {
         keepAwake?.cancel(); keepAwake = nil
-        inputTask?.cancel(); inputTask = nil
+        if let id = inputListener { InputHub.shared.unlisten(id) }
+        inputListener = nil
         flushTask?.cancel(); flushTask = nil
         pending = false
         display?.stop()
         display = nil
-        if inputs != nil { try? attachedTo?.removeInputs() }
-        inputs = nil
         attachedTo = nil
         let old = tokens
         tokens = ListenerTokenBag()
@@ -161,12 +150,6 @@ final class LensRouter {
     }
 
     private func handle(_ event: InputEvent) {
-        switch event {
-        case .nav(let dir, let source, _): lastInput = "\(dir) · \(source)"
-        case .select(let source, _): lastInput = "select · \(source)"
-        case .back(let source, _): lastInput = "back · \(source)"
-        default: break
-        }
         // swipes turn script pages; directions need no input
         if clients.contains(.prompter) { prompter?.lensInput(event) }
     }
@@ -419,5 +402,71 @@ enum CompassStrip {
         let s = text as NSString
         let box = s.size(withAttributes: attrs)
         s.draw(at: CGPoint(x: center.x - box.width / 2, y: center.y - box.height / 2), withAttributes: attrs)
+    }
+}
+
+/// The glasses' input events (Neural Band pinches and swipes, temple taps)
+/// for everyone: one Inputs capability per glasses session, attached while
+/// the glasses are connected, fanned out to listeners. The lens turns script
+/// pages with them, the avatar plays gestures (BodyTracker).
+@MainActor
+@Observable
+final class InputHub {
+    static let shared = InputHub()
+
+    /// The last input, for the Control tab's status line.
+    private(set) var lastInput: String?
+
+    @ObservationIgnored private var inputs: Inputs?
+    @ObservationIgnored private weak var attachedTo: DeviceSession?
+    @ObservationIgnored private var task: Task<Void, Never>?
+    @ObservationIgnored private var listeners: [UUID: (InputEvent) -> Void] = [:]
+
+    func listen(_ f: @escaping (InputEvent) -> Void) -> UUID {
+        let id = UUID()
+        listeners[id] = f
+        return id
+    }
+
+    func unlisten(_ id: UUID) { listeners[id] = nil }
+
+    /// Call when the glasses link changes (connect, pause, reconnect).
+    func sessionChanged(_ glasses: GlassesStreamer) {
+        guard glasses.link == .connected, let session = glasses.deviceSession else {
+            if glasses.deviceSession == nil, attachedTo != nil { detach() }
+            return
+        }
+        if session === attachedTo, inputs != nil { return }
+        detach()
+        attachedTo = session
+        // experimental in DAT: without it the lens tap, the phone and the
+        // prompter's auto-scroll still work
+        do {
+            if let i = try session.addInputs() {
+                inputs = i
+                task = Task { [weak self] in
+                    for await event in i.events { self?.deliver(event) }
+                }
+            }
+        } catch {
+            log.notice("inputs unavailable: \(String(describing: error))")
+        }
+    }
+
+    private func detach() {
+        task?.cancel(); task = nil
+        if inputs != nil { try? attachedTo?.removeInputs() }
+        inputs = nil
+        attachedTo = nil
+    }
+
+    private func deliver(_ event: InputEvent) {
+        switch event {
+        case .nav(let dir, let source, _): lastInput = "\(dir) · \(source)"
+        case .select(let source, _): lastInput = "select · \(source)"
+        case .back(let source, _): lastInput = "back · \(source)"
+        default: break
+        }
+        for f in listeners.values { f(event) }
     }
 }

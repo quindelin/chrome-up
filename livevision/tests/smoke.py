@@ -1372,6 +1372,26 @@ def t_arm_filter():
     assert v[1] > 0.8, v
 
 
+def t_body_gestures():
+    """Neural Band gestures reach the avatar once each, with an id; junk is
+    refused; they drop out after GESTURE_SHOW_S."""
+    import time as _t
+    import server.body as bodymod
+    b = bodymod.Body()
+    assert b.ingest({"gesture": {"kind": "wave", "side": "right"}})
+    assert not b.ingest({"gesture": {"kind": "dab"}})
+    assert b.ingest({"gesture": {"kind": "point"}})
+    gs = b.snapshot()["gestures"]
+    assert [g["kind"] for g in gs] == ["wave", "point"] and gs[0]["id"] < gs[1]["id"], gs
+    assert gs[1]["side"] == "right"
+    real = _t.time
+    try:
+        bodymod.time.time = lambda: real() + bodymod.GESTURE_SHOW_S + 0.1
+        assert b.snapshot()["gestures"] == []
+    finally:
+        bodymod.time.time = real
+
+
 def t_body_tracking():
     """Posture from the phone in a front pocket (thigh angle, with hysteresis),
     hands from the glasses camera going stale on their own, heart rate range."""
@@ -1998,6 +2018,7 @@ def main() -> int:
         ("locomotion gate", t_locomotion_gate),
         ("arm directions", t_arms),
         ("arm smoothing (1-euro)", t_arm_filter),
+        ("band gestures", t_body_gestures),
         ("body tracking", t_body_tracking),
         ("hud heartbeat config", t_heartbeat_config),
         ("body punches", t_body_punches),

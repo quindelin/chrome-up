@@ -130,6 +130,8 @@ class Rig {
     this.debug = null;                     // {activity, cadence, head, body} to test without sensors
     this.sit = 0;                          // 0 standing .. 1 sitting
     this.armW = { left: 0, right: 0 };     // how much a wrist-tracked arm direction drives it
+    this.gestureSeen = -1;                 // highest body.gestures id played (-1: not synced yet)
+    this.gesture = { left: null, right: null };   // {kind, t} while a band gesture plays
     this.armDir = { left: null, right: null };
     this.wristW = { left: 0, right: 0 };
     this.wristPose = { left: { yaw: 0, pitch: 0, roll: 0 }, right: { yaw: 0, pitch: 0, roll: 0 } };
@@ -265,6 +267,13 @@ class Rig {
         this._ikArm(side, target, Math.min(1, pe * 4), pole);
       }
 
+      // a Neural Band gesture (wave / fist pump / point) on an untracked arm
+      const gs = this.gesture[side];
+      if (gs && this.armW[side] < 0.5) {
+        const played = this._playGesture(side, gs);
+        if (!played) this.gesture[side] = null;
+      }
+
       const w = bodyIn?.wrists?.[theirs];
       const wf = !!(w && w.fresh);
       this.wristW[side] += ((wf ? 1 : 0) - this.wristW[side]) * ease;
@@ -280,6 +289,64 @@ class Rig {
       // are mostly the whole arm moving, and as hand bends they left the hand
       // sitting crooked
       this._pose(side + "Hand", r(clamp(wp.pitch, 60)) * k, 0, 0);
+    }
+  }
+
+  /** New band gestures from body.gestures, each id once (synced like punches). */
+  _takeGestures(bodyIn) {
+    const list = Array.isArray(bodyIn?.gestures) ? bodyIn.gestures : null;
+    if (!list) return;
+    const top = list.reduce((m, g) => Math.max(m, Number(g.id) || 0), 0);
+    if (this.gestureSeen < 0 || (list.length && top < this.gestureSeen)) { this.gestureSeen = top; return; }
+    for (const g of list) {
+      if (!(Number(g.id) > this.gestureSeen)) continue;
+      this.gestureSeen = Number(g.id);
+      if ((Number(g.age) || 0) > 0.6) continue;              // too late to look in sync
+      const side = this.mirror ? (g.side === "left" ? "right" : "left") : (g.side || "right");
+      this.gesture[side] = { kind: g.kind, t: this.t };
+    }
+  }
+
+  /** One frame of a band gesture on `side`; false once it's over. Targets are
+   *  relative to the shoulder (the avatar faces +z, `out` is its side). */
+  _playGesture(side, gs) {
+    const dur = { wave: 2.2, fist_pump: 1.4, point: 1.6 }[gs.kind] || 1.5;
+    const t = this.t - gs.t;
+    if (t >= dur) return false;
+    const ease = (u) => u * u * (3 - 2 * u);
+    const env = Math.min(ease(Math.min(1, t / 0.28)), ease(Math.min(1, (dur - t) / 0.32)));
+    const up = this.bone(side + "UpperArm");
+    if (!up || env <= 0.001) return true;
+    this.vrm.scene.updateMatrixWorld(true);
+    const S = up.getWorldPosition(new THREE.Vector3());
+    const out = S.x >= 0 ? 1 : -1;
+    let off, pole, hand = 0;
+    if (gs.kind === "wave") {
+      off = new THREE.Vector3(out * (0.2 + 0.07 * Math.sin(t * Math.PI * 2 * 2.2)), 0.3, 0.06);
+      pole = new THREE.Vector3(out, -0.7, 0);
+    } else if (gs.kind === "fist_pump") {
+      off = new THREE.Vector3(out * 0.1, 0.24 + 0.16 * Math.abs(Math.sin(t * Math.PI * 2 / 0.7)), 0.08);
+      pole = new THREE.Vector3(out, -0.5, -0.2);
+      hand = 1;
+    } else {                                                  // point: forward, a bit out
+      off = new THREE.Vector3(out * 0.14, 0.0, 0.47);
+      pole = new THREE.Vector3(out * 0.4, -1, 0);
+      hand = 2;
+    }
+    this._ikArm(side, S.clone().add(off), env, pole);
+    if (hand && env > 0.4) this._handShape(side, hand === 1 ? "fist" : "point");
+    return true;
+  }
+
+  /** fist: every finger curled; point: index straight, the rest curled. */
+  _handShape(side, shape) {
+    const sg = side === "left" ? 1 : -1;
+    for (const f of ["Index", "Middle", "Ring", "Little"]) {
+      const k = shape === "point" && f === "Index" ? 0 : 1;
+      for (const [j, a] of [["Proximal", 1.4], ["Intermediate", 1.5], ["Distal", 1.0]]) {
+        const bn = this.bone(side + f + j);
+        if (bn) bn.rotation.set(0, 0, sg * a * k);
+      }
     }
   }
 
@@ -437,7 +504,8 @@ class Rig {
     }
     const arms = {};
     for (const s of ["left", "right"]) if (b.arms?.[s]) arms[s] = { ...b.arms[s], fresh: true };
-    return { posture: b.posture || "standing", hands, wrists, arms, punches: b.punches, punching: b.punching };
+    return { posture: b.posture || "standing", hands, wrists, arms, punches: b.punches, punching: b.punching,
+             gestures: b.gestures };
   }
 
   /** one leg forward while the other is back; the knee folds on the way through */
@@ -522,6 +590,7 @@ class Rig {
     // ---- your head drives ours when orientation is arriving, else idle motion
     // ---- punches: envelopes first, the torso twists into them below
     this._takePunches(bodyIn);
+    this._takeGestures(bodyIn);
     // a tracked arm shows the punch itself; the canned one is for untracked arms
     for (const s of ["left", "right"]) this.punchE[s] = this.armW[s] > 0.5 ? 0 : this._punchEnvelope(s);
     const hp = headIn && headIn.fresh ? headIn : null;
@@ -570,10 +639,16 @@ class Rig {
     // right. Guard (GUARD_*): fists by the chin.
     // Punches are IK on top of this (_arms), timed by the Watch / band.
     const b = this.box;
-    this._pose("leftUpperArm",  ph * 0.45 * g * (1 - b) + b * GUARD_UP, 0, b * GUARD_IN);
-    this._pose("rightUpperArm", -ph * 0.45 * g * (1 - b) + b * GUARD_UP, 0, -b * GUARD_IN);
-    this._pose("leftLowerArm",  0, -(1.0 * run * (1 - b) + b * GUARD_FOLD), 0);
-    this._pose("rightLowerArm", 0, 1.0 * run * (1 - b) + b * GUARD_FOLD, 0);
+    // standing or sitting still, an untracked arm isn't frozen: a slow sway
+    // and elbow give, out of step between the two arms (tracking overrides it)
+    const idle = (1 - g) * (1 - b);
+    const swayL = Math.sin(this.t * 0.8) * 0.045 * idle, swayR = Math.sin(this.t * 0.8 + 1.7) * 0.045 * idle;
+    const bendL = (0.5 + 0.5 * Math.sin(this.t * 0.55 + 0.4)) * 0.12 * idle;
+    const bendR = (0.5 + 0.5 * Math.sin(this.t * 0.55 + 2.3)) * 0.12 * idle;
+    this._pose("leftUpperArm",  ph * 0.45 * g * (1 - b) + b * GUARD_UP + swayL, 0, b * GUARD_IN);
+    this._pose("rightUpperArm", -ph * 0.45 * g * (1 - b) + b * GUARD_UP + swayR, 0, -b * GUARD_IN);
+    this._pose("leftLowerArm",  0, -(1.0 * run * (1 - b) + b * GUARD_FOLD + bendL), 0);
+    this._pose("rightLowerArm", 0, 1.0 * run * (1 - b) + b * GUARD_FOLD + bendR, 0);
     // twist into the punch: measured, +y on the spine or a shoulder takes the
     // avatar's left (+x) shoulder back, so -out drives the punching one forward
     let twist = 0;

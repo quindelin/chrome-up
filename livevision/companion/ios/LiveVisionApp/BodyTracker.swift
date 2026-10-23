@@ -1,6 +1,7 @@
 import CoreVideo
 import Foundation
 import MWDATCore
+import MWDATInputs
 import MWDATMotion
 import Observation
 import simd
@@ -38,6 +39,9 @@ final class BodyTracker {
     /// Motion samples DAT couldn't attribute (source .unknown): if the band's
     /// arrive like this, they show up here instead of as band samples
     private(set) var unknownSamples = 0
+    /// Band gestures sent to the avatar (wave / fist pump / point)
+    private(set) var gestures = 0
+    @ObservationIgnored private var inputListener: UUID?
     @ObservationIgnored private var sourcesLogged: Set<String> = []
     private(set) var punches = 0
     private(set) var hands: [String: HandTracker.Hand] = [:]
@@ -86,6 +90,9 @@ final class BodyTracker {
         self.watch = watch
         watch.activate()
         watch.onPunch = { [weak self] p in self?.sendPunch(p) }
+        if inputListener == nil {
+            inputListener = InputHub.shared.listen { [weak self] e in self?.bandGesture(e) }
+        }
         refresh()
         calibrationLoop?.cancel()
         calibrationLoop = Task { [weak self] in
@@ -107,6 +114,23 @@ final class BodyTracker {
     func sessionChanged(_ glasses: GlassesStreamer) {
         self.glasses = glasses
         refresh()
+    }
+
+    /// Neural Band gestures play moves on the avatar's arm (the band's own
+    /// motion doesn't reach the app, so this is what the band can drive):
+    /// pinch = wave, back = fist pump, swipe left/right = point. Not while
+    /// the teleprompter is on the lens: there the swipes turn pages.
+    private func bandGesture(_ event: InputEvent) {
+        guard !LensRouter.shared.clients.contains(.prompter), let sensors else { return }
+        let kind: String
+        switch event {
+        case .select(.neuralBand, _): kind = "wave"
+        case .back(.neuralBand, _): kind = "fist_pump"
+        case .nav(.left, .neuralBand, _), .nav(.right, .neuralBand, _): kind = "point"
+        default: return
+        }
+        sensors.sendJSON(["body": ["gesture": ["kind": kind, "side": Settings.bandWrist]]])
+        gestures += 1
     }
 
     /// Every 5 s: does the HUD have a wrist sending without a calibration?
